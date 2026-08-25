@@ -42,7 +42,7 @@ export function CryptoView() {
 
       <div className="section-title">
         <h2>Crypto</h2>
-        <button className="btn btn-ghost" onClick={() => refresh()} disabled={loading} type="button">
+        <button className="btn btn-ghost" onClick={() => refresh({ force: true })} disabled={loading} type="button">
           {loading ? 'Refreshing…' : '↻ Refresh rates'}
         </button>
       </div>

@@ -1,8 +1,13 @@
 import { db } from '../db/db'
 import type { Currency } from '../db/types'
+import { CURRENCIES } from './constants'
 
 // Rates are all relative to 1 USD, e.g. rates.EUR = how many EUR per 1 USD.
 export type FxRates = Record<Currency, number>
+
+function hasAllCurrencies(rates: FxRates | undefined): boolean {
+  return !!rates && CURRENCIES.every((c) => typeof rates[c.code] === 'number' && Number.isFinite(rates[c.code]))
+}
 
 interface CachedFx {
   rates: FxRates
@@ -38,9 +43,13 @@ export interface FxResult {
   error: string | null
 }
 
-export async function getFiatRates(): Promise<FxResult> {
+export async function getFiatRates(opts: { force?: boolean } = {}): Promise<FxResult> {
   const cached = await readCache()
-  const cacheFresh = cached && Date.now() - new Date(cached.fetchedAt).getTime() < MAX_AGE_MS
+  const cacheFresh =
+    !opts.force &&
+    cached &&
+    hasAllCurrencies(cached.rates) &&
+    Date.now() - new Date(cached.fetchedAt).getTime() < MAX_AGE_MS
 
   if (cacheFresh) {
     return { rates: cached!.rates, fetchedAt: cached!.fetchedAt, stale: false, error: null }

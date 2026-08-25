@@ -1,12 +1,11 @@
 import { useEffect, useMemo } from 'react'
-import type { ReactNode } from 'react'
 import type { Currency } from '../../db/types'
 import { CURRENCIES, DEFAULT_CRYPTO_CURRENCIES, DEFAULT_SAVINGS_CURRENCIES } from '../../lib/constants'
 import { formatMoney } from '../../lib/format'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { useNetWorth } from '../../hooks/useNetWorth'
 
-export function NetWorthCard({ headerAction }: { headerAction?: ReactNode }) {
+export function NetWorthCard() {
   const [savingsCurrencies] = useMetaSetting<Currency[]>('enabledSavingsCurrencies', DEFAULT_SAVINGS_CURRENCIES)
   const [cryptoCurrencies] = useMetaSetting<Currency[]>('enabledCryptoCurrencies', DEFAULT_CRYPTO_CURRENCIES)
   const [displayCurrency, setDisplayCurrency] = useMetaSetting<Currency>('netWorthCurrency', 'EUR')
@@ -29,16 +28,13 @@ export function NetWorthCard({ headerAction }: { headerAction?: ReactNode }) {
     <div className="card">
       <div className="section-title">
         <h2>Total net worth</h2>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {headerAction}
-          <select value={displayCurrency} onChange={(e) => setDisplayCurrency(e.target.value as Currency)}>
-            {options.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.symbol} {c.code}
-              </option>
-            ))}
-          </select>
-        </div>
+        <select value={displayCurrency} onChange={(e) => setDisplayCurrency(e.target.value as Currency)}>
+          {options.map((c) => (
+            <option key={c.code} value={c.code}>
+              {c.symbol} {c.code}
+            </option>
+          ))}
+        </select>
       </div>
 
       {!breakdown ? (

@@ -1,3 +1,4 @@
+import type { ChangeEvent } from 'react'
 import type { Currency } from '../../db/types'
 import { CURRENCIES } from '../../lib/constants'
 
@@ -7,28 +8,25 @@ interface Props {
 }
 
 export function CurrencyMultiSelect({ selected, onChange }: Props) {
-  function toggle(code: Currency) {
-    if (selected.includes(code)) {
-      if (selected.length === 1) return // always keep at least one enabled
-      onChange(selected.filter((c) => c !== code))
-    } else {
-      onChange([...selected, code])
-    }
+  function handleChange(e: ChangeEvent<HTMLSelectElement>) {
+    const next = Array.from(e.target.selectedOptions).map((o) => o.value as Currency)
+    if (next.length === 0) return // always keep at least one enabled
+    onChange(next)
   }
 
   return (
-    <div className="currency-checkbox-group">
-      {CURRENCIES.map((c) => {
-        const checked = selected.includes(c.code)
-        return (
-          <label key={c.code} className={`currency-checkbox${checked ? ' checked' : ''}`}>
-            <input type="checkbox" checked={checked} onChange={() => toggle(c.code)} />
-            <span>
-              {c.symbol} {c.code}
-            </span>
-          </label>
-        )
-      })}
-    </div>
+    <select
+      multiple
+      size={CURRENCIES.length}
+      className="currency-multiselect"
+      value={selected}
+      onChange={handleChange}
+    >
+      {CURRENCIES.map((c) => (
+        <option key={c.code} value={c.code}>
+          {c.symbol} {c.code} — {c.label}
+        </option>
+      ))}
+    </select>
   )
 }

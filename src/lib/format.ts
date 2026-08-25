@@ -9,6 +9,7 @@ export function currencySymbol(code: Currency): string {
 const NO_DECIMAL_CURRENCIES: Currency[] = ['JPY']
 
 export function formatMoney(amount: number, code: Currency): string {
+  if (!Number.isFinite(amount)) return '—'
   const sign = amount < 0 ? '-' : ''
   const decimals = NO_DECIMAL_CURRENCIES.includes(code) ? 0 : 2
   const number = new Intl.NumberFormat('en-US', {

@@ -8,9 +8,9 @@ export function useFiatRates() {
   const [stale, setStale] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (opts?: { force?: boolean }) => {
     setLoading(true)
-    const result = await getFiatRates()
+    const result = await getFiatRates(opts)
     setRates(result.rates)
     setFetchedAt(result.fetchedAt)
     setStale(result.stale)

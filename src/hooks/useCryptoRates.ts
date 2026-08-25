@@ -10,10 +10,10 @@ export function useCryptoRates(coinIds: string[]) {
 
   const key = coinIds.slice().sort().join(',')
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (opts?: { force?: boolean }) => {
     if (coinIds.length === 0) return
     setLoading(true)
-    const result = await getCryptoPrices(coinIds)
+    const result = await getCryptoPrices(coinIds, opts)
     setPrices(result.prices)
     setFetchedAt(result.fetchedAt)
     setStale(result.stale)

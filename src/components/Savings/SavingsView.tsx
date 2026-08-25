@@ -46,22 +46,18 @@ export function SavingsView() {
   return (
     <div className="view">
       <HeaderPortal>
-        <button className="btn btn-primary" onClick={() => setShowRates(true)} type="button">
+        <button className="btn btn-accent-text" onClick={() => setShowRates(true)} type="button">
           Exchange rates
         </button>
       </HeaderPortal>
 
-      <NetWorthCard
-        headerAction={
-          <button
-            className="btn btn-primary header-action-desktop"
-            onClick={() => setShowRates(true)}
-            type="button"
-          >
-            Exchange rates
-          </button>
-        }
-      />
+      <div className="desktop-header-row">
+        <button className="btn btn-accent-text" onClick={() => setShowRates(true)} type="button">
+          Exchange rates
+        </button>
+      </div>
+
+      <NetWorthCard />
 
       <div className="segmented">
         <button type="button" className={subTab === 'mine' ? 'active' : ''} onClick={() => setSubTab('mine')}>

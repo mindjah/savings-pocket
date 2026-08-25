@@ -14,6 +14,12 @@ export function priceIn(price: CoinPrice | undefined, currency: Currency): numbe
   return price[currency.toLowerCase() as keyof CoinPrice] ?? 0
 }
 
+const PRICE_FIELDS: (keyof CoinPrice)[] = ['usd', 'eur', 'rub', 'jpy', 'cny']
+
+function hasAllFields(price: CoinPrice | undefined): boolean {
+  return !!price && PRICE_FIELDS.every((f) => typeof price[f] === 'number' && Number.isFinite(price[f]))
+}
+
 export type PriceMap = Record<string, CoinPrice>
 
 interface CachedRates {
@@ -56,16 +62,17 @@ export interface RatesResult {
  * whatever was already cached (so coins missing from a partial failure keep
  * their last known price) and falling back to cache entirely when offline.
  */
-export async function getCryptoPrices(coinIds: string[]): Promise<RatesResult> {
+export async function getCryptoPrices(coinIds: string[], opts: { force?: boolean } = {}): Promise<RatesResult> {
   const cached = await readCache()
   if (coinIds.length === 0) {
     return { prices: cached?.prices ?? {}, fetchedAt: cached?.fetchedAt ?? null, stale: false, error: null }
   }
 
   const cacheFresh =
+    !opts.force &&
     cached &&
     Date.now() - new Date(cached.fetchedAt).getTime() < MAX_AGE_MS &&
-    coinIds.every((id) => id in cached.prices)
+    coinIds.every((id) => hasAllFields(cached.prices[id]))
 
   if (cacheFresh) {
     return { prices: cached!.prices, fetchedAt: cached!.fetchedAt, stale: false, error: null }

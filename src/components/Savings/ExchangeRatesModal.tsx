@@ -28,8 +28,8 @@ export function ExchangeRatesModal({ onClose }: { onClose: () => void }) {
   } = useCryptoRates(coinIds)
 
   function refreshAll() {
-    refreshFx()
-    refreshCrypto()
+    refreshFx({ force: true })
+    refreshCrypto({ force: true })
   }
 
   return (

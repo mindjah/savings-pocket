@@ -127,9 +127,18 @@ h1, h2, h3, p {
   display: none;
 }
 
+.desktop-header-row {
+  display: none;
+}
+
 @media (min-width: 860px) {
   .btn.header-action-desktop {
     display: inline-flex;
+  }
+
+  .desktop-header-row {
+    display: flex;
+    justify-content: flex-end;
   }
 }
 
@@ -762,38 +771,24 @@ h1, h2, h3, p {
   gap: 8px;
 }
 
-.currency-checkbox-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.currency-multiselect {
+  width: 100%;
 }
 
-.currency-checkbox {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 6px 12px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  background: var(--surface);
+.currency-multiselect option {
+  padding: 8px 10px;
 }
 
-.currency-checkbox input {
-  width: auto;
-  margin: 0;
-}
-
-.currency-checkbox.checked {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+.currency-multiselect option:checked {
+  background: color-mix(in srgb, var(--accent) 30%, var(--surface));
+  color: var(--text);
 }
 
 .btn-accent-text {
   background: none;
+  border-color: transparent;
   color: var(--accent);
+  padding: 8px 6px;
 }
 
 .datalist-hint {
