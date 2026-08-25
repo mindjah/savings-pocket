@@ -322,6 +322,14 @@ h1, h2, h3, p {
   padding: 4px;
 }
 
+.note-indicator-text {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: underline;
+  opacity: 1;
+}
+
 .entry-top {
   display: flex;
   justify-content: space-between;
@@ -338,14 +346,13 @@ h1, h2, h3, p {
 
 .pocket-adjust-btn {
   flex-shrink: 0;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
   border: none;
-  background: var(--accent);
-  color: var(--accent-contrast);
-  font-size: 1.1rem;
+  background: none;
+  color: var(--accent);
+  font-size: 1.3rem;
+  font-weight: 700;
   line-height: 1;
+  padding: 4px 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -809,33 +816,6 @@ h1, h2, h3, p {
   align-items: flex-start;
   flex-direction: column;
   gap: 8px;
-}
-
-.currency-multiselect {
-  width: 100%;
-}
-
-.currency-multiselect option {
-  padding: 8px 10px;
-}
-
-.currency-multiselect option:checked {
-  background: color-mix(in srgb, var(--accent) 30%, var(--surface));
-  color: var(--text);
-}
-
-.currency-select-desktop {
-  display: none;
-}
-
-@media (min-width: 860px) {
-  .currency-select-mobile {
-    display: none;
-  }
-
-  .currency-select-desktop {
-    display: block;
-  }
 }
 
 .currency-dropdown {

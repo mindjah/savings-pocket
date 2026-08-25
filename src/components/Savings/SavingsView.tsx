@@ -127,9 +127,7 @@ export function SavingsView() {
                     <div className="entry-sub">📍 {entry.location}</div>
                     {entry.note && (
                       <span
-                        className="note-indicator"
-                        title="Has a note"
-                        aria-label="Has a note"
+                        className="note-indicator note-indicator-text"
                         role="button"
                         tabIndex={0}
                         onClick={(e) => {
@@ -143,7 +141,7 @@ export function SavingsView() {
                           }
                         }}
                       >
-                        📝
+                        See note
                       </span>
                     )}
                     <div

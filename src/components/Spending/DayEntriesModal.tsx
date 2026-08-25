@@ -27,7 +27,6 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
   const [spendingCurrencies] = useMetaSetting<Currency[]>('enabledSpendingCurrencies', DEFAULT_SPENDING_CURRENCIES)
   const defaultCurrency = spendingCurrencies[0] ?? 'EUR'
   const [mode] = useMetaSetting<SavingsTrackingMode>('savingsTrackingMode', 'manual')
-  const [defaultPockets] = useMetaSetting<Partial<Record<Currency, number>>>('defaultSavingsPocketByCurrency', {})
   const toast = useToast()
 
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -45,8 +44,16 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
   ) ?? []
 
   async function refreshDebitDefault(cur: Currency, restoreId: number | null) {
-    const list = await db.savingsEntries.where('currency').equals(cur).toArray()
-    const candidate = list.find((p) => p.id === restoreId) ?? list.find((p) => p.id === defaultPockets[cur]) ?? list[0]
+    // Read straight from the DB (not the useMetaSetting state) — on the very first
+    // render that state is still its fallback default, since the underlying
+    // liveQuery hasn't resolved yet, which was silently defaulting to "first
+    // pocket found" instead of the one actually configured in Settings.
+    const [list, metaRec] = await Promise.all([
+      db.savingsEntries.where('currency').equals(cur).toArray(),
+      db.meta.get('defaultSavingsPocketByCurrency'),
+    ])
+    const defaults = (metaRec?.value as Partial<Record<Currency, number>>) ?? {}
+    const candidate = list.find((p) => p.id === restoreId) ?? list.find((p) => p.id === defaults[cur]) ?? list[0]
     setDebitPocketId(candidate?.id ?? '')
   }
 
