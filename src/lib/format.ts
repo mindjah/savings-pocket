@@ -5,6 +5,13 @@ export function currencySymbol(code: Currency): string {
   return CURRENCIES.find((c) => c.code === code)?.symbol ?? code
 }
 
+// Some iOS keyboards (locale-dependent) present a comma as the decimal key on
+// a plain text input, and <input type="number"> inconsistently rejects it
+// across iOS versions — so amount fields are text inputs and parse through here.
+export function parseAmount(raw: string): number {
+  return Number(raw.trim().replace(/,/g, '.'))
+}
+
 // JPY has no minor unit in everyday use (¥1000, not ¥1000.00).
 const NO_DECIMAL_CURRENCIES: Currency[] = ['JPY']
 

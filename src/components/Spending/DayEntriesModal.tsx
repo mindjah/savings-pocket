@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import type { Currency, SpendingEntry } from '../../db/types'
 import { CURRENCIES, DEFAULT_SPENDING_CURRENCIES } from '../../lib/constants'
-import { formatDate, formatMoney } from '../../lib/format'
+import { formatDate, formatMoney, parseAmount } from '../../lib/format'
 import { Modal } from '../common/Modal'
 import { useToast } from '../../hooks/useToast'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
@@ -60,7 +60,7 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
   }
 
   async function handleSave() {
-    const parsed = Number(amount)
+    const parsed = parseAmount(amount)
     if (categoryId === '' || Number.isNaN(parsed) || parsed <= 0) return
     if (editingId != null) {
       await db.spendingEntries.update(editingId, { categoryId, amount: parsed, currency, note: note.trim() })
@@ -87,7 +87,7 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
     if (editingId === id) resetForm()
   }
 
-  const valid = categoryId !== '' && Number(amount) > 0
+  const valid = categoryId !== '' && parseAmount(amount) > 0
 
   return (
     <Modal title={formatDate(date)} onClose={onClose}>
@@ -166,10 +166,8 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
                 <label htmlFor="spendAmount">Amount</label>
                 <input
                   id="spendAmount"
-                  type="number"
+                  type="text"
                   inputMode="decimal"
-                  step="0.01"
-                  min="0"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="0.00"

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { db } from '../../db/db'
 import type { CryptoEntry } from '../../db/types'
 import { POPULAR_COINS } from '../../lib/constants'
+import { parseAmount } from '../../lib/format'
 import { Modal } from '../common/Modal'
 import { ExpandableTextarea } from '../common/ExpandableTextarea'
 import { useToast } from '../../hooks/useToast'
@@ -27,7 +28,7 @@ export function CryptoEntryForm({ entry, onClose }: Props) {
   const [reason, setReason] = useState('')
   const toast = useToast()
 
-  const parsedAmount = useMemo(() => Number(amount), [amount])
+  const parsedAmount = useMemo(() => parseAmount(amount), [amount])
   const amountChanged = isEdit && entry && parsedAmount !== entry.amount
 
   const resolved = useMemo(() => {
@@ -154,10 +155,8 @@ export function CryptoEntryForm({ entry, onClose }: Props) {
         <label htmlFor="cryptoAmount">Amount</label>
         <input
           id="cryptoAmount"
-          type="number"
+          type="text"
           inputMode="decimal"
-          step="any"
-          min="0"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           placeholder="0.00"
