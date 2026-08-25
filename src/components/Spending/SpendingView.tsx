@@ -8,6 +8,7 @@ import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { DayEntriesModal } from './DayEntriesModal'
 import { CategoryManagerModal } from './CategoryManagerModal'
 import { CategoryExpensesModal } from './CategoryExpensesModal'
+import { HeaderPortal } from '../common/HeaderPortal'
 
 function daysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate()
@@ -103,10 +104,23 @@ export function SpendingView() {
 
   return (
     <div className="view">
+      <HeaderPortal>
+        <button className="btn btn-primary" onClick={() => setManagingCategories(true)} type="button">
+          + Manage Categories
+        </button>
+      </HeaderPortal>
+
       <div className="section-title">
         <h2>
           Total spent — {MONTH_NAMES[month]} {year}
         </h2>
+        <button
+          className="btn btn-primary header-action-desktop"
+          onClick={() => setManagingCategories(true)}
+          type="button"
+        >
+          + Manage Categories
+        </button>
       </div>
       <div className="totals-row">
         {CURRENCIES.map((c) => (
@@ -171,9 +185,6 @@ export function SpendingView() {
 
       <div className="section-title">
         <h2>By category</h2>
-        <button className="btn btn-primary" onClick={() => setManagingCategories(true)} type="button">
-          + Manage Categories
-        </button>
       </div>
 
       {breakdown.length === 0 ? (

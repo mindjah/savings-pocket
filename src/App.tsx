@@ -5,6 +5,7 @@ import { CryptoView } from './components/Crypto/CryptoView'
 import { SpendingView } from './components/Spending/SpendingView'
 import { SettingsView } from './components/Settings/SettingsView'
 import { ToastProvider } from './hooks/useToast'
+import { HEADER_ACTIONS_ID } from './components/common/HeaderPortal'
 
 const TITLES: Record<Tab, string> = {
   savings: 'Savings',
@@ -36,6 +37,7 @@ export default function App() {
       <div className="app-shell">
         <header className="app-header">
           <h1>{TITLES[tab]}</h1>
+          <div id={HEADER_ACTIONS_ID} className="app-header-actions" />
         </header>
         <NavBar active={tab} onChange={handleChange} />
         <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>

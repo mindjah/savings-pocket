@@ -118,6 +118,21 @@ h1, h2, h3, p {
   letter-spacing: 0.01em;
 }
 
+.app-header-actions {
+  display: flex;
+  align-items: center;
+}
+
+.btn.header-action-desktop {
+  display: none;
+}
+
+@media (min-width: 860px) {
+  .btn.header-action-desktop {
+    display: inline-flex;
+  }
+}
+
 .view {
   flex: 1;
   padding: 16px 16px 32px;
@@ -203,6 +218,7 @@ h1, h2, h3, p {
   }
 
   .nav-item {
+    flex: none;
     flex-direction: row;
     justify-content: flex-start;
     gap: 10px;
