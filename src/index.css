@@ -784,6 +784,82 @@ h1, h2, h3, p {
   color: var(--text);
 }
 
+.currency-select-desktop {
+  display: none;
+}
+
+@media (min-width: 860px) {
+  .currency-select-mobile {
+    display: none;
+  }
+
+  .currency-select-desktop {
+    display: block;
+  }
+}
+
+.currency-dropdown {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+}
+
+.currency-dropdown-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.currency-dropdown-trigger .chevron {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.currency-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.currency-dropdown-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.88rem;
+}
+
+.currency-dropdown-option:hover {
+  background: var(--surface-hover);
+}
+
+.currency-dropdown-option input {
+  width: auto;
+  margin: 0;
+}
+
 .btn-accent-text {
   background: none;
   border-color: transparent;
