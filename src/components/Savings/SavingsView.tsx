@@ -98,7 +98,7 @@ export function SavingsView() {
 
       {subTab === 'mine' ? (
         <>
-          <div className="section-title">
+          <div className="section-title" style={{ marginTop: 8 }}>
             <h2>Saving Pockets</h2>
           </div>
 
