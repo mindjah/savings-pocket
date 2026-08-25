@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
-import type { SavingsEntry, LoanEntry, Currency } from '../../db/types'
+import type { SavingsEntry, LoanEntry, Currency, SavingsTrackingMode } from '../../db/types'
 import { CURRENCIES, DEFAULT_SAVINGS_CURRENCIES } from '../../lib/constants'
 import { formatMoney } from '../../lib/format'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
@@ -20,6 +20,9 @@ type SubTab = 'mine' | 'lent'
 export function SavingsView() {
   const [subTab, setSubTab] = useState<SubTab>('mine')
   const [savingsCurrencies] = useMetaSetting<Currency[]>('enabledSavingsCurrencies', DEFAULT_SAVINGS_CURRENCIES)
+  const [trackingMode] = useMetaSetting<SavingsTrackingMode>('savingsTrackingMode', 'manual')
+  const [defaultPockets] = useMetaSetting<Partial<Record<Currency, number>>>('defaultSavingsPocketByCurrency', {})
+  const defaultPocketIds = new Set(Object.values(defaultPockets).filter((id): id is number => id != null))
 
   const entries = useLiveQuery(() => db.savingsEntries.toArray(), [])
   const loans = useLiveQuery(() => db.loanEntries.toArray(), [])
@@ -96,7 +99,14 @@ export function SavingsView() {
             <div className="entry-list">
               {entries
                 .slice()
-                .sort((a, b) => a.currency.localeCompare(b.currency) || b.amount - a.amount)
+                .sort((a, b) => {
+                  if (trackingMode === 'auto') {
+                    const aDefault = a.id != null && defaultPocketIds.has(a.id)
+                    const bDefault = b.id != null && defaultPocketIds.has(b.id)
+                    if (aDefault !== bDefault) return aDefault ? -1 : 1
+                  }
+                  return b.amount - a.amount
+                })
                 .map((entry) => (
                   <div
                     className="entry-card"
@@ -112,6 +122,9 @@ export function SavingsView() {
                       <span className="entry-top-left">
                         <span className="entry-amount">{formatMoney(entry.amount, entry.currency)}</span>
                         <span className={`badge badge-${entry.type}`}>{entry.type === 'cash' ? 'Cash' : 'Card'}</span>
+                        {trackingMode === 'auto' && entry.id != null && defaultPocketIds.has(entry.id) && (
+                          <span className="badge badge-default">Default</span>
+                        )}
                       </span>
                       <button
                         className="pocket-adjust-btn"

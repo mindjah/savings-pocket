@@ -325,7 +325,7 @@ h1, h2, h3, p {
 .note-indicator-text {
   font-size: 0.78rem;
   font-weight: 600;
-  color: var(--accent);
+  color: var(--text);
   text-decoration: underline;
   opacity: 1;
 }
@@ -392,6 +392,7 @@ h1, h2, h3, p {
 
 .badge-cash { color: var(--warning); }
 .badge-card { color: #60a5fa; }
+.badge-default { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
 
 .btn {
   display: inline-flex;

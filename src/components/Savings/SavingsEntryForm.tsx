@@ -23,7 +23,7 @@ export function SavingsEntryForm({ entry, defaultCurrency, availableCurrencies, 
   const currencyOptions = CURRENCIES.filter(
     (c) => availableCurrencies.includes(c.code) || c.code === entry?.currency,
   )
-  const [type, setType] = useState<MoneyType>(entry?.type ?? 'cash')
+  const [type, setType] = useState<MoneyType>(entry?.type ?? 'card')
   const [location, setLocation] = useState(entry?.location ?? '')
   const [note, setNote] = useState(entry?.note ?? '')
   const [amount, setAmount] = useState(entry ? String(entry.amount) : '')

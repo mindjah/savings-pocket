@@ -1,13 +1,14 @@
-import { useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
-import { DEFAULT_CRYPTO_CURRENCIES, DEFAULT_SAVINGS_CURRENCIES, DEFAULT_SPENDING_CURRENCIES } from '../../lib/constants'
+import { CURRENCIES, DEFAULT_CRYPTO_CURRENCIES, DEFAULT_SAVINGS_CURRENCIES, DEFAULT_SPENDING_CURRENCIES } from '../../lib/constants'
 import { formatMoney } from '../../lib/format'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { exportBackup, importBackup } from '../../lib/backup'
 import { useToast } from '../../hooks/useToast'
 import type { Currency, SavingsTrackingMode } from '../../db/types'
 import { CurrencyMultiSelect } from '../common/CurrencyMultiSelect'
+import { CurrencySingleSelect } from '../common/CurrencySingleSelect'
 
 export function SettingsView() {
   const [savingsCurrencies, setSavingsCurrencies] = useMetaSetting<Currency[]>(
@@ -22,6 +23,18 @@ export function SettingsView() {
     'enabledSpendingCurrencies',
     DEFAULT_SPENDING_CURRENCIES,
   )
+  const [netWorthCurrency, setNetWorthCurrency] = useMetaSetting<Currency>('netWorthCurrency', 'EUR')
+  const netWorthOptions = useMemo(
+    () => CURRENCIES.filter((c) => savingsCurrencies.includes(c.code) || cryptoCurrencies.includes(c.code)).map((c) => c.code),
+    [savingsCurrencies, cryptoCurrencies],
+  )
+  // If the saved display currency was disabled in Settings, fall back to the first available one.
+  useEffect(() => {
+    if (netWorthOptions.length > 0 && !netWorthOptions.includes(netWorthCurrency)) {
+      setNetWorthCurrency(netWorthOptions[0])
+    }
+  }, [netWorthOptions, netWorthCurrency, setNetWorthCurrency])
+
   const [trackingMode, setTrackingMode] = useMetaSetting<SavingsTrackingMode>('savingsTrackingMode', 'manual')
   const [defaultPockets, setDefaultPockets] = useMetaSetting<Partial<Record<Currency, number>>>(
     'defaultSavingsPocketByCurrency',
@@ -77,6 +90,14 @@ export function SettingsView() {
             <div className="muted">Shown as totals in Savings and Lent out — at least one required</div>
           </div>
           <CurrencyMultiSelect selected={savingsCurrencies} onChange={setSavingsCurrencies} />
+        </div>
+
+        <div className="settings-row wrap">
+          <div>
+            <div>Total net worth</div>
+            <div className="muted">Currency used to display the combined savings + crypto + lent-out total</div>
+          </div>
+          <CurrencySingleSelect value={netWorthCurrency} options={netWorthOptions} onChange={setNetWorthCurrency} />
         </div>
       </div>
 
