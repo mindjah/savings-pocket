@@ -9,12 +9,13 @@ import { useToast } from '../../hooks/useToast'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
 
 interface Props {
-  date: string
+  initialDate: string
   onClose: () => void
   onManageCategories: () => void
 }
 
-export function DayEntriesModal({ date, onClose, onManageCategories }: Props) {
+export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Props) {
+  const [date, setDate] = useState(initialDate)
   const entries = useLiveQuery(
     () => db.spendingEntries.where('date').equals(date).toArray(),
     [date],
@@ -61,6 +62,7 @@ export function DayEntriesModal({ date, onClose, onManageCategories }: Props) {
     if (editingId != null) {
       await db.spendingEntries.update(editingId, { categoryId, amount: parsed, currency, note: note.trim() })
       toast('Spending entry updated')
+      resetForm()
     } else {
       await db.spendingEntries.add({
         categoryId,
@@ -71,8 +73,8 @@ export function DayEntriesModal({ date, onClose, onManageCategories }: Props) {
         createdAt: new Date().toISOString(),
       })
       toast('Spending entry added')
+      onClose()
     }
-    resetForm()
   }
 
   async function handleDelete(id?: number) {
@@ -86,6 +88,11 @@ export function DayEntriesModal({ date, onClose, onManageCategories }: Props) {
 
   return (
     <Modal title={formatDate(date)} onClose={onClose}>
+      <div className="form-group">
+        <label htmlFor="spendDate">Date</label>
+        <input id="spendDate" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+      </div>
+
       <div className="section-title">
         <span className="muted">Total spent</span>
         <span className="entry-amount">

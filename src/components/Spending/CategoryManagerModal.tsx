@@ -6,7 +6,11 @@ import { CATEGORY_COLORS } from '../../lib/constants'
 import { Modal } from '../common/Modal'
 import { useToast } from '../../hooks/useToast'
 
-export function CategoryManagerModal({ onClose }: { onClose: () => void }) {
+interface Props {
+  onClose: () => void
+}
+
+export function CategoryManagerModal({ onClose }: Props) {
   const categories = useLiveQuery(
     async () => (await db.categories.toArray()).sort((a, b) => a.name.localeCompare(b.name)),
     [],
@@ -19,8 +23,8 @@ export function CategoryManagerModal({ onClose }: { onClose: () => void }) {
     const trimmed = name.trim()
     if (!trimmed) return
     await db.categories.add({ name: trimmed, color, archived: false, createdAt: new Date().toISOString() })
-    setName('')
     toast('Category added')
+    onClose()
   }
 
   async function toggleArchive(cat: Category) {

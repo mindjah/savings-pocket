@@ -7,6 +7,7 @@ import { formatMoney, formatMoneyCompact, pad2, todayIso, ymd } from '../../lib/
 import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { DayEntriesModal } from './DayEntriesModal'
 import { CategoryManagerModal } from './CategoryManagerModal'
+import { CategoryExpensesModal } from './CategoryExpensesModal'
 
 function daysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate()
@@ -24,6 +25,7 @@ export function SpendingView() {
   const [month, setMonth] = useState(today.getMonth())
   const [openDay, setOpenDay] = useState<string | null>(null)
   const [managingCategories, setManagingCategories] = useState(false)
+  const [categoryModalFor, setCategoryModalFor] = useState<{ categoryId: number; currency: Currency } | null>(null)
   const [spendingCurrency] = useMetaSetting<Currency>('spendingCurrency', 'EUR')
 
   const monthPrefix = `${year}-${pad2(month + 1)}`
@@ -169,8 +171,8 @@ export function SpendingView() {
 
       <div className="section-title">
         <h2>By category</h2>
-        <button className="btn btn-ghost" onClick={() => setManagingCategories(true)} type="button">
-          Manage
+        <button className="btn btn-primary" onClick={() => setManagingCategories(true)} type="button">
+          + Manage Categories
         </button>
       </div>
 
@@ -182,7 +184,12 @@ export function SpendingView() {
       ) : (
         <div className="category-breakdown">
           {breakdown.map(({ categoryId, currency, total, category, barPct }) => (
-            <div className="category-breakdown-row" key={`${categoryId}:${currency}`}>
+            <button
+              className="category-breakdown-row"
+              key={`${categoryId}:${currency}`}
+              type="button"
+              onClick={() => setCategoryModalFor({ categoryId, currency })}
+            >
               <span className="swatch" style={{ background: category?.color ?? '#888' }} />
               <span style={{ width: 96, flexShrink: 0 }}>{category?.name ?? 'Unknown'}</span>
               <div className="bar-track">
@@ -192,14 +199,18 @@ export function SpendingView() {
                 />
               </div>
               <strong>{formatMoney(total, currency)}</strong>
-            </div>
+            </button>
           ))}
         </div>
       )}
 
+      <button className="fab" aria-label="Add expense" onClick={() => setOpenDay(todayStr)}>
+        +
+      </button>
+
       {openDay && (
         <DayEntriesModal
-          date={openDay}
+          initialDate={openDay}
           onClose={() => setOpenDay(null)}
           onManageCategories={() => {
             setOpenDay(null)
@@ -209,6 +220,16 @@ export function SpendingView() {
       )}
 
       {managingCategories && <CategoryManagerModal onClose={() => setManagingCategories(false)} />}
+
+      {categoryModalFor && (
+        <CategoryExpensesModal
+          categoryId={categoryModalFor.categoryId}
+          currency={categoryModalFor.currency}
+          categoryName={categoryMap.get(categoryModalFor.categoryId)?.name ?? 'Unknown'}
+          monthPrefix={monthPrefix}
+          onClose={() => setCategoryModalFor(null)}
+        />
+      )}
     </div>
   )
 }
