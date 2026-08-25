@@ -5,14 +5,18 @@ export function currencySymbol(code: Currency): string {
   return CURRENCIES.find((c) => c.code === code)?.symbol ?? code
 }
 
+// JPY has no minor unit in everyday use (¥1000, not ¥1000.00).
+const NO_DECIMAL_CURRENCIES: Currency[] = ['JPY']
+
 export function formatMoney(amount: number, code: Currency): string {
   const sign = amount < 0 ? '-' : ''
+  const decimals = NO_DECIMAL_CURRENCIES.includes(code) ? 0 : 2
   const number = new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
   }).format(Math.abs(amount))
   const symbol = currencySymbol(code)
-  // RUB's symbol conventionally trails the amount; EUR/USD lead with theirs.
+  // RUB's symbol conventionally trails the amount; the rest lead with theirs.
   return code === 'RUB' ? `${sign}${number} ${symbol}` : `${sign}${symbol}${number}`
 }
 

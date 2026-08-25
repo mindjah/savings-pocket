@@ -1,9 +1,12 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
-import type { CryptoEntry } from '../../db/types'
+import type { CryptoEntry, Currency } from '../../db/types'
 import { useCryptoRates } from '../../hooks/useCryptoRates'
-import { formatMoney, formatUsdEur } from '../../lib/format'
+import { useMetaSetting } from '../../hooks/useMetaSetting'
+import { CURRENCIES, DEFAULT_CRYPTO_CURRENCIES } from '../../lib/constants'
+import { formatMoney } from '../../lib/format'
+import { priceIn } from '../../lib/rates'
 import { CryptoEntryForm } from './CryptoEntryForm'
 import { HistoryModal } from '../common/HistoryModal'
 import { BitcoinIcon } from '../common/BitcoinIcon'
@@ -12,29 +15,29 @@ export function CryptoView() {
   const entries = useLiveQuery(() => db.cryptoEntries.toArray(), [])
   const [editing, setEditing] = useState<CryptoEntry | null | 'new'>(null)
   const [historyFor, setHistoryFor] = useState<CryptoEntry | null>(null)
+  const [cryptoCurrencies] = useMetaSetting<Currency[]>('enabledCryptoCurrencies', DEFAULT_CRYPTO_CURRENCIES)
 
   const coinIds = useMemo(() => Array.from(new Set((entries ?? []).map((e) => e.coinId))), [entries])
   const { prices, loading, stale, error, refresh, fetchedAt } = useCryptoRates(coinIds)
 
-  const totalUsd = (entries ?? []).reduce((sum, e) => sum + e.amount * (prices[e.coinId]?.usd ?? 0), 0)
-  const totalEur = (entries ?? []).reduce((sum, e) => sum + e.amount * (prices[e.coinId]?.eur ?? 0), 0)
-  const totalRub = (entries ?? []).reduce((sum, e) => sum + e.amount * (prices[e.coinId]?.rub ?? 0), 0)
+  const visibleCurrencies = CURRENCIES.filter((c) => cryptoCurrencies.includes(c.code))
+  const totals: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0, JPY: 0, CNY: 0 }
+  entries?.forEach((e) => {
+    const price = prices[e.coinId]
+    visibleCurrencies.forEach((c) => {
+      totals[c.code] += e.amount * priceIn(price, c.code)
+    })
+  })
 
   return (
     <div className="view">
       <div className="totals-row">
-        <div className="total-chip">
-          <div className="muted">Total (USD)</div>
-          <div className="amount">{formatMoney(totalUsd, 'USD')}</div>
-        </div>
-        <div className="total-chip">
-          <div className="muted">Total (EUR)</div>
-          <div className="amount">{formatMoney(totalEur, 'EUR')}</div>
-        </div>
-        <div className="total-chip">
-          <div className="muted">Total (RUB)</div>
-          <div className="amount">{formatMoney(totalRub, 'RUB')}</div>
-        </div>
+        {visibleCurrencies.map((c) => (
+          <div className="total-chip" key={c.code}>
+            <div className="muted">Total ({c.code})</div>
+            <div className="amount">{formatMoney(totals[c.code], c.code)}</div>
+          </div>
+        ))}
       </div>
 
       <div className="section-title">
@@ -75,7 +78,9 @@ export function CryptoView() {
                   </div>
                   <div className="entry-sub">
                     {price
-                      ? `≈ $${formatUsdEur(entry.amount * price.usd)} · €${formatUsdEur(entry.amount * price.eur)}`
+                      ? `≈ ${visibleCurrencies
+                          .map((c) => formatMoney(entry.amount * priceIn(price, c.code), c.code))
+                          .join(' · ')}`
                       : 'Price unavailable'}
                   </div>
                   {entry.note && <div className="entry-note">{entry.note}</div>}

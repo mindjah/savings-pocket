@@ -2,17 +2,21 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import type { SavingsEntry, LoanEntry, Currency } from '../../db/types'
-import { CURRENCIES } from '../../lib/constants'
+import { CURRENCIES, DEFAULT_SAVINGS_CURRENCIES } from '../../lib/constants'
 import { formatMoney } from '../../lib/format'
+import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { SavingsEntryForm } from './SavingsEntryForm'
 import { LoanEntryForm } from './LoanEntryForm'
 import { NetWorthCard } from './NetWorthCard'
+import { ExchangeRatesModal } from './ExchangeRatesModal'
 import { HistoryModal } from '../common/HistoryModal'
+import { HeaderPortal } from '../common/HeaderPortal'
 
 type SubTab = 'mine' | 'lent'
 
 export function SavingsView() {
   const [subTab, setSubTab] = useState<SubTab>('mine')
+  const [savingsCurrencies] = useMetaSetting<Currency[]>('enabledSavingsCurrencies', DEFAULT_SAVINGS_CURRENCIES)
 
   const entries = useLiveQuery(() => db.savingsEntries.toArray(), [])
   const loans = useLiveQuery(() => db.loanEntries.toArray(), [])
@@ -22,23 +26,42 @@ export function SavingsView() {
   const [historyFor, setHistoryFor] = useState<
     { table: 'savingsHistory' | 'loanHistory'; id: number; currency: Currency } | null
   >(null)
-  const [defaultCurrency] = useState<Currency>('EUR')
+  const [showRates, setShowRates] = useState(false)
 
-  const savingsTotals: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0 }
+  const defaultCurrency = savingsCurrencies[0] ?? 'EUR'
+
+  const savingsTotals: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0, JPY: 0, CNY: 0 }
   entries?.forEach((e) => {
     savingsTotals[e.currency] += e.amount
   })
 
-  const loanTotals: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0 }
+  const loanTotals: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0, JPY: 0, CNY: 0 }
   loans?.forEach((l) => {
     loanTotals[l.currency] += l.amount
   })
 
   const totals = subTab === 'mine' ? savingsTotals : loanTotals
+  const visibleCurrencies = CURRENCIES.filter((c) => savingsCurrencies.includes(c.code))
 
   return (
     <div className="view">
-      <NetWorthCard />
+      <HeaderPortal>
+        <button className="btn btn-primary" onClick={() => setShowRates(true)} type="button">
+          Exchange rates
+        </button>
+      </HeaderPortal>
+
+      <NetWorthCard
+        headerAction={
+          <button
+            className="btn btn-primary header-action-desktop"
+            onClick={() => setShowRates(true)}
+            type="button"
+          >
+            Exchange rates
+          </button>
+        }
+      />
 
       <div className="segmented">
         <button type="button" className={subTab === 'mine' ? 'active' : ''} onClick={() => setSubTab('mine')}>
@@ -50,7 +73,7 @@ export function SavingsView() {
       </div>
 
       <div className="totals-row">
-        {CURRENCIES.map((c) => (
+        {visibleCurrencies.map((c) => (
           <div className="total-chip" key={c.code}>
             <div className="muted">{c.code}</div>
             <div className="amount">{formatMoney(totals[c.code], c.code)}</div>
@@ -165,6 +188,7 @@ export function SavingsView() {
         <SavingsEntryForm
           entry={editingSavings === 'new' ? null : editingSavings}
           defaultCurrency={defaultCurrency}
+          availableCurrencies={savingsCurrencies}
           onClose={() => setEditingSavings(null)}
         />
       )}
@@ -173,6 +197,7 @@ export function SavingsView() {
         <LoanEntryForm
           entry={editingLoan === 'new' ? null : editingLoan}
           defaultCurrency={defaultCurrency}
+          availableCurrencies={savingsCurrencies}
           onClose={() => setEditingLoan(null)}
         />
       )}
@@ -185,6 +210,8 @@ export function SavingsView() {
           onClose={() => setHistoryFor(null)}
         />
       )}
+
+      {showRates && <ExchangeRatesModal onClose={() => setShowRates(false)} />}
     </div>
   )
 }

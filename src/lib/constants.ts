@@ -4,7 +4,13 @@ export const CURRENCIES: { code: Currency; symbol: string; label: string }[] = [
   { code: 'EUR', symbol: '€', label: 'Euro' },
   { code: 'USD', symbol: '$', label: 'US Dollar' },
   { code: 'RUB', symbol: '₽', label: 'Russian Rouble' },
+  { code: 'JPY', symbol: '¥', label: 'Japanese Yen' },
+  { code: 'CNY', symbol: 'CN¥', label: 'Chinese Yuan' },
 ]
+
+export const DEFAULT_SAVINGS_CURRENCIES: Currency[] = ['EUR', 'USD', 'RUB']
+export const DEFAULT_CRYPTO_CURRENCIES: Currency[] = ['EUR', 'USD', 'RUB']
+export const DEFAULT_SPENDING_CURRENCIES: Currency[] = ['EUR']
 
 export const POPULAR_COINS: { coinId: string; symbol: string; name: string }[] = [
   { coinId: 'bitcoin', symbol: 'BTC', name: 'Bitcoin' },

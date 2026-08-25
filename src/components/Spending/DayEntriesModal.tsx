@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import type { Currency, SpendingEntry } from '../../db/types'
-import { CURRENCIES } from '../../lib/constants'
+import { CURRENCIES, DEFAULT_SPENDING_CURRENCIES } from '../../lib/constants'
 import { formatDate, formatMoney } from '../../lib/format'
 import { Modal } from '../common/Modal'
 import { useToast } from '../../hooks/useToast'
@@ -23,14 +23,17 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
   const categories = useLiveQuery(() => db.categories.toArray(), [])
   const activeCategories = useMemo(() => categories?.filter((c) => !c.archived) ?? [], [categories])
   const categoryMap = useMemo(() => new Map((categories ?? []).map((c) => [c.id, c])), [categories])
-  const [spendingCurrency] = useMetaSetting<Currency>('spendingCurrency', 'EUR')
+  const [spendingCurrencies] = useMetaSetting<Currency[]>('enabledSpendingCurrencies', DEFAULT_SPENDING_CURRENCIES)
+  const defaultCurrency = spendingCurrencies[0] ?? 'EUR'
   const toast = useToast()
 
   const [editingId, setEditingId] = useState<number | null>(null)
   const [categoryId, setCategoryId] = useState<number | ''>('')
   const [amount, setAmount] = useState('')
-  const [currency, setCurrency] = useState<Currency>(spendingCurrency)
+  const [currency, setCurrency] = useState<Currency>(defaultCurrency)
   const [note, setNote] = useState('')
+  // Keep an entry's own currency selectable even if it was later disabled in Settings.
+  const currencyOptions = CURRENCIES.filter((c) => spendingCurrencies.includes(c.code) || c.code === currency)
 
   const dayTotalsByCurrency = useMemo(() => {
     const map = new Map<Currency, number>()
@@ -44,7 +47,7 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
     setEditingId(null)
     setCategoryId('')
     setAmount('')
-    setCurrency(spendingCurrency)
+    setCurrency(defaultCurrency)
     setNote('')
   }
 
@@ -97,7 +100,7 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
         <span className="muted">Total spent</span>
         <span className="entry-amount">
           {dayTotalsByCurrency.length === 0
-            ? formatMoney(0, spendingCurrency)
+            ? formatMoney(0, defaultCurrency)
             : dayTotalsByCurrency.map(([cur, total]) => formatMoney(total, cur)).join(' · ')}
         </span>
       </div>
@@ -175,7 +178,7 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
               <div className="form-group">
                 <label htmlFor="spendCurrency">Currency</label>
                 <select id="spendCurrency" value={currency} onChange={(e) => setCurrency(e.target.value as Currency)}>
-                  {CURRENCIES.map((c) => (
+                  {currencyOptions.map((c) => (
                     <option key={c.code} value={c.code}>
                       {c.symbol} {c.code}
                     </option>

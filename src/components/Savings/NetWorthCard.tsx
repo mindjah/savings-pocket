@@ -1,24 +1,44 @@
+import { useEffect, useMemo } from 'react'
+import type { ReactNode } from 'react'
 import type { Currency } from '../../db/types'
-import { CURRENCIES } from '../../lib/constants'
+import { CURRENCIES, DEFAULT_CRYPTO_CURRENCIES, DEFAULT_SAVINGS_CURRENCIES } from '../../lib/constants'
 import { formatMoney } from '../../lib/format'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { useNetWorth } from '../../hooks/useNetWorth'
 
-export function NetWorthCard() {
+export function NetWorthCard({ headerAction }: { headerAction?: ReactNode }) {
+  const [savingsCurrencies] = useMetaSetting<Currency[]>('enabledSavingsCurrencies', DEFAULT_SAVINGS_CURRENCIES)
+  const [cryptoCurrencies] = useMetaSetting<Currency[]>('enabledCryptoCurrencies', DEFAULT_CRYPTO_CURRENCIES)
   const [displayCurrency, setDisplayCurrency] = useMetaSetting<Currency>('netWorthCurrency', 'EUR')
+
+  const options = useMemo(
+    () => CURRENCIES.filter((c) => savingsCurrencies.includes(c.code) || cryptoCurrencies.includes(c.code)),
+    [savingsCurrencies, cryptoCurrencies],
+  )
+
+  // If the saved display currency was disabled in Settings, fall back to the first available one.
+  useEffect(() => {
+    if (options.length > 0 && !options.some((c) => c.code === displayCurrency)) {
+      setDisplayCurrency(options[0].code)
+    }
+  }, [options, displayCurrency, setDisplayCurrency])
+
   const { breakdown, loading, stale, error } = useNetWorth(displayCurrency)
 
   return (
     <div className="card">
       <div className="section-title">
         <h2>Total net worth</h2>
-        <select value={displayCurrency} onChange={(e) => setDisplayCurrency(e.target.value as Currency)}>
-          {CURRENCIES.map((c) => (
-            <option key={c.code} value={c.code}>
-              {c.symbol} {c.code}
-            </option>
-          ))}
-        </select>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {headerAction}
+          <select value={displayCurrency} onChange={(e) => setDisplayCurrency(e.target.value as Currency)}>
+            {options.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.symbol} {c.code}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {!breakdown ? (

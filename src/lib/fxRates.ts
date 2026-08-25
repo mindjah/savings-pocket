@@ -28,7 +28,7 @@ async function fetchLive(): Promise<FxRates> {
   if (!res.ok) throw new Error(`Exchange rate request failed: ${res.status}`)
   const json = await res.json()
   if (json.result !== 'success') throw new Error('Exchange rate provider returned an error')
-  return { USD: 1, EUR: json.rates.EUR, RUB: json.rates.RUB }
+  return { USD: 1, EUR: json.rates.EUR, RUB: json.rates.RUB, JPY: json.rates.JPY, CNY: json.rates.CNY }
 }
 
 export interface FxResult {

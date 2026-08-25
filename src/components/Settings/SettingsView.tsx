@@ -1,12 +1,24 @@
 import { useRef, useState } from 'react'
-import { CURRENCIES } from '../../lib/constants'
+import { DEFAULT_CRYPTO_CURRENCIES, DEFAULT_SAVINGS_CURRENCIES, DEFAULT_SPENDING_CURRENCIES } from '../../lib/constants'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { exportBackup, importBackup } from '../../lib/backup'
 import { useToast } from '../../hooks/useToast'
 import type { Currency } from '../../db/types'
+import { CurrencyMultiSelect } from '../common/CurrencyMultiSelect'
 
 export function SettingsView() {
-  const [spendingCurrency, setSpendingCurrency] = useMetaSetting<Currency>('spendingCurrency', 'EUR')
+  const [savingsCurrencies, setSavingsCurrencies] = useMetaSetting<Currency[]>(
+    'enabledSavingsCurrencies',
+    DEFAULT_SAVINGS_CURRENCIES,
+  )
+  const [cryptoCurrencies, setCryptoCurrencies] = useMetaSetting<Currency[]>(
+    'enabledCryptoCurrencies',
+    DEFAULT_CRYPTO_CURRENCIES,
+  )
+  const [spendingCurrencies, setSpendingCurrencies] = useMetaSetting<Currency[]>(
+    'enabledSpendingCurrencies',
+    DEFAULT_SPENDING_CURRENCIES,
+  )
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const toast = useToast()
@@ -44,22 +56,36 @@ export function SettingsView() {
   return (
     <div className="view">
       <div className="section-title">
-        <h2>Settings</h2>
+        <h2>Currencies</h2>
       </div>
 
       <div className="card settings-list">
-        <div className="settings-row">
+        <div className="settings-row wrap">
           <div>
-            <div>Daily spending currency</div>
-            <div className="muted">Used for the spending calendar totals</div>
+            <div>Savings currencies</div>
+            <div className="muted">Shown as totals in Savings and Lent out — at least one required</div>
           </div>
-          <select value={spendingCurrency} onChange={(e) => setSpendingCurrency(e.target.value as Currency)}>
-            {CURRENCIES.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.symbol} {c.code}
-              </option>
-            ))}
-          </select>
+          <CurrencyMultiSelect selected={savingsCurrencies} onChange={setSavingsCurrencies} />
+        </div>
+      </div>
+
+      <div className="card settings-list">
+        <div className="settings-row wrap">
+          <div>
+            <div>Crypto currencies</div>
+            <div className="muted">Fiat currencies shown for crypto holdings and totals</div>
+          </div>
+          <CurrencyMultiSelect selected={cryptoCurrencies} onChange={setCryptoCurrencies} />
+        </div>
+      </div>
+
+      <div className="card settings-list">
+        <div className="settings-row wrap">
+          <div>
+            <div>Spending currencies</div>
+            <div className="muted">Shown in the spending calendar totals</div>
+          </div>
+          <CurrencyMultiSelect selected={spendingCurrencies} onChange={setSpendingCurrencies} />
         </div>
       </div>
 

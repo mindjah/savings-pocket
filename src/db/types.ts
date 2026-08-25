@@ -1,4 +1,4 @@
-export type Currency = 'EUR' | 'USD' | 'RUB'
+export type Currency = 'EUR' | 'USD' | 'RUB' | 'JPY' | 'CNY'
 export type MoneyType = 'cash' | 'card'
 
 export interface SavingsEntry {

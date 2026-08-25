@@ -756,6 +756,46 @@ h1, h2, h3, p {
   gap: 12px;
 }
 
+.settings-row.wrap {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.currency-checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.currency-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--surface);
+}
+
+.currency-checkbox input {
+  width: auto;
+  margin: 0;
+}
+
+.currency-checkbox.checked {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+}
+
+.btn-accent-text {
+  background: none;
+  color: var(--accent);
+}
+
 .datalist-hint {
   font-size: 0.72rem;
   color: var(--text-muted);

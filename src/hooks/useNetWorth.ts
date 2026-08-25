@@ -5,6 +5,7 @@ import type { Currency } from '../db/types'
 import { useCryptoRates } from './useCryptoRates'
 import { useFiatRates } from './useFiatRates'
 import { convertFiat } from '../lib/fxRates'
+import { priceIn } from '../lib/rates'
 
 export function useNetWorth(displayCurrency: Currency) {
   const savings = useLiveQuery(() => db.savingsEntries.toArray(), []) ?? []
@@ -25,11 +26,10 @@ export function useNetWorth(displayCurrency: Currency) {
       (sum, e) => sum + convertFiat(e.amount, e.currency, displayCurrency, fx),
       0,
     )
-    const priceKey = displayCurrency.toLowerCase() as 'usd' | 'eur' | 'rub'
-    const cryptoTotal = cryptoEntries.reduce((sum, e) => {
-      const price = prices[e.coinId]
-      return sum + (price ? e.amount * price[priceKey] : 0)
-    }, 0)
+    const cryptoTotal = cryptoEntries.reduce(
+      (sum, e) => sum + e.amount * priceIn(prices[e.coinId], displayCurrency),
+      0,
+    )
     return {
       savingsTotal,
       loansTotal,

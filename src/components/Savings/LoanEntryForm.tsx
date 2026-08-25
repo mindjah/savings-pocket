@@ -10,13 +10,18 @@ import { useToast } from '../../hooks/useToast'
 interface Props {
   entry: LoanEntry | null
   defaultCurrency: Currency
+  availableCurrencies: Currency[]
   onClose: () => void
 }
 
-export function LoanEntryForm({ entry, defaultCurrency, onClose }: Props) {
+export function LoanEntryForm({ entry, defaultCurrency, availableCurrencies, onClose }: Props) {
   const isEdit = !!entry
   const [borrowerName, setBorrowerName] = useState(entry?.borrowerName ?? '')
   const [currency, setCurrency] = useState<Currency>(entry?.currency ?? defaultCurrency)
+  // Keep the entry's own currency selectable even if it was later disabled in Settings.
+  const currencyOptions = CURRENCIES.filter(
+    (c) => availableCurrencies.includes(c.code) || c.code === entry?.currency,
+  )
   const [note, setNote] = useState(entry?.note ?? '')
   const [amount, setAmount] = useState(entry ? String(entry.amount) : '')
   const [reason, setReason] = useState('')
@@ -103,7 +108,7 @@ export function LoanEntryForm({ entry, defaultCurrency, onClose }: Props) {
             disabled={isEdit}
             onChange={(e) => setCurrency(e.target.value as Currency)}
           >
-            {CURRENCIES.map((c) => (
+            {currencyOptions.map((c) => (
               <option key={c.code} value={c.code}>
                 {c.symbol} {c.code}
               </option>

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import type { Currency } from '../../db/types'
-import { CURRENCIES, MONTH_NAMES, WEEKDAY_LABELS } from '../../lib/constants'
+import { CURRENCIES, DEFAULT_SPENDING_CURRENCIES, MONTH_NAMES, WEEKDAY_LABELS } from '../../lib/constants'
 import { formatMoney, formatMoneyCompact, pad2, todayIso, ymd } from '../../lib/format'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { DayEntriesModal } from './DayEntriesModal'
@@ -27,7 +27,7 @@ export function SpendingView() {
   const [openDay, setOpenDay] = useState<string | null>(null)
   const [managingCategories, setManagingCategories] = useState(false)
   const [categoryModalFor, setCategoryModalFor] = useState<{ categoryId: number; currency: Currency } | null>(null)
-  const [spendingCurrency] = useMetaSetting<Currency>('spendingCurrency', 'EUR')
+  const [spendingCurrencies] = useMetaSetting<Currency[]>('enabledSpendingCurrencies', DEFAULT_SPENDING_CURRENCIES)
 
   const monthPrefix = `${year}-${pad2(month + 1)}`
   const entries = useLiveQuery(
@@ -48,10 +48,11 @@ export function SpendingView() {
     return map
   }, [entries])
 
-  const monthTotals: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0 }
+  const monthTotals: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0, JPY: 0, CNY: 0 }
   entries?.forEach((e) => {
     monthTotals[e.currency] += e.amount
   })
+  const visibleCurrencies = CURRENCIES.filter((c) => spendingCurrencies.includes(c.code))
 
   // (categoryId, currency) breakdown, bar width normalized per-currency so amounts
   // in different currencies never get visually compared against each other.
@@ -105,7 +106,7 @@ export function SpendingView() {
   return (
     <div className="view">
       <HeaderPortal>
-        <button className="btn btn-primary" onClick={() => setManagingCategories(true)} type="button">
+        <button className="btn btn-accent-text" onClick={() => setManagingCategories(true)} type="button">
           + Manage Categories
         </button>
       </HeaderPortal>
@@ -115,7 +116,7 @@ export function SpendingView() {
           Total spent — {MONTH_NAMES[month]} {year}
         </h2>
         <button
-          className="btn btn-primary header-action-desktop"
+          className="btn btn-accent-text header-action-desktop"
           onClick={() => setManagingCategories(true)}
           type="button"
         >
@@ -123,7 +124,7 @@ export function SpendingView() {
         </button>
       </div>
       <div className="totals-row">
-        {CURRENCIES.map((c) => (
+        {visibleCurrencies.map((c) => (
           <div className="total-chip" key={c.code}>
             <div className="muted">{c.code}</div>
             <div className="amount">{formatMoney(monthTotals[c.code], c.code)}</div>
@@ -158,9 +159,8 @@ export function SpendingView() {
             let extraCount = 0
             if (dayMap && dayMap.size > 0) {
               const pairs = Array.from(dayMap.entries())
-              primary = dayMap.has(spendingCurrency)
-                ? [spendingCurrency, dayMap.get(spendingCurrency)!]
-                : pairs.sort((a, b) => b[1] - a[1])[0]
+              const preferred = spendingCurrencies.find((c) => dayMap.has(c))
+              primary = preferred ? [preferred, dayMap.get(preferred)!] : pairs.sort((a, b) => b[1] - a[1])[0]
               extraCount = pairs.length - 1
             }
             return (
