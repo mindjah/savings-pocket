@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
-import type { SpendingEntry } from '../../db/types'
+import type { Currency, SpendingEntry } from '../../db/types'
+import { CURRENCIES } from '../../lib/constants'
 import { formatDate, formatMoney } from '../../lib/format'
 import { Modal } from '../common/Modal'
 import { useToast } from '../../hooks/useToast'
@@ -21,20 +22,28 @@ export function DayEntriesModal({ date, onClose, onManageCategories }: Props) {
   const categories = useLiveQuery(() => db.categories.toArray(), [])
   const activeCategories = useMemo(() => categories?.filter((c) => !c.archived) ?? [], [categories])
   const categoryMap = useMemo(() => new Map((categories ?? []).map((c) => [c.id, c])), [categories])
-  const [spendingCurrency] = useMetaSetting<'EUR' | 'USD' | 'RUB'>('spendingCurrency', 'EUR')
+  const [spendingCurrency] = useMetaSetting<Currency>('spendingCurrency', 'EUR')
   const toast = useToast()
 
   const [editingId, setEditingId] = useState<number | null>(null)
   const [categoryId, setCategoryId] = useState<number | ''>('')
   const [amount, setAmount] = useState('')
+  const [currency, setCurrency] = useState<Currency>(spendingCurrency)
   const [note, setNote] = useState('')
 
-  const dayTotal = (entries ?? []).reduce((sum, e) => sum + e.amount, 0)
+  const dayTotalsByCurrency = useMemo(() => {
+    const map = new Map<Currency, number>()
+    for (const e of entries ?? []) {
+      map.set(e.currency, (map.get(e.currency) ?? 0) + e.amount)
+    }
+    return Array.from(map.entries())
+  }, [entries])
 
   function resetForm() {
     setEditingId(null)
     setCategoryId('')
     setAmount('')
+    setCurrency(spendingCurrency)
     setNote('')
   }
 
@@ -42,6 +51,7 @@ export function DayEntriesModal({ date, onClose, onManageCategories }: Props) {
     setEditingId(entry.id ?? null)
     setCategoryId(entry.categoryId)
     setAmount(String(entry.amount))
+    setCurrency(entry.currency)
     setNote(entry.note)
   }
 
@@ -49,12 +59,13 @@ export function DayEntriesModal({ date, onClose, onManageCategories }: Props) {
     const parsed = Number(amount)
     if (categoryId === '' || Number.isNaN(parsed) || parsed <= 0) return
     if (editingId != null) {
-      await db.spendingEntries.update(editingId, { categoryId, amount: parsed, note: note.trim() })
+      await db.spendingEntries.update(editingId, { categoryId, amount: parsed, currency, note: note.trim() })
       toast('Spending entry updated')
     } else {
       await db.spendingEntries.add({
         categoryId,
         amount: parsed,
+        currency,
         note: note.trim(),
         date,
         createdAt: new Date().toISOString(),
@@ -77,7 +88,11 @@ export function DayEntriesModal({ date, onClose, onManageCategories }: Props) {
     <Modal title={formatDate(date)} onClose={onClose}>
       <div className="section-title">
         <span className="muted">Total spent</span>
-        <span className="entry-amount">{formatMoney(dayTotal, spendingCurrency)}</span>
+        <span className="entry-amount">
+          {dayTotalsByCurrency.length === 0
+            ? formatMoney(0, spendingCurrency)
+            : dayTotalsByCurrency.map(([cur, total]) => formatMoney(total, cur)).join(' · ')}
+        </span>
       </div>
 
       {activeCategories.length === 0 ? (
@@ -106,7 +121,7 @@ export function DayEntriesModal({ date, onClose, onManageCategories }: Props) {
                       </div>
                     </div>
                     <div className="icon-btn-row" style={{ alignItems: 'center' }}>
-                      <strong>{formatMoney(e.amount, spendingCurrency)}</strong>
+                      <strong>{formatMoney(e.amount, e.currency)}</strong>
                       <button className="btn btn-ghost btn-icon" onClick={() => startEdit(e)} type="button">
                         ✎
                       </button>
@@ -151,9 +166,19 @@ export function DayEntriesModal({ date, onClose, onManageCategories }: Props) {
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="spendNote">Note</label>
-                <input id="spendNote" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Optional" />
+                <label htmlFor="spendCurrency">Currency</label>
+                <select id="spendCurrency" value={currency} onChange={(e) => setCurrency(e.target.value as Currency)}>
+                  {CURRENCIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.symbol} {c.code}
+                    </option>
+                  ))}
+                </select>
               </div>
+            </div>
+            <div className="form-group">
+              <label htmlFor="spendNote">Note</label>
+              <input id="spendNote" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Optional" />
             </div>
             <div className="modal-actions">
               {editingId != null && (

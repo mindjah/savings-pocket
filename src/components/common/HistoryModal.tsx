@@ -4,7 +4,7 @@ import { formatDateTime } from '../../lib/format'
 import { Modal } from './Modal'
 
 interface Props {
-  table: 'savingsHistory' | 'cryptoHistory'
+  table: 'savingsHistory' | 'cryptoHistory' | 'loanHistory'
   entryId: number
   formatAmount: (n: number) => string
   onClose: () => void

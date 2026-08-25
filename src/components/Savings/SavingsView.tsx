@@ -1,25 +1,54 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
-import type { SavingsEntry, Currency } from '../../db/types'
+import type { SavingsEntry, LoanEntry, Currency } from '../../db/types'
 import { CURRENCIES } from '../../lib/constants'
 import { formatMoney } from '../../lib/format'
 import { SavingsEntryForm } from './SavingsEntryForm'
+import { LoanEntryForm } from './LoanEntryForm'
+import { NetWorthCard } from './NetWorthCard'
 import { HistoryModal } from '../common/HistoryModal'
 
-export function SavingsView() {
-  const entries = useLiveQuery(() => db.savingsEntries.toArray(), [])
-  const [editing, setEditing] = useState<SavingsEntry | null | 'new'>(null)
-  const [historyFor, setHistoryFor] = useState<SavingsEntry | null>(null)
-  const [defaultCurrency, setDefaultCurrency] = useState<Currency>('EUR')
+type SubTab = 'mine' | 'lent'
 
-  const totals: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0 }
+export function SavingsView() {
+  const [subTab, setSubTab] = useState<SubTab>('mine')
+
+  const entries = useLiveQuery(() => db.savingsEntries.toArray(), [])
+  const loans = useLiveQuery(() => db.loanEntries.toArray(), [])
+
+  const [editingSavings, setEditingSavings] = useState<SavingsEntry | null | 'new'>(null)
+  const [editingLoan, setEditingLoan] = useState<LoanEntry | null | 'new'>(null)
+  const [historyFor, setHistoryFor] = useState<
+    { table: 'savingsHistory' | 'loanHistory'; id: number; currency: Currency } | null
+  >(null)
+  const [defaultCurrency] = useState<Currency>('EUR')
+
+  const savingsTotals: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0 }
   entries?.forEach((e) => {
-    totals[e.currency] += e.amount
+    savingsTotals[e.currency] += e.amount
   })
+
+  const loanTotals: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0 }
+  loans?.forEach((l) => {
+    loanTotals[l.currency] += l.amount
+  })
+
+  const totals = subTab === 'mine' ? savingsTotals : loanTotals
 
   return (
     <div className="view">
+      <NetWorthCard />
+
+      <div className="segmented">
+        <button type="button" className={subTab === 'mine' ? 'active' : ''} onClick={() => setSubTab('mine')}>
+          My money
+        </button>
+        <button type="button" className={subTab === 'lent' ? 'active' : ''} onClick={() => setSubTab('lent')}>
+          Lent out
+        </button>
+      </div>
+
       <div className="totals-row">
         {CURRENCIES.map((c) => (
           <div className="total-chip" key={c.code}>
@@ -29,73 +58,128 @@ export function SavingsView() {
         ))}
       </div>
 
-      <div className="section-title">
-        <h2>Savings</h2>
-      </div>
+      {subTab === 'mine' ? (
+        <>
+          <div className="section-title">
+            <h2>Savings</h2>
+          </div>
 
-      {!entries || entries.length === 0 ? (
-        <div className="empty-state">
-          <span className="icon">💰</span>
-          No savings tracked yet. Tap + to add your first entry.
-        </div>
+          {!entries || entries.length === 0 ? (
+            <div className="empty-state">
+              <span className="icon">💰</span>
+              No savings tracked yet. Tap + to add your first entry.
+            </div>
+          ) : (
+            <div className="entry-list">
+              {entries
+                .slice()
+                .sort((a, b) => a.currency.localeCompare(b.currency) || b.amount - a.amount)
+                .map((entry) => (
+                  <button className="entry-card" key={entry.id} onClick={() => setEditingSavings(entry)}>
+                    <div className="entry-top">
+                      <span className="entry-amount">{formatMoney(entry.amount, entry.currency)}</span>
+                      <span className={`badge badge-${entry.type}`}>{entry.type === 'cash' ? 'Cash' : 'Card'}</span>
+                    </div>
+                    <div className="entry-sub">📍 {entry.location}</div>
+                    {entry.note && <div className="entry-note">{entry.note}</div>}
+                    <div
+                      role="link"
+                      tabIndex={0}
+                      className="muted"
+                      style={{ textDecoration: 'underline', width: 'fit-content' }}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (entry.id != null) setHistoryFor({ table: 'savingsHistory', id: entry.id, currency: entry.currency })
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && entry.id != null) {
+                          e.stopPropagation()
+                          setHistoryFor({ table: 'savingsHistory', id: entry.id, currency: entry.currency })
+                        }
+                      }}
+                    >
+                      View history
+                    </div>
+                  </button>
+                ))}
+            </div>
+          )}
+        </>
       ) : (
-        <div className="entry-list">
-          {entries
-            .slice()
-            .sort((a, b) => a.currency.localeCompare(b.currency) || b.amount - a.amount)
-            .map((entry) => (
-              <button className="entry-card" key={entry.id} onClick={() => setEditing(entry)}>
-                <div className="entry-top">
-                  <span className="entry-amount">{formatMoney(entry.amount, entry.currency)}</span>
-                  <span className={`badge badge-${entry.type}`}>{entry.type === 'cash' ? 'Cash' : 'Card'}</span>
-                </div>
-                <div className="entry-sub">📍 {entry.location}</div>
-                {entry.note && <div className="entry-note">{entry.note}</div>}
-                <div
-                  role="link"
-                  tabIndex={0}
-                  className="muted"
-                  style={{ textDecoration: 'underline', width: 'fit-content' }}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setHistoryFor(entry)
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.stopPropagation()
-                      setHistoryFor(entry)
-                    }
-                  }}
-                >
-                  View history
-                </div>
-              </button>
-            ))}
-        </div>
+        <>
+          <div className="section-title">
+            <h2>Lent out</h2>
+          </div>
+
+          {!loans || loans.length === 0 ? (
+            <div className="empty-state">
+              <span className="icon">🤝</span>
+              No loans tracked yet. Tap + to add money you've lent someone.
+            </div>
+          ) : (
+            <div className="entry-list">
+              {loans
+                .slice()
+                .sort((a, b) => a.currency.localeCompare(b.currency) || b.amount - a.amount)
+                .map((loan) => (
+                  <button className="entry-card" key={loan.id} onClick={() => setEditingLoan(loan)}>
+                    <div className="entry-top">
+                      <span className="entry-amount">{formatMoney(loan.amount, loan.currency)}</span>
+                      <span className="badge">{loan.borrowerName}</span>
+                    </div>
+                    {loan.note && <div className="entry-note">{loan.note}</div>}
+                    <div
+                      role="link"
+                      tabIndex={0}
+                      className="muted"
+                      style={{ textDecoration: 'underline', width: 'fit-content' }}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (loan.id != null) setHistoryFor({ table: 'loanHistory', id: loan.id, currency: loan.currency })
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && loan.id != null) {
+                          e.stopPropagation()
+                          setHistoryFor({ table: 'loanHistory', id: loan.id, currency: loan.currency })
+                        }
+                      }}
+                    >
+                      View history
+                    </div>
+                  </button>
+                ))}
+            </div>
+          )}
+        </>
       )}
 
       <button
         className="fab"
-        aria-label="Add savings entry"
-        onClick={() => {
-          setDefaultCurrency('EUR')
-          setEditing('new')
-        }}
+        aria-label={subTab === 'mine' ? 'Add savings entry' : 'Add loan'}
+        onClick={() => (subTab === 'mine' ? setEditingSavings('new') : setEditingLoan('new'))}
       >
         +
       </button>
 
-      {editing && (
+      {editingSavings && (
         <SavingsEntryForm
-          entry={editing === 'new' ? null : editing}
+          entry={editingSavings === 'new' ? null : editingSavings}
           defaultCurrency={defaultCurrency}
-          onClose={() => setEditing(null)}
+          onClose={() => setEditingSavings(null)}
         />
       )}
 
-      {historyFor?.id != null && (
+      {editingLoan && (
+        <LoanEntryForm
+          entry={editingLoan === 'new' ? null : editingLoan}
+          defaultCurrency={defaultCurrency}
+          onClose={() => setEditingLoan(null)}
+        />
+      )}
+
+      {historyFor && (
         <HistoryModal
-          table="savingsHistory"
+          table={historyFor.table}
           entryId={historyFor.id}
           formatAmount={(n) => formatMoney(n, historyFor.currency)}
           onClose={() => setHistoryFor(null)}

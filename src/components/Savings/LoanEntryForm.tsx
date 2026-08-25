@@ -1,43 +1,42 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
-import type { Currency, MoneyType, SavingsEntry } from '../../db/types'
+import type { Currency, LoanEntry } from '../../db/types'
 import { CURRENCIES } from '../../lib/constants'
 import { Modal } from '../common/Modal'
 import { ExpandableTextarea } from '../common/ExpandableTextarea'
 import { useToast } from '../../hooks/useToast'
 
 interface Props {
-  entry: SavingsEntry | null
+  entry: LoanEntry | null
   defaultCurrency: Currency
   onClose: () => void
 }
 
-export function SavingsEntryForm({ entry, defaultCurrency, onClose }: Props) {
+export function LoanEntryForm({ entry, defaultCurrency, onClose }: Props) {
   const isEdit = !!entry
+  const [borrowerName, setBorrowerName] = useState(entry?.borrowerName ?? '')
   const [currency, setCurrency] = useState<Currency>(entry?.currency ?? defaultCurrency)
-  const [type, setType] = useState<MoneyType>(entry?.type ?? 'cash')
-  const [location, setLocation] = useState(entry?.location ?? '')
   const [note, setNote] = useState(entry?.note ?? '')
   const [amount, setAmount] = useState(entry ? String(entry.amount) : '')
   const [reason, setReason] = useState('')
   const toast = useToast()
 
-  const knownLocations = useLiveQuery(async () => {
-    const rows = await db.savingsEntries.toArray()
-    return Array.from(new Set(rows.map((r) => r.location).filter(Boolean)))
+  const knownNames = useLiveQuery(async () => {
+    const rows = await db.loanEntries.toArray()
+    return Array.from(new Set(rows.map((r) => r.borrowerName).filter(Boolean)))
   }, [])
 
   const parsedAmount = useMemo(() => Number(amount), [amount])
   const amountChanged = isEdit && entry && parsedAmount !== entry.amount
-  const valid = location.trim().length > 0 && !Number.isNaN(parsedAmount) && parsedAmount >= 0
+  const valid = borrowerName.trim().length > 0 && !Number.isNaN(parsedAmount) && parsedAmount >= 0
 
   async function handleSubmit() {
     if (!valid) return
     const now = new Date().toISOString()
     if (isEdit && entry?.id != null) {
       if (amountChanged) {
-        await db.savingsHistory.add({
+        await db.loanHistory.add({
           entryId: entry.id,
           previousAmount: entry.amount,
           newAmount: parsedAmount,
@@ -45,48 +44,61 @@ export function SavingsEntryForm({ entry, defaultCurrency, onClose }: Props) {
           comment: reason.trim(),
         })
       }
-      await db.savingsEntries.update(entry.id, {
+      await db.loanEntries.update(entry.id, {
+        borrowerName: borrowerName.trim(),
         currency,
-        type,
-        location: location.trim(),
         note: note.trim(),
         amount: parsedAmount,
         updatedAt: now,
       })
-      toast('Savings entry updated')
+      toast('Loan updated')
     } else {
-      await db.savingsEntries.add({
+      await db.loanEntries.add({
+        borrowerName: borrowerName.trim(),
         currency,
-        type,
-        location: location.trim(),
         note: note.trim(),
         amount: parsedAmount,
         createdAt: now,
         updatedAt: now,
       })
-      toast('Savings entry added')
+      toast('Loan added')
     }
     onClose()
   }
 
   async function handleDelete() {
     if (!entry?.id) return
-    if (!confirm('Delete this entry and all of its history? This cannot be undone.')) return
-    await db.transaction('rw', db.savingsEntries, db.savingsHistory, async () => {
-      await db.savingsHistory.where('entryId').equals(entry.id!).delete()
-      await db.savingsEntries.delete(entry.id!)
+    if (!confirm('Delete this loan and all of its history? This cannot be undone.')) return
+    await db.transaction('rw', db.loanEntries, db.loanHistory, async () => {
+      await db.loanHistory.where('entryId').equals(entry.id!).delete()
+      await db.loanEntries.delete(entry.id!)
     })
-    toast('Savings entry deleted')
+    toast('Loan deleted')
     onClose()
   }
 
   return (
-    <Modal title={isEdit ? 'Edit savings entry' : 'Add savings entry'} onClose={onClose}>
+    <Modal title={isEdit ? 'Edit loan' : 'Add loan'} onClose={onClose}>
       <div className="form-row">
+        <div className="form-group" style={{ flex: 2 }}>
+          <label htmlFor="borrowerName">Lent to</label>
+          <input
+            id="borrowerName"
+            list="known-borrowers"
+            value={borrowerName}
+            onChange={(e) => setBorrowerName(e.target.value)}
+            placeholder="e.g. John"
+          />
+          <datalist id="known-borrowers">
+            {knownNames?.map((name) => (
+              <option key={name} value={name} />
+            ))}
+          </datalist>
+        </div>
         <div className="form-group">
-          <label htmlFor="currency">Currency</label>
+          <label htmlFor="loanCurrency">Currency</label>
           <select
-            id="currency"
+            id="loanCurrency"
             value={currency}
             disabled={isEdit}
             onChange={(e) => setCurrency(e.target.value as Currency)}
@@ -98,23 +110,12 @@ export function SavingsEntryForm({ entry, defaultCurrency, onClose }: Props) {
             ))}
           </select>
         </div>
-        <div className="form-group">
-          <label>Held as</label>
-          <div className="segmented">
-            <button type="button" className={type === 'cash' ? 'active' : ''} onClick={() => setType('cash')}>
-              Cash
-            </button>
-            <button type="button" className={type === 'card' ? 'active' : ''} onClick={() => setType('card')}>
-              Card
-            </button>
-          </div>
-        </div>
       </div>
 
       <div className="form-group">
-        <label htmlFor="amount">Amount</label>
+        <label htmlFor="loanAmount">Amount</label>
         <input
-          id="amount"
+          id="loanAmount"
           type="number"
           inputMode="decimal"
           step="0.01"
@@ -125,37 +126,21 @@ export function SavingsEntryForm({ entry, defaultCurrency, onClose }: Props) {
         />
       </div>
 
-      <div className="form-group">
-        <label htmlFor="location">Location (country / bank / place)</label>
-        <input
-          id="location"
-          list="known-locations"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          placeholder="e.g. Spain — BBVA"
-        />
-        <datalist id="known-locations">
-          {knownLocations?.map((loc) => (
-            <option key={loc} value={loc} />
-          ))}
-        </datalist>
-      </div>
-
       <ExpandableTextarea
-        id="note"
+        id="loanNote"
         label="Note"
         value={note}
         onChange={setNote}
-        placeholder="Details about this money"
+        placeholder="Details about this loan"
       />
 
       {amountChanged && (
         <ExpandableTextarea
-          id="reason"
+          id="loanReason"
           label="Reason for change (saved to history)"
           value={reason}
           onChange={setReason}
-          placeholder="Why did this amount change?"
+          placeholder="Why did this amount change? e.g. partial repayment"
         />
       )}
 
@@ -166,7 +151,7 @@ export function SavingsEntryForm({ entry, defaultCurrency, onClose }: Props) {
           </button>
         )}
         <button className="btn btn-primary" onClick={handleSubmit} disabled={!valid} type="button">
-          {isEdit ? 'Save changes' : 'Add entry'}
+          {isEdit ? 'Save changes' : 'Add loan'}
         </button>
       </div>
     </Modal>

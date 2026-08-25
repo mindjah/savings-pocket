@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
-import { MONTH_NAMES, WEEKDAY_LABELS } from '../../lib/constants'
+import type { Currency } from '../../db/types'
+import { CURRENCIES, MONTH_NAMES, WEEKDAY_LABELS } from '../../lib/constants'
 import { formatMoney, formatMoneyCompact, pad2, todayIso, ymd } from '../../lib/format'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { DayEntriesModal } from './DayEntriesModal'
@@ -23,7 +24,7 @@ export function SpendingView() {
   const [month, setMonth] = useState(today.getMonth())
   const [openDay, setOpenDay] = useState<string | null>(null)
   const [managingCategories, setManagingCategories] = useState(false)
-  const [spendingCurrency] = useMetaSetting<'EUR' | 'USD' | 'RUB'>('spendingCurrency', 'EUR')
+  const [spendingCurrency] = useMetaSetting<Currency>('spendingCurrency', 'EUR')
 
   const monthPrefix = `${year}-${pad2(month + 1)}`
   const entries = useLiveQuery(
@@ -33,24 +34,42 @@ export function SpendingView() {
   const categories = useLiveQuery(() => db.categories.toArray(), [])
   const categoryMap = useMemo(() => new Map((categories ?? []).map((c) => [c.id, c])), [categories])
 
+  // date -> currency -> total
   const totalsByDay = useMemo(() => {
-    const map = new Map<string, number>()
+    const map = new Map<string, Map<Currency, number>>()
     for (const e of entries ?? []) {
-      map.set(e.date, (map.get(e.date) ?? 0) + e.amount)
+      const dayMap = map.get(e.date) ?? new Map<Currency, number>()
+      dayMap.set(e.currency, (dayMap.get(e.currency) ?? 0) + e.amount)
+      map.set(e.date, dayMap)
     }
     return map
   }, [entries])
 
-  const monthTotal = (entries ?? []).reduce((sum, e) => sum + e.amount, 0)
+  const monthTotals: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0 }
+  entries?.forEach((e) => {
+    monthTotals[e.currency] += e.amount
+  })
 
+  // (categoryId, currency) breakdown, bar width normalized per-currency so amounts
+  // in different currencies never get visually compared against each other.
   const breakdown = useMemo(() => {
-    const map = new Map<number, number>()
+    const map = new Map<string, { categoryId: number; currency: Currency; total: number }>()
     for (const e of entries ?? []) {
-      map.set(e.categoryId, (map.get(e.categoryId) ?? 0) + e.amount)
+      const key = `${e.categoryId}:${e.currency}`
+      const existing = map.get(key)
+      map.set(key, { categoryId: e.categoryId, currency: e.currency, total: (existing?.total ?? 0) + e.amount })
     }
-    return Array.from(map.entries())
-      .map(([categoryId, total]) => ({ categoryId, total, category: categoryMap.get(categoryId) }))
-      .sort((a, b) => b.total - a.total)
+    const maxByCurrency = new Map<Currency, number>()
+    for (const row of map.values()) {
+      maxByCurrency.set(row.currency, Math.max(maxByCurrency.get(row.currency) ?? 0, row.total))
+    }
+    return Array.from(map.values())
+      .map((row) => ({
+        ...row,
+        category: categoryMap.get(row.categoryId),
+        barPct: ((row.total / (maxByCurrency.get(row.currency) ?? 1)) * 100),
+      }))
+      .sort((a, b) => a.currency.localeCompare(b.currency) || b.total - a.total)
   }, [entries, categoryMap])
 
   const numDays = daysInMonth(year, month)
@@ -82,11 +101,18 @@ export function SpendingView() {
 
   return (
     <div className="view">
-      <div className="total-chip">
-        <div className="muted">
+      <div className="section-title">
+        <h2>
           Total spent — {MONTH_NAMES[month]} {year}
-        </div>
-        <div className="amount">{formatMoney(monthTotal, spendingCurrency)}</div>
+        </h2>
+      </div>
+      <div className="totals-row">
+        {CURRENCIES.map((c) => (
+          <div className="total-chip" key={c.code}>
+            <div className="muted">{c.code}</div>
+            <div className="amount">{formatMoney(monthTotals[c.code], c.code)}</div>
+          </div>
+        ))}
       </div>
 
       <div className="card">
@@ -110,17 +136,31 @@ export function SpendingView() {
           ))}
           {cells.map((cell, i) => {
             if (cell.day === null) return <div className="calendar-cell pad" key={`pad-${i}`} />
-            const total = totalsByDay.get(cell.date!) ?? 0
+            const dayMap = totalsByDay.get(cell.date!)
             const isToday = isCurrentMonth && cell.date === todayStr
+            let primary: [Currency, number] | null = null
+            let extraCount = 0
+            if (dayMap && dayMap.size > 0) {
+              const pairs = Array.from(dayMap.entries())
+              primary = dayMap.has(spendingCurrency)
+                ? [spendingCurrency, dayMap.get(spendingCurrency)!]
+                : pairs.sort((a, b) => b[1] - a[1])[0]
+              extraCount = pairs.length - 1
+            }
             return (
               <button
                 key={cell.date}
-                className={`calendar-cell${isToday ? ' today' : ''}${total > 0 ? ' has-spend' : ''}`}
+                className={`calendar-cell${isToday ? ' today' : ''}${primary ? ' has-spend' : ''}`}
                 onClick={() => setOpenDay(cell.date)}
                 type="button"
               >
                 <span className="day-num">{cell.day}</span>
-                {total > 0 && <span className="day-total">{formatMoneyCompact(total, spendingCurrency)}</span>}
+                {primary && (
+                  <span className="day-total">
+                    {formatMoneyCompact(primary[1], primary[0])}
+                    {extraCount > 0 ? ` +${extraCount}` : ''}
+                  </span>
+                )}
               </button>
             )
           })}
@@ -141,20 +181,17 @@ export function SpendingView() {
         </div>
       ) : (
         <div className="category-breakdown">
-          {breakdown.map(({ categoryId, total, category }) => (
-            <div className="category-breakdown-row" key={categoryId}>
+          {breakdown.map(({ categoryId, currency, total, category, barPct }) => (
+            <div className="category-breakdown-row" key={`${categoryId}:${currency}`}>
               <span className="swatch" style={{ background: category?.color ?? '#888' }} />
               <span style={{ width: 96, flexShrink: 0 }}>{category?.name ?? 'Unknown'}</span>
               <div className="bar-track">
                 <div
                   className="bar-fill"
-                  style={{
-                    width: `${monthTotal > 0 ? (total / monthTotal) * 100 : 0}%`,
-                    background: category?.color ?? '#888',
-                  }}
+                  style={{ width: `${barPct}%`, background: category?.color ?? '#888' }}
                 />
               </div>
-              <strong>{formatMoney(total, spendingCurrency)}</strong>
+              <strong>{formatMoney(total, currency)}</strong>
             </div>
           ))}
         </div>

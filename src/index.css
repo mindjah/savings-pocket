@@ -305,6 +305,10 @@ h1, h2, h3, p {
   font-size: 0.85rem;
   color: var(--text);
   opacity: 0.85;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .badge {
@@ -439,6 +443,16 @@ h1, h2, h3, p {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-muted);
+}
+
+.form-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.form-group-header label {
+  margin: 0;
 }
 
 .form-row {

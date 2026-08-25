@@ -3,6 +3,7 @@ import { db } from '../../db/db'
 import type { CryptoEntry } from '../../db/types'
 import { POPULAR_COINS } from '../../lib/constants'
 import { Modal } from '../common/Modal'
+import { ExpandableTextarea } from '../common/ExpandableTextarea'
 import { useToast } from '../../hooks/useToast'
 
 interface Props {
@@ -162,28 +163,22 @@ export function CryptoEntryForm({ entry, onClose }: Props) {
         />
       </div>
 
-      <div className="form-group">
-        <label htmlFor="cryptoNote">Note</label>
-        <textarea
-          id="cryptoNote"
-          rows={2}
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="e.g. Cold wallet, exchange name…"
-        />
-      </div>
+      <ExpandableTextarea
+        id="cryptoNote"
+        label="Note"
+        value={note}
+        onChange={setNote}
+        placeholder="e.g. Cold wallet, exchange name…"
+      />
 
       {amountChanged && (
-        <div className="form-group">
-          <label htmlFor="cryptoReason">Reason for change (saved to history)</label>
-          <textarea
-            id="cryptoReason"
-            rows={2}
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="Why did this amount change?"
-          />
-        </div>
+        <ExpandableTextarea
+          id="cryptoReason"
+          label="Reason for change (saved to history)"
+          value={reason}
+          onChange={setReason}
+          placeholder="Why did this amount change?"
+        />
       )}
 
       <div className="modal-actions">

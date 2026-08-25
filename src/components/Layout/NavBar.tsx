@@ -1,8 +1,11 @@
+import type { ReactNode } from 'react'
+import { BitcoinIcon } from '../common/BitcoinIcon'
+
 export type Tab = 'savings' | 'crypto' | 'spending' | 'settings'
 
-const TABS: { key: Tab; label: string; icon: string }[] = [
+const TABS: { key: Tab; label: string; icon: ReactNode }[] = [
   { key: 'savings', label: 'Savings', icon: '💰' },
-  { key: 'crypto', label: 'Crypto', icon: '🪙' },
+  { key: 'crypto', label: 'Crypto', icon: <BitcoinIcon size={20} /> },
   { key: 'spending', label: 'Spending', icon: '📅' },
   { key: 'settings', label: 'Settings', icon: '⚙️' },
 ]

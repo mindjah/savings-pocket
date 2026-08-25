@@ -16,7 +16,7 @@ export const POPULAR_COINS: { coinId: string; symbol: string; name: string }[] =
   { coinId: 'ripple', symbol: 'XRP', name: 'XRP' },
   { coinId: 'cardano', symbol: 'ADA', name: 'Cardano' },
   { coinId: 'dogecoin', symbol: 'DOGE', name: 'Dogecoin' },
-  { coinId: 'toncoin', symbol: 'TON', name: 'Toncoin' },
+  { coinId: 'the-open-network', symbol: 'GRAM', name: 'Gram' },
   { coinId: 'tron', symbol: 'TRX', name: 'Tron' },
   { coinId: 'litecoin', symbol: 'LTC', name: 'Litecoin' },
 ]

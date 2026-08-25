@@ -6,6 +6,7 @@ import { useCryptoRates } from '../../hooks/useCryptoRates'
 import { formatMoney, formatUsdEur } from '../../lib/format'
 import { CryptoEntryForm } from './CryptoEntryForm'
 import { HistoryModal } from '../common/HistoryModal'
+import { BitcoinIcon } from '../common/BitcoinIcon'
 
 export function CryptoView() {
   const entries = useLiveQuery(() => db.cryptoEntries.toArray(), [])
@@ -17,6 +18,7 @@ export function CryptoView() {
 
   const totalUsd = (entries ?? []).reduce((sum, e) => sum + e.amount * (prices[e.coinId]?.usd ?? 0), 0)
   const totalEur = (entries ?? []).reduce((sum, e) => sum + e.amount * (prices[e.coinId]?.eur ?? 0), 0)
+  const totalRub = (entries ?? []).reduce((sum, e) => sum + e.amount * (prices[e.coinId]?.rub ?? 0), 0)
 
   return (
     <div className="view">
@@ -28,6 +30,10 @@ export function CryptoView() {
         <div className="total-chip">
           <div className="muted">Total (EUR)</div>
           <div className="amount">{formatMoney(totalEur, 'EUR')}</div>
+        </div>
+        <div className="total-chip">
+          <div className="muted">Total (RUB)</div>
+          <div className="amount">{formatMoney(totalRub, 'RUB')}</div>
         </div>
       </div>
 
@@ -47,7 +53,9 @@ export function CryptoView() {
 
       {!entries || entries.length === 0 ? (
         <div className="empty-state">
-          <span className="icon">🪙</span>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+            <BitcoinIcon size={32} />
+          </div>
           No crypto holdings yet. Tap + to add one.
         </div>
       ) : (

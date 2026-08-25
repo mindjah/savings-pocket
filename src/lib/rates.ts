@@ -3,6 +3,7 @@ import { db } from '../db/db'
 export interface CoinPrice {
   usd: number
   eur: number
+  rub: number
 }
 
 export type PriceMap = Record<string, CoinPrice>
@@ -29,7 +30,7 @@ async function writeCache(prices: PriceMap): Promise<CachedRates> {
 async function fetchLive(coinIds: string[]): Promise<PriceMap> {
   const url = `https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(
     coinIds.join(','),
-  )}&vs_currencies=usd,eur`
+  )}&vs_currencies=usd,eur,rub`
   const res = await fetch(url)
   if (!res.ok) throw new Error(`CoinGecko request failed: ${res.status}`)
   return (await res.json()) as PriceMap

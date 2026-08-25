@@ -41,6 +41,25 @@ export interface CryptoHistory {
   comment: string
 }
 
+export interface LoanEntry {
+  id?: number
+  borrowerName: string
+  currency: Currency
+  amount: number
+  note: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface LoanHistory {
+  id?: number
+  entryId: number
+  previousAmount: number
+  newAmount: number
+  date: string
+  comment: string
+}
+
 export interface Category {
   id?: number
   name: string
@@ -54,6 +73,7 @@ export interface SpendingEntry {
   categoryId: number
   date: string // yyyy-mm-dd
   amount: number
+  currency: Currency
   note: string
   createdAt: string
 }
