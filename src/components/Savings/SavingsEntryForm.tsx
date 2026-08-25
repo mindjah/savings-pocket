@@ -35,7 +35,8 @@ export function SavingsEntryForm({ entry, defaultCurrency, availableCurrencies, 
 
   const parsedAmount = useMemo(() => Number(amount), [amount])
   const amountChanged = isEdit && entry && parsedAmount !== entry.amount
-  const valid = location.trim().length > 0 && !Number.isNaN(parsedAmount) && parsedAmount >= 0
+  const valid =
+    location.trim().length > 0 && amount.trim() !== '' && !Number.isNaN(parsedAmount) && parsedAmount >= 0
 
   async function handleSubmit() {
     if (!valid) return

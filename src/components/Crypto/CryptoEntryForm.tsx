@@ -45,6 +45,7 @@ export function CryptoEntryForm({ entry, onClose }: Props) {
   const valid =
     resolved.coinId.length > 0 &&
     resolved.symbol.length > 0 &&
+    amount.trim() !== '' &&
     !Number.isNaN(parsedAmount) &&
     parsedAmount >= 0
 

@@ -34,7 +34,8 @@ export function LoanEntryForm({ entry, defaultCurrency, availableCurrencies, onC
 
   const parsedAmount = useMemo(() => Number(amount), [amount])
   const amountChanged = isEdit && entry && parsedAmount !== entry.amount
-  const valid = borrowerName.trim().length > 0 && !Number.isNaN(parsedAmount) && parsedAmount >= 0
+  const valid =
+    borrowerName.trim().length > 0 && amount.trim() !== '' && !Number.isNaN(parsedAmount) && parsedAmount >= 0
 
   async function handleSubmit() {
     if (!valid) return

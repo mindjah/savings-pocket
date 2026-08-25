@@ -69,7 +69,7 @@ export function CategoryManagerModal({ onClose }: Props) {
           />
         ))}
       </div>
-      <button className="btn btn-primary btn-block" onClick={addCategory} type="button">
+      <button className="btn btn-primary btn-block" onClick={addCategory} disabled={!name.trim()} type="button">
         Add category
       </button>
 
