@@ -10,11 +10,13 @@ import { priceIn } from '../../lib/rates'
 import { CryptoEntryForm } from './CryptoEntryForm'
 import { HistoryModal } from '../common/HistoryModal'
 import { BitcoinIcon } from '../common/BitcoinIcon'
+import { NoteViewModal } from '../common/NoteViewModal'
 
 export function CryptoView() {
   const entries = useLiveQuery(() => db.cryptoEntries.toArray(), [])
   const [editing, setEditing] = useState<CryptoEntry | null | 'new'>(null)
   const [historyFor, setHistoryFor] = useState<CryptoEntry | null>(null)
+  const [viewingNote, setViewingNote] = useState<string | null>(null)
   const [cryptoCurrencies] = useMetaSetting<Currency[]>('enabledCryptoCurrencies', DEFAULT_CRYPTO_CURRENCIES)
 
   const coinIds = useMemo(() => Array.from(new Set((entries ?? []).map((e) => e.coinId))), [entries])
@@ -84,7 +86,23 @@ export function CryptoView() {
                       : 'Price unavailable'}
                   </div>
                   {entry.note && (
-                    <span className="note-indicator" title="Has a note" aria-label="Has a note">
+                    <span
+                      className="note-indicator"
+                      title="Has a note"
+                      aria-label="Has a note"
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setViewingNote(entry.note)
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.stopPropagation()
+                          setViewingNote(entry.note)
+                        }
+                      }}
+                    >
                       📝
                     </span>
                   )}
@@ -126,6 +144,8 @@ export function CryptoView() {
           onClose={() => setHistoryFor(null)}
         />
       )}
+
+      {viewingNote != null && <NoteViewModal note={viewingNote} onClose={() => setViewingNote(null)} />}
     </div>
   )
 }

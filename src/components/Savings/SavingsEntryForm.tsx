@@ -6,6 +6,7 @@ import { CURRENCIES } from '../../lib/constants'
 import { parseAmount } from '../../lib/format'
 import { Modal } from '../common/Modal'
 import { ExpandableTextarea } from '../common/ExpandableTextarea'
+import { DeleteConfirmModal } from './DeleteConfirmModal'
 import { useToast } from '../../hooks/useToast'
 
 interface Props {
@@ -27,6 +28,7 @@ export function SavingsEntryForm({ entry, defaultCurrency, availableCurrencies, 
   const [note, setNote] = useState(entry?.note ?? '')
   const [amount, setAmount] = useState(entry ? String(entry.amount) : '')
   const [reason, setReason] = useState('')
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const toast = useToast()
 
   const knownLocations = useLiveQuery(async () => {
@@ -50,6 +52,7 @@ export function SavingsEntryForm({ entry, defaultCurrency, availableCurrencies, 
           newAmount: parsedAmount,
           date: now,
           comment: reason.trim(),
+          source: 'manual',
         })
       }
       await db.savingsEntries.update(entry.id, {
@@ -166,7 +169,7 @@ export function SavingsEntryForm({ entry, defaultCurrency, availableCurrencies, 
 
       <div className="modal-actions">
         {isEdit && (
-          <button className="btn btn-danger" onClick={handleDelete} type="button">
+          <button className="btn btn-danger" onClick={() => setConfirmingDelete(true)} type="button">
             Delete
           </button>
         )}
@@ -174,6 +177,14 @@ export function SavingsEntryForm({ entry, defaultCurrency, availableCurrencies, 
           {isEdit ? 'Save changes' : 'Add entry'}
         </button>
       </div>
+
+      {confirmingDelete && (
+        <DeleteConfirmModal
+          itemLabel="this savings entry"
+          onConfirmed={handleDelete}
+          onClose={() => setConfirmingDelete(false)}
+        />
+      )}
     </Modal>
   )
 }

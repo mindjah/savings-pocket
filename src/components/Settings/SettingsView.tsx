@@ -1,9 +1,12 @@
 import { useRef, useState } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from '../../db/db'
 import { DEFAULT_CRYPTO_CURRENCIES, DEFAULT_SAVINGS_CURRENCIES, DEFAULT_SPENDING_CURRENCIES } from '../../lib/constants'
+import { formatMoney } from '../../lib/format'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { exportBackup, importBackup } from '../../lib/backup'
 import { useToast } from '../../hooks/useToast'
-import type { Currency } from '../../db/types'
+import type { Currency, SavingsTrackingMode } from '../../db/types'
 import { CurrencyMultiSelect } from '../common/CurrencyMultiSelect'
 
 export function SettingsView() {
@@ -19,6 +22,14 @@ export function SettingsView() {
     'enabledSpendingCurrencies',
     DEFAULT_SPENDING_CURRENCIES,
   )
+  const [trackingMode, setTrackingMode] = useMetaSetting<SavingsTrackingMode>('savingsTrackingMode', 'manual')
+  const [defaultPockets, setDefaultPockets] = useMetaSetting<Partial<Record<Currency, number>>>(
+    'defaultSavingsPocketByCurrency',
+    {},
+  )
+  const [modeInfoOpen, setModeInfoOpen] = useState(false)
+  const pockets = useLiveQuery(() => db.savingsEntries.toArray(), []) ?? []
+
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const toast = useToast()
@@ -87,6 +98,80 @@ export function SettingsView() {
           </div>
           <CurrencyMultiSelect selected={spendingCurrencies} onChange={setSpendingCurrencies} />
         </div>
+      </div>
+
+      <div className="section-title">
+        <h2>Savings tracking</h2>
+      </div>
+
+      <div className="card settings-list">
+        <div className="settings-row wrap">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div>Savings tracking mode</div>
+            <button
+              className="btn btn-ghost btn-icon"
+              onClick={() => setModeInfoOpen((o) => !o)}
+              aria-label="What do these modes mean?"
+              type="button"
+            >
+              ⓘ
+            </button>
+          </div>
+          {modeInfoOpen && (
+            <div className="muted" style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: '0.82rem' }}>
+              <p style={{ margin: 0 }}>
+                <strong>Manual</strong> — spending is tracked separately and never changes your saving pocket
+                balances.
+              </p>
+              <p style={{ margin: 0 }}>
+                <strong>Auto spending</strong> — choose a default saving pocket per currency below; every expense
+                you log is automatically debited from that pocket (you can pick a different one per expense) and
+                shows up in that pocket's Spending history.
+              </p>
+            </div>
+          )}
+          <select value={trackingMode} onChange={(e) => setTrackingMode(e.target.value as SavingsTrackingMode)}>
+            <option value="manual">Manual</option>
+            <option value="auto">Auto spending</option>
+          </select>
+        </div>
+
+        {trackingMode === 'auto' && (
+          <div className="settings-row wrap">
+            <div>
+              <div>Default saving pocket per currency</div>
+              <div className="muted">Used when you log an expense — you can still override it per expense</div>
+            </div>
+            {spendingCurrencies.map((cur) => {
+              const options = pockets.filter((p) => p.currency === cur)
+              return (
+                <div
+                  key={cur}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 8 }}
+                >
+                  <span>{cur}</span>
+                  {options.length === 0 ? (
+                    <span className="muted">No pocket in {cur} yet</span>
+                  ) : (
+                    <select
+                      value={defaultPockets[cur] ?? ''}
+                      onChange={(e) =>
+                        setDefaultPockets({ ...defaultPockets, [cur]: e.target.value ? Number(e.target.value) : undefined })
+                      }
+                    >
+                      <option value="">None selected</option>
+                      {options.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.location} — {formatMoney(p.amount, p.currency)}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       <div className="section-title">

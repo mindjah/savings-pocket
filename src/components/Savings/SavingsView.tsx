@@ -9,8 +9,11 @@ import { SavingsEntryForm } from './SavingsEntryForm'
 import { LoanEntryForm } from './LoanEntryForm'
 import { NetWorthCard } from './NetWorthCard'
 import { ExchangeRatesModal } from './ExchangeRatesModal'
+import { AdjustPocketModal } from './AdjustPocketModal'
+import { PocketHistoryModal } from './PocketHistoryModal'
 import { HistoryModal } from '../common/HistoryModal'
 import { HeaderPortal } from '../common/HeaderPortal'
+import { NoteViewModal } from '../common/NoteViewModal'
 
 type SubTab = 'mine' | 'lent'
 
@@ -23,9 +26,10 @@ export function SavingsView() {
 
   const [editingSavings, setEditingSavings] = useState<SavingsEntry | null | 'new'>(null)
   const [editingLoan, setEditingLoan] = useState<LoanEntry | null | 'new'>(null)
-  const [historyFor, setHistoryFor] = useState<
-    { table: 'savingsHistory' | 'loanHistory'; id: number; currency: Currency } | null
-  >(null)
+  const [adjustingPocket, setAdjustingPocket] = useState<SavingsEntry | null>(null)
+  const [pocketHistoryFor, setPocketHistoryFor] = useState<{ id: number; currency: Currency } | null>(null)
+  const [loanHistoryFor, setLoanHistoryFor] = useState<{ id: number; currency: Currency } | null>(null)
+  const [viewingNote, setViewingNote] = useState<string | null>(null)
   const [showRates, setShowRates] = useState(false)
 
   const defaultCurrency = savingsCurrencies[0] ?? 'EUR'
@@ -80,7 +84,7 @@ export function SavingsView() {
       {subTab === 'mine' ? (
         <>
           <div className="section-title">
-            <h2>Savings</h2>
+            <h2>Saving Pockets</h2>
           </div>
 
           {!entries || entries.length === 0 ? (
@@ -94,14 +98,51 @@ export function SavingsView() {
                 .slice()
                 .sort((a, b) => a.currency.localeCompare(b.currency) || b.amount - a.amount)
                 .map((entry) => (
-                  <button className="entry-card" key={entry.id} onClick={() => setEditingSavings(entry)}>
+                  <div
+                    className="entry-card"
+                    key={entry.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setEditingSavings(entry)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') setEditingSavings(entry)
+                    }}
+                  >
                     <div className="entry-top">
-                      <span className="entry-amount">{formatMoney(entry.amount, entry.currency)}</span>
-                      <span className={`badge badge-${entry.type}`}>{entry.type === 'cash' ? 'Cash' : 'Card'}</span>
+                      <span className="entry-top-left">
+                        <span className="entry-amount">{formatMoney(entry.amount, entry.currency)}</span>
+                        <span className={`badge badge-${entry.type}`}>{entry.type === 'cash' ? 'Cash' : 'Card'}</span>
+                      </span>
+                      <button
+                        className="pocket-adjust-btn"
+                        aria-label="Adjust balance"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setAdjustingPocket(entry)
+                        }}
+                      >
+                        +
+                      </button>
                     </div>
                     <div className="entry-sub">📍 {entry.location}</div>
                     {entry.note && (
-                      <span className="note-indicator" title="Has a note" aria-label="Has a note">
+                      <span
+                        className="note-indicator"
+                        title="Has a note"
+                        aria-label="Has a note"
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setViewingNote(entry.note)
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.stopPropagation()
+                            setViewingNote(entry.note)
+                          }
+                        }}
+                      >
                         📝
                       </span>
                     )}
@@ -112,18 +153,18 @@ export function SavingsView() {
                       style={{ textDecoration: 'underline', width: 'fit-content' }}
                       onClick={(e) => {
                         e.stopPropagation()
-                        if (entry.id != null) setHistoryFor({ table: 'savingsHistory', id: entry.id, currency: entry.currency })
+                        if (entry.id != null) setPocketHistoryFor({ id: entry.id, currency: entry.currency })
                       }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && entry.id != null) {
                           e.stopPropagation()
-                          setHistoryFor({ table: 'savingsHistory', id: entry.id, currency: entry.currency })
+                          setPocketHistoryFor({ id: entry.id, currency: entry.currency })
                         }
                       }}
                     >
-                      View history
+                      History
                     </div>
-                  </button>
+                  </div>
                 ))}
             </div>
           )}
@@ -151,7 +192,23 @@ export function SavingsView() {
                       <span className="badge">{loan.borrowerName}</span>
                     </div>
                     {loan.note && (
-                      <span className="note-indicator" title="Has a note" aria-label="Has a note">
+                      <span
+                        className="note-indicator"
+                        title="Has a note"
+                        aria-label="Has a note"
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setViewingNote(loan.note)
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.stopPropagation()
+                            setViewingNote(loan.note)
+                          }
+                        }}
+                      >
                         📝
                       </span>
                     )}
@@ -162,12 +219,12 @@ export function SavingsView() {
                       style={{ textDecoration: 'underline', width: 'fit-content' }}
                       onClick={(e) => {
                         e.stopPropagation()
-                        if (loan.id != null) setHistoryFor({ table: 'loanHistory', id: loan.id, currency: loan.currency })
+                        if (loan.id != null) setLoanHistoryFor({ id: loan.id, currency: loan.currency })
                       }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && loan.id != null) {
                           e.stopPropagation()
-                          setHistoryFor({ table: 'loanHistory', id: loan.id, currency: loan.currency })
+                          setLoanHistoryFor({ id: loan.id, currency: loan.currency })
                         }
                       }}
                     >
@@ -206,14 +263,26 @@ export function SavingsView() {
         />
       )}
 
-      {historyFor && (
-        <HistoryModal
-          table={historyFor.table}
-          entryId={historyFor.id}
-          formatAmount={(n) => formatMoney(n, historyFor.currency)}
-          onClose={() => setHistoryFor(null)}
+      {adjustingPocket && <AdjustPocketModal entry={adjustingPocket} onClose={() => setAdjustingPocket(null)} />}
+
+      {pocketHistoryFor && (
+        <PocketHistoryModal
+          entryId={pocketHistoryFor.id}
+          currency={pocketHistoryFor.currency}
+          onClose={() => setPocketHistoryFor(null)}
         />
       )}
+
+      {loanHistoryFor && (
+        <HistoryModal
+          table="loanHistory"
+          entryId={loanHistoryFor.id}
+          formatAmount={(n) => formatMoney(n, loanHistoryFor.currency)}
+          onClose={() => setLoanHistoryFor(null)}
+        />
+      )}
+
+      {viewingNote != null && <NoteViewModal note={viewingNote} onClose={() => setViewingNote(null)} />}
 
       {showRates && <ExchangeRatesModal onClose={() => setShowRates(false)} />}
     </div>

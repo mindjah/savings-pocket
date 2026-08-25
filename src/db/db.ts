@@ -55,6 +55,20 @@ class AppDB extends Dexie {
             if (!entry.currency) entry.currency = 'EUR'
           })
       })
+
+    this.version(3)
+      .stores({
+        savingsHistory: '++id, entryId, date, spendingEntryId',
+      })
+      .upgrade(async (tx) => {
+        // History predates the manual/auto-spending split — everything so far was manual.
+        await tx
+          .table('savingsHistory')
+          .toCollection()
+          .modify((h) => {
+            if (!h.source) h.source = 'manual'
+          })
+      })
   }
 }
 

@@ -19,6 +19,8 @@ export interface SavingsHistory {
   newAmount: number
   date: string
   comment: string
+  source: 'manual' | 'spending'
+  spendingEntryId?: number
 }
 
 export interface CryptoEntry {
@@ -76,7 +78,10 @@ export interface SpendingEntry {
   currency: Currency
   note: string
   createdAt: string
+  debitedFromPocketId?: number
 }
+
+export type SavingsTrackingMode = 'manual' | 'auto'
 
 export interface MetaRecord {
   key: string
