@@ -1,10 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { getCryptoPrices, type PriceMap } from '../lib/rates'
 
 export function useCryptoRates(coinIds: string[]) {
   const [prices, setPrices] = useState<PriceMap>({})
-  const [previousPrices, setPreviousPrices] = useState<PriceMap>({})
-  const pricesRef = useRef<PriceMap>({})
   const [fetchedAt, setFetchedAt] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [stale, setStale] = useState(false)
@@ -16,9 +14,7 @@ export function useCryptoRates(coinIds: string[]) {
     if (coinIds.length === 0) return
     setLoading(true)
     const result = await getCryptoPrices(coinIds, opts)
-    setPreviousPrices(pricesRef.current)
     setPrices(result.prices)
-    pricesRef.current = result.prices
     setFetchedAt(result.fetchedAt)
     setStale(result.stale)
     setError(result.error)
@@ -30,5 +26,5 @@ export function useCryptoRates(coinIds: string[]) {
     refresh()
   }, [refresh])
 
-  return { prices, previousPrices, fetchedAt, loading, stale, error, refresh }
+  return { prices, fetchedAt, loading, stale, error, refresh }
 }

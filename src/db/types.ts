@@ -32,6 +32,10 @@ export interface CryptoEntry {
   note: string
   createdAt: string
   updatedAt: string
+  // USD price captured at creation or the last amount edit — the trend arrow compares
+  // the live price against this baseline, not against the previous rate refresh.
+  baselinePriceUsd?: number
+  baselineSetAt?: string
 }
 
 export interface CryptoHistory {

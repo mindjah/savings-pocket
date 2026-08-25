@@ -184,7 +184,7 @@ export function SavingsView() {
                         }
                       }}
                     >
-                      History
+                      View history
                     </div>
                   </div>
                 ))}

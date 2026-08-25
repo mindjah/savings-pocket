@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import type { CryptoEntry, Currency } from '../../db/types'
@@ -20,7 +20,23 @@ export function CryptoView() {
   const [cryptoCurrencies] = useMetaSetting<Currency[]>('enabledCryptoCurrencies', DEFAULT_CRYPTO_CURRENCIES)
 
   const coinIds = useMemo(() => Array.from(new Set((entries ?? []).map((e) => e.coinId))), [entries])
-  const { prices, previousPrices, loading, stale, error, refresh, fetchedAt } = useCryptoRates(coinIds)
+  const { prices, loading, stale, error, refresh, fetchedAt } = useCryptoRates(coinIds)
+
+  // Capture each entry's baseline price the first time a live price arrives after
+  // creation, and again after any amount edit (updatedAt moves forward) — the trend
+  // arrow compares against this persisted baseline, not the previous rate refresh.
+  useEffect(() => {
+    if (!entries) return
+    for (const entry of entries) {
+      const price = prices[entry.coinId]
+      if (!price || entry.id == null) continue
+      const needsCapture =
+        !entry.baselineSetAt || new Date(entry.baselineSetAt).getTime() < new Date(entry.updatedAt).getTime()
+      if (needsCapture) {
+        db.cryptoEntries.update(entry.id, { baselinePriceUsd: price.usd, baselineSetAt: new Date().toISOString() })
+      }
+    }
+  }, [entries, prices])
 
   const visibleCurrencies = CURRENCIES.filter((c) => cryptoCurrencies.includes(c.code))
   const totals: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0, JPY: 0, CNY: 0 }
@@ -70,12 +86,11 @@ export function CryptoView() {
             .sort((a, b) => a.symbol.localeCompare(b.symbol))
             .map((entry) => {
               const price = prices[entry.coinId]
-              const prevPrice = previousPrices[entry.coinId]
               const trend =
-                price && prevPrice
-                  ? price.usd > prevPrice.usd
+                price && entry.baselinePriceUsd != null
+                  ? price.usd > entry.baselinePriceUsd
                     ? 'up'
-                    : price.usd < prevPrice.usd
+                    : price.usd < entry.baselinePriceUsd
                       ? 'down'
                       : null
                   : null
@@ -85,13 +100,13 @@ export function CryptoView() {
                     <span className="entry-amount">
                       {entry.amount} {entry.symbol}
                       {trend === 'up' && (
-                        <span className="price-trend price-trend-up" aria-label="Price up since last refresh">
+                        <span className="price-trend price-trend-up" aria-label="Worth up since last edit">
                           {' '}
                           ▲
                         </span>
                       )}
                       {trend === 'down' && (
-                        <span className="price-trend price-trend-down" aria-label="Price down since last refresh">
+                        <span className="price-trend price-trend-down" aria-label="Worth down since last edit">
                           {' '}
                           ▼
                         </span>
@@ -130,8 +145,7 @@ export function CryptoView() {
                   <div
                     role="link"
                     tabIndex={0}
-                    className="muted"
-                    style={{ textDecoration: 'underline', width: 'fit-content' }}
+                    className="pocket-link-text"
                     onClick={(e) => {
                       e.stopPropagation()
                       setHistoryFor(entry)
