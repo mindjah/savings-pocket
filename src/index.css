@@ -323,11 +323,18 @@ h1, h2, h3, p {
 }
 
 .note-indicator-text {
-  font-size: 0.78rem;
-  font-weight: 600;
+  font-size: 0.85rem;
+  font-weight: 400;
   color: var(--text);
   text-decoration: underline;
   opacity: 1;
+}
+
+.pocket-link-text {
+  color: var(--text);
+  font-size: 0.85rem;
+  text-decoration: underline;
+  width: fit-content;
 }
 
 .entry-top {
@@ -361,6 +368,18 @@ h1, h2, h3, p {
 .entry-amount {
   font-size: 1.15rem;
   font-weight: 700;
+}
+
+.price-trend {
+  font-size: 0.9rem;
+}
+
+.price-trend-up {
+  color: var(--accent);
+}
+
+.price-trend-down {
+  color: var(--danger-strong);
 }
 
 .entry-sub {

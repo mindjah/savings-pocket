@@ -5,6 +5,8 @@ import type { SavingsEntry, LoanEntry, Currency, SavingsTrackingMode } from '../
 import { CURRENCIES, DEFAULT_SAVINGS_CURRENCIES } from '../../lib/constants'
 import { formatMoney } from '../../lib/format'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
+import { useFiatRates } from '../../hooks/useFiatRates'
+import { convertFiat } from '../../lib/fxRates'
 import { SavingsEntryForm } from './SavingsEntryForm'
 import { LoanEntryForm } from './LoanEntryForm'
 import { NetWorthCard } from './NetWorthCard'
@@ -23,6 +25,12 @@ export function SavingsView() {
   const [trackingMode] = useMetaSetting<SavingsTrackingMode>('savingsTrackingMode', 'manual')
   const [defaultPockets] = useMetaSetting<Partial<Record<Currency, number>>>('defaultSavingsPocketByCurrency', {})
   const defaultPocketIds = new Set(Object.values(defaultPockets).filter((id): id is number => id != null))
+  const { rates: fxRates } = useFiatRates()
+  // Amounts are in different currencies, so raw numbers aren't comparable (3000 EUR is
+  // worth far more than 80000 RUB) — convert to a common currency for sort comparisons.
+  function comparableValue(entry: { amount: number; currency: Currency }): number {
+    return fxRates ? convertFiat(entry.amount, entry.currency, 'USD', fxRates) : entry.amount
+  }
 
   const entries = useLiveQuery(() => db.savingsEntries.toArray(), [])
   const loans = useLiveQuery(() => db.loanEntries.toArray(), [])
@@ -48,7 +56,11 @@ export function SavingsView() {
   })
 
   const totals = subTab === 'mine' ? savingsTotals : loanTotals
-  const visibleCurrencies = CURRENCIES.filter((c) => savingsCurrencies.includes(c.code))
+  const enabledCurrencies = CURRENCIES.filter((c) => savingsCurrencies.includes(c.code))
+  // Lent out only shows currencies that actually have a loan — no point showing a
+  // permanent row of empty chips for currencies you've simply enabled elsewhere.
+  const visibleCurrencies =
+    subTab === 'mine' ? enabledCurrencies : enabledCurrencies.filter((c) => loanTotals[c.code] > 0)
 
   return (
     <div className="view">
@@ -105,7 +117,7 @@ export function SavingsView() {
                     const bDefault = b.id != null && defaultPocketIds.has(b.id)
                     if (aDefault !== bDefault) return aDefault ? -1 : 1
                   }
-                  return b.amount - a.amount
+                  return comparableValue(b) - comparableValue(a)
                 })
                 .map((entry) => (
                   <div
@@ -160,8 +172,7 @@ export function SavingsView() {
                     <div
                       role="link"
                       tabIndex={0}
-                      className="muted"
-                      style={{ textDecoration: 'underline', width: 'fit-content' }}
+                      className="pocket-link-text"
                       onClick={(e) => {
                         e.stopPropagation()
                         if (entry.id != null) setPocketHistoryFor({ id: entry.id, currency: entry.currency })

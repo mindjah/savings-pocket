@@ -35,11 +35,45 @@ export function SettingsView() {
     }
   }, [netWorthOptions, netWorthCurrency, setNetWorthCurrency])
 
-  const [trackingMode, setTrackingMode] = useMetaSetting<SavingsTrackingMode>('savingsTrackingMode', 'manual')
-  const [defaultPockets, setDefaultPockets] = useMetaSetting<Partial<Record<Currency, number>>>(
-    'defaultSavingsPocketByCurrency',
-    {},
-  )
+  // Draft state so mode/default-pocket edits only take effect once Save is tapped.
+  // Seeded with a direct one-time DB read (not useMetaSetting's live-updating value,
+  // which briefly reports its fallback default before the query resolves — syncing
+  // from that reactively caused the draft to permanently lock onto the wrong value).
+  const [trackingMode, setTrackingMode] = useState<SavingsTrackingMode>('manual')
+  const [defaultPockets, setDefaultPockets] = useState<Partial<Record<Currency, number>>>({})
+  const [trackingChanged, setTrackingChanged] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    Promise.all([db.meta.get('savingsTrackingMode'), db.meta.get('defaultSavingsPocketByCurrency')]).then(
+      ([modeRec, pocketsRec]) => {
+        if (cancelled) return
+        setTrackingMode((modeRec?.value as SavingsTrackingMode) ?? 'manual')
+        setDefaultPockets((pocketsRec?.value as Partial<Record<Currency, number>>) ?? {})
+      },
+    )
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  function updateDraftMode(next: SavingsTrackingMode) {
+    setTrackingMode(next)
+    setTrackingChanged(true)
+  }
+
+  function updateDraftPocket(cur: Currency, pocketId: number | undefined) {
+    setDefaultPockets({ ...defaultPockets, [cur]: pocketId })
+    setTrackingChanged(true)
+  }
+
+  async function handleSaveTracking() {
+    await db.meta.put({ key: 'savingsTrackingMode', value: trackingMode })
+    await db.meta.put({ key: 'defaultSavingsPocketByCurrency', value: defaultPockets })
+    setTrackingChanged(false)
+    toast('Savings tracking settings saved')
+  }
+
   const [modeInfoOpen, setModeInfoOpen] = useState(false)
   const pockets = useLiveQuery(() => db.savingsEntries.toArray(), []) ?? []
 
@@ -151,7 +185,7 @@ export function SettingsView() {
               </p>
             </div>
           )}
-          <select value={trackingMode} onChange={(e) => setTrackingMode(e.target.value as SavingsTrackingMode)}>
+          <select value={trackingMode} onChange={(e) => updateDraftMode(e.target.value as SavingsTrackingMode)}>
             <option value="manual">Manual</option>
             <option value="auto">Auto spending</option>
           </select>
@@ -176,9 +210,7 @@ export function SettingsView() {
                   ) : (
                     <select
                       value={defaultPockets[cur] ?? ''}
-                      onChange={(e) =>
-                        setDefaultPockets({ ...defaultPockets, [cur]: e.target.value ? Number(e.target.value) : undefined })
-                      }
+                      onChange={(e) => updateDraftPocket(cur, e.target.value ? Number(e.target.value) : undefined)}
                     >
                       <option value="">None selected</option>
                       {options.map((p) => (
@@ -193,6 +225,19 @@ export function SettingsView() {
             })}
           </div>
         )}
+
+        <div className="settings-row">
+          {trackingChanged && <span className="muted">Unsaved changes</span>}
+          <button
+            className="btn btn-primary"
+            style={{ marginLeft: 'auto' }}
+            onClick={handleSaveTracking}
+            disabled={!trackingChanged}
+            type="button"
+          >
+            Save
+          </button>
+        </div>
       </div>
 
       <div className="section-title">

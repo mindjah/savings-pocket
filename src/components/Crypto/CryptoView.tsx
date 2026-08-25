@@ -20,7 +20,7 @@ export function CryptoView() {
   const [cryptoCurrencies] = useMetaSetting<Currency[]>('enabledCryptoCurrencies', DEFAULT_CRYPTO_CURRENCIES)
 
   const coinIds = useMemo(() => Array.from(new Set((entries ?? []).map((e) => e.coinId))), [entries])
-  const { prices, loading, stale, error, refresh, fetchedAt } = useCryptoRates(coinIds)
+  const { prices, previousPrices, loading, stale, error, refresh, fetchedAt } = useCryptoRates(coinIds)
 
   const visibleCurrencies = CURRENCIES.filter((c) => cryptoCurrencies.includes(c.code))
   const totals: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0, JPY: 0, CNY: 0 }
@@ -70,11 +70,32 @@ export function CryptoView() {
             .sort((a, b) => a.symbol.localeCompare(b.symbol))
             .map((entry) => {
               const price = prices[entry.coinId]
+              const prevPrice = previousPrices[entry.coinId]
+              const trend =
+                price && prevPrice
+                  ? price.usd > prevPrice.usd
+                    ? 'up'
+                    : price.usd < prevPrice.usd
+                      ? 'down'
+                      : null
+                  : null
               return (
                 <button className="entry-card" key={entry.id} onClick={() => setEditing(entry)}>
                   <div className="entry-top">
                     <span className="entry-amount">
                       {entry.amount} {entry.symbol}
+                      {trend === 'up' && (
+                        <span className="price-trend price-trend-up" aria-label="Price up since last refresh">
+                          {' '}
+                          ▲
+                        </span>
+                      )}
+                      {trend === 'down' && (
+                        <span className="price-trend price-trend-down" aria-label="Price down since last refresh">
+                          {' '}
+                          ▼
+                        </span>
+                      )}
                     </span>
                     <span className="badge">{entry.name}</span>
                   </div>
