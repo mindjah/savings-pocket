@@ -83,7 +83,11 @@ export function CryptoView() {
                           .join(' · ')}`
                       : 'Price unavailable'}
                   </div>
-                  {entry.note && <div className="entry-note">{entry.note}</div>}
+                  {entry.note && (
+                    <span className="note-indicator" title="Has a note" aria-label="Has a note">
+                      📝
+                    </span>
+                  )}
                   <div
                     role="link"
                     tabIndex={0}

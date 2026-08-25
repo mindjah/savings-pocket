@@ -100,7 +100,11 @@ export function SavingsView() {
                       <span className={`badge badge-${entry.type}`}>{entry.type === 'cash' ? 'Cash' : 'Card'}</span>
                     </div>
                     <div className="entry-sub">📍 {entry.location}</div>
-                    {entry.note && <div className="entry-note">{entry.note}</div>}
+                    {entry.note && (
+                      <span className="note-indicator" title="Has a note" aria-label="Has a note">
+                        📝
+                      </span>
+                    )}
                     <div
                       role="link"
                       tabIndex={0}
@@ -146,7 +150,11 @@ export function SavingsView() {
                       <span className="entry-amount">{formatMoney(loan.amount, loan.currency)}</span>
                       <span className="badge">{loan.borrowerName}</span>
                     </div>
-                    {loan.note && <div className="entry-note">{loan.note}</div>}
+                    {loan.note && (
+                      <span className="note-indicator" title="Has a note" aria-label="Has a note">
+                        📝
+                      </span>
+                    )}
                     <div
                       role="link"
                       tabIndex={0}
