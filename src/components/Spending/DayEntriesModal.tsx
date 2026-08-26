@@ -18,7 +18,8 @@ interface Props {
   initialDate: string
   // True when opened from the "+" FAB — a focused quick-add flow for
   // today's spending, so it skips straight to the form instead of the
-  // day-overview (total spent, collapsed form) that a calendar-day tap shows.
+  // day-overview (total spent, existing entries, collapsed form) that a
+  // calendar-day tap shows.
   quickAdd?: boolean
   onClose: () => void
   onManageCategories: () => void
@@ -237,7 +238,7 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
         </div>
       ) : (
         <>
-          {(entries ?? []).length > 0 && (
+          {!quickAdd && (entries ?? []).length > 0 && (
             <div className="entry-list">
               {entries!.map((e) => {
                 const cat = categoryMap.get(e.categoryId)

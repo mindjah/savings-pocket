@@ -82,6 +82,12 @@ textarea {
    narrow modals — box-sizing alone doesn't stop it, so clamp explicitly. */
 input[type='date'] {
   max-width: 100%;
+  box-sizing: border-box;
+  /* iOS Safari's native date control ignores width:100% on its internal
+     layout unless appearance is overridden — without this it renders
+     wider than its box and pushes the bottom sheet off-screen. */
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 input:focus,
@@ -507,6 +513,7 @@ h1, h2, h3, p {
   max-width: 520px;
   max-height: 90dvh;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
