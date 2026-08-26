@@ -7,6 +7,7 @@ import { recurrenceLabel } from '../../lib/recurring'
 import { Modal } from '../common/Modal'
 import { useToast } from '../../hooks/useToast'
 import { useTranslation } from '../../hooks/useTranslation'
+import { EditIcon } from '../common/EditIcon'
 
 interface Props {
   onClose: () => void
@@ -176,7 +177,7 @@ export function RecurringExpensesModal({ onClose }: Props) {
                       </div>
                     </div>
                     <button className="btn btn-ghost btn-icon" onClick={() => startEdit(r)} type="button">
-                      ✎
+                      <EditIcon />
                     </button>
                   </div>
                 )}

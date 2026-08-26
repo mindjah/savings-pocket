@@ -11,6 +11,8 @@ import { useToast } from '../../hooks/useToast'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { useTranslation } from '../../hooks/useTranslation'
 import { tNoPocketWarning } from '../../i18n/translations'
+import { EditIcon } from '../common/EditIcon'
+import { DeleteIcon } from '../common/DeleteIcon'
 
 interface Props {
   initialDate: string
@@ -245,10 +247,10 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
                     <div className="icon-btn-row" style={{ alignItems: 'center' }}>
                       <strong>{formatMoney(e.amount, e.currency)}</strong>
                       <button className="btn btn-ghost btn-icon" onClick={() => startEdit(e)} type="button">
-                        ✎
+                        <EditIcon />
                       </button>
                       <button className="btn btn-ghost btn-icon" onClick={() => handleDelete(e.id)} type="button">
-                        🗑
+                        <DeleteIcon />
                       </button>
                     </div>
                   </div>

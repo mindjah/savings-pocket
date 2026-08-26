@@ -5,6 +5,7 @@ import { formatDate, formatMoney } from '../../lib/format'
 import { Modal } from '../common/Modal'
 import { useToast } from '../../hooks/useToast'
 import { useTranslation } from '../../hooks/useTranslation'
+import { DeleteIcon } from '../common/DeleteIcon'
 
 interface Props {
   categoryId: number
@@ -60,7 +61,7 @@ export function CategoryExpensesModal({ categoryId, currency, categoryName, mont
               <div className="icon-btn-row" style={{ alignItems: 'center' }}>
                 <strong>{formatMoney(e.amount, e.currency)}</strong>
                 <button className="btn btn-ghost btn-icon" onClick={() => handleDelete(e.id)} type="button">
-                  🗑
+                  <DeleteIcon />
                 </button>
               </div>
             </div>

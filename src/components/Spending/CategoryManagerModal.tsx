@@ -7,6 +7,9 @@ import { Modal } from '../common/Modal'
 import { useToast } from '../../hooks/useToast'
 import { useTranslation } from '../../hooks/useTranslation'
 import { tCategoryArchiveHint, tDeleteCategoryConfirm } from '../../i18n/translations'
+import { EditIcon } from '../common/EditIcon'
+import { ArchiveIcon } from '../common/ArchiveIcon'
+import { DeleteIcon } from '../common/DeleteIcon'
 
 interface Props {
   onClose: () => void
@@ -144,13 +147,13 @@ export function CategoryManagerModal({ onClose }: Props) {
               </span>
               <div className="icon-btn-row">
                 <button className="btn btn-ghost btn-icon" onClick={() => startEdit(cat)} type="button">
-                  ✎
+                  <EditIcon />
                 </button>
                 <button className="btn btn-ghost btn-icon" onClick={() => toggleArchive(cat)} type="button">
-                  {cat.archived ? '↺' : '🗄'}
+                  <ArchiveIcon />
                 </button>
                 <button className="btn btn-ghost btn-icon" onClick={() => removeCategory(cat)} type="button">
-                  🗑
+                  <DeleteIcon />
                 </button>
               </div>
             </div>
