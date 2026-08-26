@@ -10,8 +10,10 @@ import type { Currency, Language, SavingsTrackingMode } from '../../db/types'
 import { CurrencyMultiSelect } from '../common/CurrencyMultiSelect'
 import { CurrencySingleSelect } from '../common/CurrencySingleSelect'
 import { disableFaceId, isFaceIdAvailable, registerFaceId } from '../../lib/webauthn'
+import { clearPasscode } from '../../lib/passcode'
 import { useTranslation } from '../../hooks/useTranslation'
 import { tImportComplete, tNoPocketYet } from '../../i18n/translations'
+import { PasscodeSetupModal } from './PasscodeSetupModal'
 
 export function SettingsView() {
   const { t } = useTranslation()
@@ -86,6 +88,9 @@ export function SettingsView() {
   const [faceIdEnabled] = useMetaSetting<boolean>('faceIdEnabled', false)
   const [faceIdAvailable, setFaceIdAvailable] = useState<boolean | null>(null)
   const [faceIdBusy, setFaceIdBusy] = useState(false)
+  const [showPasscodeSetup, setShowPasscodeSetup] = useState(false)
+  const passcodeRec = useLiveQuery(() => db.meta.get('faceIdPasscodeHash'), [])
+  const passcodeSet = typeof passcodeRec?.value === 'string' && passcodeRec.value.length > 0
 
   useEffect(() => {
     isFaceIdAvailable().then(setFaceIdAvailable)
@@ -95,6 +100,7 @@ export function SettingsView() {
     if (faceIdEnabled) {
       if (!confirm(t('Turn off Face ID lock?'))) return
       await disableFaceId()
+      await clearPasscode()
       toast(t('Face ID disabled'))
       return
     }
@@ -179,6 +185,23 @@ export function SettingsView() {
             </span>
           </label>
         </div>
+
+        {faceIdEnabled && (
+          <div className="settings-row">
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div>{t('Backup passcode')}</div>
+              <div className="muted">{t('Used to unlock if Face ID ever fails')}</div>
+            </div>
+            <button
+              className="btn"
+              style={{ flexShrink: 0 }}
+              onClick={() => setShowPasscodeSetup(true)}
+              type="button"
+            >
+              {passcodeSet ? t('Change') : t('Set up')}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="section-title">
@@ -346,6 +369,13 @@ export function SettingsView() {
       <p className="muted" style={{ textAlign: 'center' }}>
         {t('Savings Pocket — your data never leaves this device.')}
       </p>
+
+      {showPasscodeSetup && (
+        <PasscodeSetupModal
+          onClose={() => setShowPasscodeSetup(false)}
+          onSaved={() => setShowPasscodeSetup(false)}
+        />
+      )}
     </div>
   )
 }
