@@ -91,7 +91,7 @@ export function SavingsEntryForm({ entry, defaultCurrency, availableCurrencies, 
   }
 
   return (
-    <Modal title={isEdit ? 'Edit savings entry' : 'Add savings entry'} onClose={onClose}>
+    <Modal title={isEdit ? 'Edit savings pocket' : 'Add savings pocket'} onClose={onClose}>
       <div className="form-row">
         <div className="form-group">
           <label htmlFor="currency">Currency</label>
@@ -174,7 +174,7 @@ export function SavingsEntryForm({ entry, defaultCurrency, availableCurrencies, 
           </button>
         )}
         <button className="btn btn-primary" onClick={handleSubmit} disabled={!valid} type="button">
-          {isEdit ? 'Save changes' : 'Add entry'}
+          {isEdit ? 'Save changes' : 'Add pocket'}
         </button>
       </div>
 

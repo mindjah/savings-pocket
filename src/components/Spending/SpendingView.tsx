@@ -8,6 +8,9 @@ import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { DayEntriesModal } from './DayEntriesModal'
 import { CategoryManagerModal } from './CategoryManagerModal'
 import { CategoryExpensesModal } from './CategoryExpensesModal'
+import { ManageMenuModal } from './ManageMenuModal'
+import { RecurringExpensesModal } from './RecurringExpensesModal'
+import { AnalyticsModal } from './AnalyticsModal'
 import { HeaderPortal } from '../common/HeaderPortal'
 
 function daysInMonth(year: number, month: number) {
@@ -25,7 +28,10 @@ export function SpendingView() {
   const [year, setYear] = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth())
   const [openDay, setOpenDay] = useState<string | null>(null)
+  const [manageMenuOpen, setManageMenuOpen] = useState(false)
   const [managingCategories, setManagingCategories] = useState(false)
+  const [managingRecurring, setManagingRecurring] = useState(false)
+  const [showAnalytics, setShowAnalytics] = useState(false)
   const [categoryModalFor, setCategoryModalFor] = useState<{ categoryId: number; currency: Currency } | null>(null)
   const [spendingCurrencies] = useMetaSetting<Currency[]>('enabledSpendingCurrencies', DEFAULT_SPENDING_CURRENCIES)
 
@@ -106,8 +112,8 @@ export function SpendingView() {
   return (
     <div className="view">
       <HeaderPortal>
-        <button className="btn btn-accent-text" onClick={() => setManagingCategories(true)} type="button">
-          + Manage Categories
+        <button className="btn btn-accent-text" onClick={() => setManageMenuOpen(true)} type="button">
+          Manage
         </button>
       </HeaderPortal>
 
@@ -117,10 +123,10 @@ export function SpendingView() {
         </h2>
         <button
           className="btn btn-accent-text header-action-desktop"
-          onClick={() => setManagingCategories(true)}
+          onClick={() => setManageMenuOpen(true)}
           type="button"
         >
-          + Manage Categories
+          Manage
         </button>
       </div>
       <div className="totals-row">
@@ -230,7 +236,29 @@ export function SpendingView() {
         />
       )}
 
+      {manageMenuOpen && (
+        <ManageMenuModal
+          onClose={() => setManageMenuOpen(false)}
+          onCategories={() => {
+            setManageMenuOpen(false)
+            setManagingCategories(true)
+          }}
+          onRecurring={() => {
+            setManageMenuOpen(false)
+            setManagingRecurring(true)
+          }}
+          onAnalytics={() => {
+            setManageMenuOpen(false)
+            setShowAnalytics(true)
+          }}
+        />
+      )}
+
       {managingCategories && <CategoryManagerModal onClose={() => setManagingCategories(false)} />}
+
+      {managingRecurring && <RecurringExpensesModal onClose={() => setManagingRecurring(false)} />}
+
+      {showAnalytics && <AnalyticsModal onClose={() => setShowAnalytics(false)} />}
 
       {categoryModalFor && (
         <CategoryExpensesModal

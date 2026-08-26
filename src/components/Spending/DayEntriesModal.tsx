@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
-import type { Currency, SavingsTrackingMode, SpendingEntry } from '../../db/types'
+import type { Currency, RecurrenceType, SavingsTrackingMode, SpendingEntry } from '../../db/types'
 import { CURRENCIES, DEFAULT_SPENDING_CURRENCIES } from '../../lib/constants'
 import { formatDate, formatMoney, parseAmount } from '../../lib/format'
 import { applyAutoDebit, reverseAutoDebit } from '../../lib/autoDebit'
+import { computeNextDate } from '../../lib/recurring'
 import { Modal } from '../common/Modal'
 import { useToast } from '../../hooks/useToast'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
@@ -29,12 +30,16 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
   const [mode] = useMetaSetting<SavingsTrackingMode>('savingsTrackingMode', 'manual')
   const toast = useToast()
 
+  const [formOpen, setFormOpen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [categoryId, setCategoryId] = useState<number | ''>('')
   const [amount, setAmount] = useState('')
   const [currency, setCurrency] = useState<Currency>(defaultCurrency)
   const [note, setNote] = useState('')
   const [debitPocketId, setDebitPocketId] = useState<number | ''>('')
+  const [recurring, setRecurring] = useState(false)
+  const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>('monthly')
+  const [intervalDays, setIntervalDays] = useState('30')
   // Keep an entry's own currency selectable even if it was later disabled in Settings.
   const currencyOptions = CURRENCIES.filter((c) => spendingCurrencies.includes(c.code) || c.code === currency)
 
@@ -76,7 +81,15 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
     setAmount('')
     setCurrency(defaultCurrency)
     setNote('')
+    setRecurring(false)
+    setRecurrenceType('monthly')
+    setIntervalDays('30')
     refreshDebitDefault(defaultCurrency, null)
+  }
+
+  function handleCancel() {
+    resetForm()
+    setFormOpen(false)
   }
 
   function startEdit(entry: SpendingEntry) {
@@ -85,6 +98,7 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
     setAmount(String(entry.amount))
     setCurrency(entry.currency)
     setNote(entry.note)
+    setFormOpen(true)
     refreshDebitDefault(entry.currency, entry.debitedFromPocketId ?? null)
   }
 
@@ -93,10 +107,15 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
     refreshDebitDefault(next, null)
   }
 
+  const parsedIntervalDays = Number(intervalDays)
+  const recurringValid =
+    !recurring || recurrenceType !== 'custom' || (Number.isFinite(parsedIntervalDays) && parsedIntervalDays > 0)
+
   async function handleSave() {
     const parsed = parseAmount(amount)
     if (categoryId === '' || Number.isNaN(parsed) || parsed <= 0) return
     if (mode === 'auto' && (pocketsForCurrency.length === 0 || debitPocketId === '')) return
+    if (editingId == null && !recurringValid) return
 
     const categoryName = categoryMap.get(categoryId)?.name ?? 'expense'
     const comment = `Spent on ${categoryName}${note.trim() ? ` — ${note.trim()}` : ''}`
@@ -117,22 +136,45 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
         }
       })
       toast('Spending entry updated')
-      resetForm()
+      handleCancel()
     } else {
-      await db.transaction('rw', db.spendingEntries, db.savingsEntries, db.savingsHistory, async () => {
-        const newId = await db.spendingEntries.add({
-          categoryId,
-          amount: parsed,
-          currency,
-          note: note.trim(),
-          date,
-          createdAt: new Date().toISOString(),
-        })
-        if (mode === 'auto' && debitPocketId !== '') {
-          await applyAutoDebit(debitPocketId as number, parsed, newId, comment)
-          await db.spendingEntries.update(newId, { debitedFromPocketId: debitPocketId as number })
-        }
-      })
+      await db.transaction(
+        'rw',
+        db.spendingEntries,
+        db.savingsEntries,
+        db.savingsHistory,
+        db.recurringExpenses,
+        async () => {
+          const newId = await db.spendingEntries.add({
+            categoryId,
+            amount: parsed,
+            currency,
+            note: note.trim(),
+            date,
+            createdAt: new Date().toISOString(),
+          })
+          if (mode === 'auto' && debitPocketId !== '') {
+            await applyAutoDebit(debitPocketId as number, parsed, newId, comment)
+            await db.spendingEntries.update(newId, { debitedFromPocketId: debitPocketId as number })
+          }
+          if (recurring) {
+            const intervalDaysValue = recurrenceType === 'custom' ? Math.round(parsedIntervalDays) : undefined
+            const recurringId = await db.recurringExpenses.add({
+              categoryId,
+              amount: parsed,
+              currency,
+              note: note.trim(),
+              recurrenceType,
+              intervalDays: intervalDaysValue,
+              nextDate: computeNextDate(date, recurrenceType, intervalDaysValue),
+              active: true,
+              debitedFromPocketId: mode === 'auto' && debitPocketId !== '' ? (debitPocketId as number) : undefined,
+              createdAt: new Date().toISOString(),
+            })
+            await db.spendingEntries.update(newId, { recurringExpenseId: recurringId })
+          }
+        },
+      )
       toast('Spending entry added')
       onClose()
     }
@@ -145,11 +187,16 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
       await reverseAutoDebit(id)
       await db.spendingEntries.delete(id)
     })
-    if (editingId === id) resetForm()
+    if (editingId === id) handleCancel()
   }
 
   const blockedNoPocket = mode === 'auto' && pocketsForCurrency.length === 0
-  const valid = categoryId !== '' && parseAmount(amount) > 0 && !blockedNoPocket && (mode !== 'auto' || debitPocketId !== '')
+  const valid =
+    categoryId !== '' &&
+    parseAmount(amount) > 0 &&
+    !blockedNoPocket &&
+    (mode !== 'auto' || debitPocketId !== '') &&
+    (editingId != null || recurringValid)
 
   return (
     <Modal title={formatDate(date)} onClose={onClose}>
@@ -207,6 +254,13 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
             </div>
           )}
 
+          {!formOpen && editingId == null && (
+            <button className="btn btn-primary btn-block" onClick={() => setFormOpen(true)} type="button">
+              + Add expense
+            </button>
+          )}
+
+          {(formOpen || editingId != null) && (
           <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div className="form-group">
               <label htmlFor="spendCategory">Category</label>
@@ -279,17 +333,71 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
               )
             )}
 
+            {editingId == null && (
+              <>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={recurring}
+                    onChange={(e) => setRecurring(e.target.checked)}
+                    style={{ width: 'auto' }}
+                  />
+                  <span>Repeat this expense</span>
+                </label>
+
+                {recurring && (
+                  <>
+                    <div className="segmented">
+                      <button
+                        type="button"
+                        className={recurrenceType === 'monthly' ? 'active' : ''}
+                        onClick={() => setRecurrenceType('monthly')}
+                      >
+                        Monthly
+                      </button>
+                      <button
+                        type="button"
+                        className={recurrenceType === 'annually' ? 'active' : ''}
+                        onClick={() => setRecurrenceType('annually')}
+                      >
+                        Annually
+                      </button>
+                      <button
+                        type="button"
+                        className={recurrenceType === 'custom' ? 'active' : ''}
+                        onClick={() => setRecurrenceType('custom')}
+                      >
+                        Every X days
+                      </button>
+                    </div>
+                    {recurrenceType === 'custom' && (
+                      <div className="form-group">
+                        <label htmlFor="intervalDays">Repeats every (days)</label>
+                        <input
+                          id="intervalDays"
+                          type="text"
+                          inputMode="numeric"
+                          value={intervalDays}
+                          onChange={(e) => setIntervalDays(e.target.value)}
+                          placeholder="e.g. 14"
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+
             <div className="modal-actions">
-              {editingId != null && (
-                <button className="btn" onClick={resetForm} type="button">
-                  Cancel
-                </button>
-              )}
+              <button className="btn" onClick={handleCancel} type="button">
+                Cancel
+              </button>
               <button className="btn btn-primary" onClick={handleSave} disabled={!valid} type="button">
                 {editingId != null ? 'Save' : 'Add expense'}
               </button>
             </div>
           </div>
+          )}
         </>
       )}
     </Modal>

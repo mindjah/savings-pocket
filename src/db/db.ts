@@ -6,6 +6,7 @@ import type {
   LoanEntry,
   LoanHistory,
   MetaRecord,
+  RecurringExpense,
   SavingsEntry,
   SavingsHistory,
   SpendingEntry,
@@ -20,6 +21,7 @@ class AppDB extends Dexie {
   loanHistory!: Table<LoanHistory, number>
   categories!: Table<Category, number>
   spendingEntries!: Table<SpendingEntry, number>
+  recurringExpenses!: Table<RecurringExpense, number>
   meta!: Table<MetaRecord, string>
 
   constructor() {
@@ -69,6 +71,10 @@ class AppDB extends Dexie {
             if (!h.source) h.source = 'manual'
           })
       })
+
+    this.version(4).stores({
+      recurringExpenses: '++id, nextDate',
+    })
   }
 }
 
@@ -83,5 +89,6 @@ export const BACKUP_TABLES = [
   'loanHistory',
   'categories',
   'spendingEntries',
+  'recurringExpenses',
   'meta',
 ] as const

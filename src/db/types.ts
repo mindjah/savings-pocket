@@ -83,6 +83,23 @@ export interface SpendingEntry {
   note: string
   createdAt: string
   debitedFromPocketId?: number
+  recurringExpenseId?: number
+}
+
+export type RecurrenceType = 'monthly' | 'annually' | 'custom'
+
+export interface RecurringExpense {
+  id?: number
+  categoryId: number
+  amount: number
+  currency: Currency
+  note: string
+  recurrenceType: RecurrenceType
+  intervalDays?: number // only meaningful when recurrenceType === 'custom'
+  nextDate: string // yyyy-mm-dd — next date an occurrence should be generated
+  active: boolean
+  debitedFromPocketId?: number
+  createdAt: string
 }
 
 export type SavingsTrackingMode = 'manual' | 'auto'

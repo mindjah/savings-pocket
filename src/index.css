@@ -703,6 +703,53 @@ h1, h2, h3, p {
   padding: 10px 12px;
 }
 
+.lock-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  padding: 20px;
+  z-index: 100;
+}
+
+.lock-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  width: 100%;
+  max-width: 320px;
+}
+
+.lock-card .lock-icon {
+  font-size: 2.5rem;
+  margin-bottom: 6px;
+}
+
+.lock-card .btn {
+  margin-top: 14px;
+}
+
+.menu-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  width: 100%;
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu-row:hover {
+  background: var(--surface-hover);
+}
+
 .swatch {
   width: 16px;
   height: 16px;

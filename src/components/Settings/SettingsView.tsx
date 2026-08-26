@@ -9,6 +9,7 @@ import { useToast } from '../../hooks/useToast'
 import type { Currency, SavingsTrackingMode } from '../../db/types'
 import { CurrencyMultiSelect } from '../common/CurrencyMultiSelect'
 import { CurrencySingleSelect } from '../common/CurrencySingleSelect'
+import { disableFaceId, isFaceIdAvailable, registerFaceId } from '../../lib/webauthn'
 
 export function SettingsView() {
   const [savingsCurrencies, setSavingsCurrencies] = useMetaSetting<Currency[]>(
@@ -76,6 +77,28 @@ export function SettingsView() {
 
   const [modeInfoOpen, setModeInfoOpen] = useState(false)
   const pockets = useLiveQuery(() => db.savingsEntries.toArray(), []) ?? []
+
+  const [faceIdEnabled] = useMetaSetting<boolean>('faceIdEnabled', false)
+  const [faceIdAvailable, setFaceIdAvailable] = useState<boolean | null>(null)
+  const [faceIdBusy, setFaceIdBusy] = useState(false)
+
+  useEffect(() => {
+    isFaceIdAvailable().then(setFaceIdAvailable)
+  }, [])
+
+  async function handleToggleFaceId() {
+    if (faceIdEnabled) {
+      if (!confirm('Turn off Face ID lock?')) return
+      await disableFaceId()
+      toast('Face ID disabled')
+      return
+    }
+    setFaceIdBusy(true)
+    const ok = await registerFaceId()
+    setFaceIdBusy(false)
+    if (ok) toast('Face ID enabled')
+    else alert('Could not set up Face ID on this device.')
+  }
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
@@ -236,6 +259,31 @@ export function SettingsView() {
             type="button"
           >
             Save
+          </button>
+        </div>
+      </div>
+
+      <div className="section-title">
+        <h2>Security</h2>
+      </div>
+
+      <div className="card settings-list">
+        <div className="settings-row wrap">
+          <div>
+            <div>Face ID lock</div>
+            <div className="muted">
+              {faceIdAvailable === false
+                ? 'Not available on this device or browser'
+                : 'Require Face ID / Touch ID to open the app'}
+            </div>
+          </div>
+          <button
+            className="btn btn-primary"
+            onClick={handleToggleFaceId}
+            disabled={faceIdAvailable === false || faceIdBusy}
+            type="button"
+          >
+            {faceIdEnabled ? 'Turn off' : 'Turn on'}
           </button>
         </div>
       </div>

@@ -99,7 +99,7 @@ export function SavingsView() {
       {subTab === 'mine' ? (
         <>
           <div className="section-title" style={{ marginTop: 8 }}>
-            <h2>Saving Pockets</h2>
+            <h2>Savings pockets</h2>
           </div>
 
           {!entries || entries.length === 0 ? (
@@ -261,7 +261,7 @@ export function SavingsView() {
 
       <button
         className="fab"
-        aria-label={subTab === 'mine' ? 'Add savings entry' : 'Add loan'}
+        aria-label={subTab === 'mine' ? 'Add savings pocket' : 'Add loan'}
         onClick={() => (subTab === 'mine' ? setEditingSavings('new') : setEditingLoan('new'))}
       >
         +
