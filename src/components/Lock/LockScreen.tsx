@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { verifyFaceId } from '../../lib/webauthn'
+import { useState } from 'react'
+import { disableFaceId, verifyFaceId } from '../../lib/webauthn'
 import { useTranslation } from '../../hooks/useTranslation'
 
 interface Props {
@@ -20,10 +20,14 @@ export function LockScreen({ onUnlock }: Props) {
     else setFailed(true)
   }
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    attempt()
-  }, [])
+  // A stuck or unreliable platform authenticator (common on laptops without
+  // configured biometrics) must never fully strand the user — Settings is
+  // behind this same lock, so the only way out from here is this fallback.
+  async function giveUp() {
+    if (!confirm(t('Turn off Face ID lock?'))) return
+    await disableFaceId()
+    onUnlock()
+  }
 
   return (
     <div className="lock-screen">
@@ -38,6 +42,9 @@ export function LockScreen({ onUnlock }: Props) {
         )}
         <button className="btn btn-primary btn-block" onClick={attempt} disabled={busy} type="button">
           {busy ? t('Waiting…') : t('Unlock')}
+        </button>
+        <button className="btn btn-block" onClick={giveUp} disabled={busy} type="button">
+          {t("Can't unlock? Turn off Face ID lock")}
         </button>
       </div>
     </div>

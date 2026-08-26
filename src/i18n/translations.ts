@@ -240,6 +240,7 @@ export const RU: Record<string, string> = {
   'Require Face ID / Touch ID to open the app': 'Требовать Face ID / Touch ID для открытия приложения',
   'Not available on this device or browser': 'Недоступно на этом устройстве или в браузере',
   'Turn off Face ID lock?': 'Отключить блокировку по Face ID?',
+  "Can't unlock? Turn off Face ID lock": 'Не получается разблокировать? Отключить блокировку по Face ID',
   'Could not set up Face ID on this device.': 'Не удалось настроить Face ID на этом устройстве.',
   'Face ID enabled': 'Face ID включён',
   'Face ID disabled': 'Face ID отключён',

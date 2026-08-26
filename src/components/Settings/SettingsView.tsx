@@ -159,14 +159,14 @@ export function SettingsView() {
       </div>
 
       <div className="card settings-list">
-        <div className="settings-row wrap">
-          <div>
+        <div className="settings-row">
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div>{t('Face ID lock')}</div>
             <div className="muted">
               {faceIdAvailable === false ? t('Not available on this device or browser') : t('Require Face ID / Touch ID to open the app')}
             </div>
           </div>
-          <label className="switch">
+          <label className="switch" style={{ flexShrink: 0 }}>
             <input
               type="checkbox"
               checked={faceIdEnabled}
