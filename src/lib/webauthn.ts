@@ -39,7 +39,7 @@ export async function registerFaceId(): Promise<boolean> {
       publicKey: {
         challenge,
         rp: { name: RP_NAME },
-        user: { id: userId, name: 'local-device', displayName: 'Savings Pocket' },
+        user: { id: userId, name: 'savings-pocket', displayName: 'Savings Pocket' },
         pubKeyCredParams: [
           { type: 'public-key', alg: -7 },
           { type: 'public-key', alg: -257 },
