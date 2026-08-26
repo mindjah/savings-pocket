@@ -9,6 +9,7 @@ import { HEADER_ACTIONS_ID } from './components/common/HeaderPortal'
 import { materializeRecurringExpenses } from './lib/recurring'
 import { LockScreen } from './components/Lock/LockScreen'
 import { useMetaSetting } from './hooks/useMetaSetting'
+import { useTranslation } from './hooks/useTranslation'
 
 const TITLES: Record<Tab, string> = {
   savings: 'Savings',
@@ -29,6 +30,7 @@ function readInitialTab(): Tab {
 
 export default function App() {
   const [tab, setTab] = useState<Tab>(readInitialTab)
+  const { t } = useTranslation()
   const [faceIdEnabled] = useMetaSetting<boolean>('faceIdEnabled', false)
   const [unlocked, setUnlocked] = useState(false)
   const locked = faceIdEnabled && !unlocked
@@ -64,7 +66,7 @@ export default function App() {
     <ToastProvider>
       <div className="app-shell">
         <header className="app-header">
-          <h1>{TITLES[tab]}</h1>
+          <h1>{t(TITLES[tab])}</h1>
           <div id={HEADER_ACTIONS_ID} className="app-header-actions" />
         </header>
         <NavBar active={tab} onChange={handleChange} />

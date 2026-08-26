@@ -11,8 +11,10 @@ import { CryptoEntryForm } from './CryptoEntryForm'
 import { HistoryModal } from '../common/HistoryModal'
 import { BitcoinIcon } from '../common/BitcoinIcon'
 import { NoteViewModal } from '../common/NoteViewModal'
+import { useTranslation } from '../../hooks/useTranslation'
 
 export function CryptoView() {
+  const { t } = useTranslation()
   const entries = useLiveQuery(() => db.cryptoEntries.toArray(), [])
   const [editing, setEditing] = useState<CryptoEntry | null | 'new'>(null)
   const [historyFor, setHistoryFor] = useState<CryptoEntry | null>(null)
@@ -52,22 +54,22 @@ export function CryptoView() {
       <div className="totals-row">
         {visibleCurrencies.map((c) => (
           <div className="total-chip" key={c.code}>
-            <div className="muted">Total ({c.code})</div>
+            <div className="muted">{t('Total')} ({c.code})</div>
             <div className="amount">{formatMoney(totals[c.code], c.code)}</div>
           </div>
         ))}
       </div>
 
       <div className="section-title">
-        <h2>Crypto</h2>
+        <h2>{t('Crypto')}</h2>
         <button className="btn btn-ghost" onClick={() => refresh({ force: true })} disabled={loading} type="button">
-          {loading ? 'Refreshing…' : '↻ Refresh rates'}
+          {loading ? t('Refreshing…') : t('↻ Refresh rates')}
         </button>
       </div>
 
       {fetchedAt && (
         <div className="muted">
-          Rates {stale ? '(offline, last known)' : 'updated'} {new Date(fetchedAt).toLocaleTimeString()}
+          {t('Rates')} {t(stale ? '(offline, last known)' : 'updated')} {new Date(fetchedAt).toLocaleTimeString()}
           {error ? ` — ${error}` : ''}
         </div>
       )}
@@ -77,7 +79,7 @@ export function CryptoView() {
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
             <BitcoinIcon size={32} />
           </div>
-          No crypto holdings yet. Tap + to add one.
+          {t('No crypto holdings yet. Tap + to add one.')}
         </div>
       ) : (
         <div className="entry-list">
@@ -100,13 +102,13 @@ export function CryptoView() {
                     <span className="entry-amount">
                       {entry.amount} {entry.symbol}
                       {trend === 'up' && (
-                        <span className="price-trend price-trend-up" aria-label="Worth up since last edit">
+                        <span className="price-trend price-trend-up" aria-label={t('Worth up since last edit')}>
                           {' '}
                           ▲
                         </span>
                       )}
                       {trend === 'down' && (
-                        <span className="price-trend price-trend-down" aria-label="Worth down since last edit">
+                        <span className="price-trend price-trend-down" aria-label={t('Worth down since last edit')}>
                           {' '}
                           ▼
                         </span>
@@ -119,13 +121,13 @@ export function CryptoView() {
                       ? `≈ ${visibleCurrencies
                           .map((c) => formatMoney(entry.amount * priceIn(price, c.code), c.code))
                           .join(' · ')}`
-                      : 'Price unavailable'}
+                      : t('Price unavailable')}
                   </div>
                   {entry.note && (
                     <span
                       className="note-indicator"
-                      title="Has a note"
-                      aria-label="Has a note"
+                      title={t('Has a note')}
+                      aria-label={t('Has a note')}
                       role="button"
                       tabIndex={0}
                       onClick={(e) => {
@@ -157,7 +159,7 @@ export function CryptoView() {
                       }
                     }}
                   >
-                    View history
+                    {t('View history')}
                   </div>
                 </button>
               )
@@ -165,7 +167,7 @@ export function CryptoView() {
         </div>
       )}
 
-      <button className="fab" aria-label="Add crypto holding" onClick={() => setEditing('new')}>
+      <button className="fab" aria-label={t('Add crypto holding')} onClick={() => setEditing('new')}>
         +
       </button>
 

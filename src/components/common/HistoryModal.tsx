@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import { formatDateTime } from '../../lib/format'
 import { Modal } from './Modal'
+import { useTranslation } from '../../hooks/useTranslation'
 
 interface Props {
   table: 'savingsHistory' | 'cryptoHistory' | 'loanHistory'
@@ -11,17 +12,18 @@ interface Props {
 }
 
 export function HistoryModal({ table, entryId, formatAmount, onClose }: Props) {
+  const { t, lang } = useTranslation()
   const history = useLiveQuery(
     () => db[table].where('entryId').equals(entryId).reverse().sortBy('date'),
     [table, entryId],
   )
 
   return (
-    <Modal title="Amount history" onClose={onClose}>
+    <Modal title={t('Amount history')} onClose={onClose}>
       {!history || history.length === 0 ? (
         <div className="empty-state">
           <span className="icon">🕓</span>
-          No changes logged yet.
+          {t('No changes logged yet.')}
         </div>
       ) : (
         <div className="history-list">
@@ -30,7 +32,7 @@ export function HistoryModal({ table, entryId, formatAmount, onClose }: Props) {
             return (
               <div className="history-item" key={h.id}>
                 <div className="entry-top">
-                  <span>{formatDateTime(h.date)}</span>
+                  <span>{formatDateTime(h.date, lang)}</span>
                   <span className={delta >= 0 ? 'delta-pos' : 'delta-neg'}>
                     {delta >= 0 ? '+' : ''}
                     {formatAmount(delta)}

@@ -5,6 +5,7 @@ import { formatMoney, parseAmount } from '../../lib/format'
 import { Modal } from '../common/Modal'
 import { ExpandableTextarea } from '../common/ExpandableTextarea'
 import { useToast } from '../../hooks/useToast'
+import { useTranslation } from '../../hooks/useTranslation'
 
 interface Props {
   entry: SavingsEntry
@@ -14,6 +15,7 @@ interface Props {
 type Direction = 'add' | 'charge'
 
 export function AdjustPocketModal({ entry, onClose }: Props) {
+  const { t } = useTranslation()
   const [direction, setDirection] = useState<Direction>('add')
   const [amount, setAmount] = useState('')
   const [reason, setReason] = useState('')
@@ -39,23 +41,23 @@ export function AdjustPocketModal({ entry, onClose }: Props) {
         source: 'manual',
       })
     })
-    toast(direction === 'add' ? 'Added to pocket' : 'Charged from pocket')
+    toast(t(direction === 'add' ? 'Added to pocket' : 'Charged from pocket'))
     onClose()
   }
 
   return (
-    <Modal title="Adjust balance" onClose={onClose}>
+    <Modal title={t('Adjust balance')} onClose={onClose}>
       <div className="segmented">
         <button type="button" className={direction === 'add' ? 'active' : ''} onClick={() => setDirection('add')}>
-          + Add
+          {t('+ Add')}
         </button>
         <button type="button" className={direction === 'charge' ? 'active' : ''} onClick={() => setDirection('charge')}>
-          − Charge
+          {t('− Charge')}
         </button>
       </div>
 
       <div className="form-group">
-        <label htmlFor="adjustAmount">Amount</label>
+        <label htmlFor="adjustAmount">{t('Amount')}</label>
         <input
           id="adjustAmount"
           type="text"
@@ -69,21 +71,21 @@ export function AdjustPocketModal({ entry, onClose }: Props) {
       {amount.trim() !== '' && !Number.isNaN(parsedAmount) && (
         <div className="muted">
           {formatMoney(entry.amount, entry.currency)} → {formatMoney(newAmount, entry.currency)}
-          {newAmount < 0 && <span style={{ color: 'var(--danger-strong)' }}> — can't go below zero</span>}
+          {newAmount < 0 && <span style={{ color: 'var(--danger-strong)' }}>{t(" — can't go below zero")}</span>}
         </div>
       )}
 
       <ExpandableTextarea
         id="adjustReason"
-        label="Reason (saved to history)"
+        label={t('Reason (saved to history)')}
         value={reason}
         onChange={setReason}
-        placeholder={direction === 'add' ? 'e.g. Cash deposit' : 'e.g. Withdrew for a trip'}
+        placeholder={t(direction === 'add' ? 'e.g. Cash deposit' : 'e.g. Withdrew for a trip')}
       />
 
       <div className="modal-actions">
         <button className="btn btn-primary btn-block" onClick={handleConfirm} disabled={!valid} type="button">
-          {direction === 'add' ? 'Add to pocket' : 'Charge from pocket'}
+          {t(direction === 'add' ? 'Add to pocket' : 'Charge from pocket')}
         </button>
       </div>
     </Modal>

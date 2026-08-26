@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import type { ReactNode } from 'react'
+import { useTranslation } from '../../hooks/useTranslation'
 
 interface ModalProps {
   title: string
@@ -8,6 +9,8 @@ interface ModalProps {
 }
 
 export function Modal({ title, onClose, children }: ModalProps) {
+  const { t } = useTranslation()
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -21,7 +24,7 @@ export function Modal({ title, onClose, children }: ModalProps) {
       <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
         <div className="modal-header">
           <h2>{title}</h2>
-          <button className="btn btn-ghost btn-icon" onClick={onClose} aria-label="Close">
+          <button className="btn btn-ghost btn-icon" onClick={onClose} aria-label={t('Close')}>
             ✕
           </button>
         </div>

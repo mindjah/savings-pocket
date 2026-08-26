@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { BitcoinIcon } from '../common/BitcoinIcon'
+import { useTranslation } from '../../hooks/useTranslation'
 
 export type Tab = 'savings' | 'crypto' | 'spending' | 'settings'
 
@@ -16,18 +17,19 @@ interface Props {
 }
 
 export function NavBar({ active, onChange }: Props) {
+  const { t } = useTranslation()
   return (
     <nav className="nav-bottom">
       <span className="nav-brand">Savings Pocket</span>
-      {TABS.map((t) => (
+      {TABS.map((tab) => (
         <button
-          key={t.key}
-          className={`nav-item${active === t.key ? ' active' : ''}`}
-          onClick={() => onChange(t.key)}
+          key={tab.key}
+          className={`nav-item${active === tab.key ? ' active' : ''}`}
+          onClick={() => onChange(tab.key)}
           type="button"
         >
-          <span className="nav-icon">{t.icon}</span>
-          <span>{t.label}</span>
+          <span className="nav-icon">{tab.icon}</span>
+          <span>{t(tab.label)}</span>
         </button>
       ))}
     </nav>

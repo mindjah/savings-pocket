@@ -1,5 +1,6 @@
 import { db } from '../db/db'
-import type { RecurrenceType, SavingsTrackingMode } from '../db/types'
+import type { Language, RecurrenceType, SavingsTrackingMode } from '../db/types'
+import { tDays, translate } from '../i18n/translations'
 import { applyAutoDebit } from './autoDebit'
 import { todayIso } from './format'
 
@@ -15,11 +16,11 @@ export function computeNextDate(dateIso: string, type: RecurrenceType, intervalD
   return `${yy}-${mm}-${dd}`
 }
 
-export function recurrenceLabel(type: RecurrenceType, intervalDays?: number): string {
-  if (type === 'monthly') return 'Monthly'
-  if (type === 'annually') return 'Annually'
+export function recurrenceLabel(type: RecurrenceType, intervalDays?: number, lang: Language = 'en'): string {
+  if (type === 'monthly') return translate(lang, 'Monthly')
+  if (type === 'annually') return translate(lang, 'Annually')
   const days = intervalDays && intervalDays > 0 ? intervalDays : 1
-  return `Every ${days} day${days === 1 ? '' : 's'}`
+  return lang === 'ru' ? `Каждые ${tDays(lang, days)}` : `Every ${tDays(lang, days)}`
 }
 
 // Catches up every active recurring expense to today, generating one spending

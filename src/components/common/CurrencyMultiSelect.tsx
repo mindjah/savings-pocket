@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Currency } from '../../db/types'
 import { CURRENCIES } from '../../lib/constants'
+import { useTranslation } from '../../hooks/useTranslation'
 
 interface Props {
   selected: Currency[]
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export function CurrencyMultiSelect({ selected, onChange }: Props) {
+  const { t } = useTranslation()
   function toggle(code: Currency) {
     if (selected.includes(code)) {
       if (selected.length === 1) return // always keep at least one enabled
@@ -49,7 +51,7 @@ export function CurrencyMultiSelect({ selected, onChange }: Props) {
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span>{summary || 'Select currencies'}</span>
+        <span>{summary || t('Select currencies')}</span>
         <span className="chevron">▾</span>
       </button>
       {open && (

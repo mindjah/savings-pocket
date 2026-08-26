@@ -6,12 +6,14 @@ import { formatDate, formatMoney, parseAmount } from '../../lib/format'
 import { recurrenceLabel } from '../../lib/recurring'
 import { Modal } from '../common/Modal'
 import { useToast } from '../../hooks/useToast'
+import { useTranslation } from '../../hooks/useTranslation'
 
 interface Props {
   onClose: () => void
 }
 
 export function RecurringExpensesModal({ onClose }: Props) {
+  const { t, lang } = useTranslation()
   const recurring = useLiveQuery(
     async () =>
       (await db.recurringExpenses.toArray())
@@ -56,24 +58,24 @@ export function RecurringExpensesModal({ onClose }: Props) {
       recurrenceType,
       intervalDays: recurrenceType === 'custom' ? Math.round(parsedInterval) : undefined,
     })
-    toast('Recurring expense updated')
+    toast(t('Recurring expense updated'))
     setEditingId(null)
   }
 
   async function stopRecurring(r: RecurringExpense) {
     if (!r.id) return
-    if (!confirm('Stop this expense from recurring? Past expenses will not be affected.')) return
+    if (!confirm(t('Stop this expense from recurring? Past expenses will not be affected.'))) return
     await db.recurringExpenses.update(r.id, { active: false })
-    toast('Recurring expense stopped')
+    toast(t('Recurring expense stopped'))
     if (editingId === r.id) setEditingId(null)
   }
 
   return (
-    <Modal title="Manage recurring expenses" onClose={onClose}>
+    <Modal title={t('Manage recurring expenses')} onClose={onClose}>
       {!recurring || recurring.length === 0 ? (
         <div className="empty-state">
           <span className="icon">🔁</span>
-          No recurring expenses yet. Turn on "Repeat" when adding an expense to create one.
+          {t('No recurring expenses yet. Turn on "Repeat" when adding an expense to create one.')}
         </div>
       ) : (
         <div className="category-list">
@@ -89,7 +91,9 @@ export function RecurringExpensesModal({ onClose }: Props) {
                 {isEditing ? (
                   <>
                     <div className="form-group">
-                      <label htmlFor={`amt-${r.id}`}>Amount ({r.currency})</label>
+                      <label htmlFor={`amt-${r.id}`}>
+                        {t('Amount')} ({r.currency})
+                      </label>
                       <input
                         id={`amt-${r.id}`}
                         type="text"
@@ -99,12 +103,12 @@ export function RecurringExpensesModal({ onClose }: Props) {
                       />
                     </div>
                     <div className="form-group">
-                      <label htmlFor={`note-${r.id}`}>Note</label>
+                      <label htmlFor={`note-${r.id}`}>{t('Note')}</label>
                       <input
                         id={`note-${r.id}`}
                         value={note}
                         onChange={(e) => setNote(e.target.value)}
-                        placeholder="Optional"
+                        placeholder={t('Optional')}
                       />
                     </div>
                     <div className="segmented">
@@ -113,26 +117,26 @@ export function RecurringExpensesModal({ onClose }: Props) {
                         className={recurrenceType === 'monthly' ? 'active' : ''}
                         onClick={() => setRecurrenceType('monthly')}
                       >
-                        Monthly
+                        {t('Monthly')}
                       </button>
                       <button
                         type="button"
                         className={recurrenceType === 'annually' ? 'active' : ''}
                         onClick={() => setRecurrenceType('annually')}
                       >
-                        Annually
+                        {t('Annually')}
                       </button>
                       <button
                         type="button"
                         className={recurrenceType === 'custom' ? 'active' : ''}
                         onClick={() => setRecurrenceType('custom')}
                       >
-                        Every X days
+                        {t('Every X days')}
                       </button>
                     </div>
                     {recurrenceType === 'custom' && (
                       <div className="form-group">
-                        <label htmlFor={`interval-${r.id}`}>Repeats every (days)</label>
+                        <label htmlFor={`interval-${r.id}`}>{t('Repeats every (days)')}</label>
                         <input
                           id={`interval-${r.id}`}
                           type="text"
@@ -144,10 +148,10 @@ export function RecurringExpensesModal({ onClose }: Props) {
                     )}
                     <div className="modal-actions">
                       <button className="btn btn-danger" onClick={() => stopRecurring(r)} type="button">
-                        Make not recurring
+                        {t('Make not recurring')}
                       </button>
                       <button className="btn" onClick={cancelEdit} type="button">
-                        Cancel
+                        {t('Cancel')}
                       </button>
                       <button
                         className="btn btn-primary"
@@ -155,7 +159,7 @@ export function RecurringExpensesModal({ onClose }: Props) {
                         disabled={!editValid}
                         type="button"
                       >
-                        Save
+                        {t('Save')}
                       </button>
                     </div>
                   </>
@@ -164,10 +168,11 @@ export function RecurringExpensesModal({ onClose }: Props) {
                     <span className="swatch" style={{ background: cat?.color ?? '#888' }} />
                     <div style={{ flex: 1 }}>
                       <div>
-                        {cat?.name ?? 'Unknown'} — {formatMoney(r.amount, r.currency)}
+                        {cat?.name ?? t('Unknown')} — {formatMoney(r.amount, r.currency)}
                       </div>
                       <div className="muted">
-                        {recurrenceLabel(r.recurrenceType, r.intervalDays)} · Next: {formatDate(r.nextDate)}
+                        {recurrenceLabel(r.recurrenceType, r.intervalDays, lang)} · {t('Next:')}{' '}
+                        {formatDate(r.nextDate, lang)}
                       </div>
                     </div>
                     <button className="btn btn-ghost btn-icon" onClick={() => startEdit(r)} type="button">

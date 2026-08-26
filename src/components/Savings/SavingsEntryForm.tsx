@@ -8,6 +8,7 @@ import { Modal } from '../common/Modal'
 import { ExpandableTextarea } from '../common/ExpandableTextarea'
 import { DeleteConfirmModal } from './DeleteConfirmModal'
 import { useToast } from '../../hooks/useToast'
+import { useTranslation } from '../../hooks/useTranslation'
 
 interface Props {
   entry: SavingsEntry | null
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function SavingsEntryForm({ entry, defaultCurrency, availableCurrencies, onClose }: Props) {
+  const { t } = useTranslation()
   const isEdit = !!entry
   const [currency, setCurrency] = useState<Currency>(entry?.currency ?? defaultCurrency)
   // Keep the entry's own currency selectable even if it was later disabled in Settings.
@@ -63,7 +65,7 @@ export function SavingsEntryForm({ entry, defaultCurrency, availableCurrencies, 
         amount: parsedAmount,
         updatedAt: now,
       })
-      toast('Savings entry updated')
+      toast(t('Savings entry updated'))
     } else {
       await db.savingsEntries.add({
         currency,
@@ -74,27 +76,27 @@ export function SavingsEntryForm({ entry, defaultCurrency, availableCurrencies, 
         createdAt: now,
         updatedAt: now,
       })
-      toast('Savings entry added')
+      toast(t('Savings entry added'))
     }
     onClose()
   }
 
   async function handleDelete() {
     if (!entry?.id) return
-    if (!confirm('Delete this entry and all of its history? This cannot be undone.')) return
+    if (!confirm(t('Delete this entry and all of its history? This cannot be undone.'))) return
     await db.transaction('rw', db.savingsEntries, db.savingsHistory, async () => {
       await db.savingsHistory.where('entryId').equals(entry.id!).delete()
       await db.savingsEntries.delete(entry.id!)
     })
-    toast('Savings entry deleted')
+    toast(t('Savings entry deleted'))
     onClose()
   }
 
   return (
-    <Modal title={isEdit ? 'Edit savings pocket' : 'Add savings pocket'} onClose={onClose}>
+    <Modal title={t(isEdit ? 'Edit savings pocket' : 'Add savings pocket')} onClose={onClose}>
       <div className="form-row">
         <div className="form-group">
-          <label htmlFor="currency">Currency</label>
+          <label htmlFor="currency">{t('Currency')}</label>
           <select
             id="currency"
             value={currency}
@@ -109,20 +111,20 @@ export function SavingsEntryForm({ entry, defaultCurrency, availableCurrencies, 
           </select>
         </div>
         <div className="form-group">
-          <label>Held as</label>
+          <label>{t('Held as')}</label>
           <div className="segmented">
             <button type="button" className={type === 'cash' ? 'active' : ''} onClick={() => setType('cash')}>
-              Cash
+              {t('Cash')}
             </button>
             <button type="button" className={type === 'card' ? 'active' : ''} onClick={() => setType('card')}>
-              Card
+              {t('Card')}
             </button>
           </div>
         </div>
       </div>
 
       <div className="form-group">
-        <label htmlFor="amount">Amount</label>
+        <label htmlFor="amount">{t('Amount')}</label>
         <input
           id="amount"
           type="text"
@@ -134,13 +136,13 @@ export function SavingsEntryForm({ entry, defaultCurrency, availableCurrencies, 
       </div>
 
       <div className="form-group">
-        <label htmlFor="location">Location (country / bank / place)</label>
+        <label htmlFor="location">{t('Location (country / bank / place)')}</label>
         <input
           id="location"
           list="known-locations"
           value={location}
           onChange={(e) => setLocation(e.target.value)}
-          placeholder="e.g. Spain — BBVA"
+          placeholder={t('e.g. Spain — BBVA')}
         />
         <datalist id="known-locations">
           {knownLocations?.map((loc) => (
@@ -151,36 +153,36 @@ export function SavingsEntryForm({ entry, defaultCurrency, availableCurrencies, 
 
       <ExpandableTextarea
         id="note"
-        label="Note"
+        label={t('Note')}
         value={note}
         onChange={setNote}
-        placeholder="Details about this money"
+        placeholder={t('Details about this money')}
       />
 
       {amountChanged && (
         <ExpandableTextarea
           id="reason"
-          label="Reason for change (saved to history)"
+          label={t('Reason for change (saved to history)')}
           value={reason}
           onChange={setReason}
-          placeholder="Why did this amount change?"
+          placeholder={t('Why did this amount change?')}
         />
       )}
 
       <div className="modal-actions">
         {isEdit && (
           <button className="btn btn-danger" onClick={() => setConfirmingDelete(true)} type="button">
-            Delete
+            {t('Delete')}
           </button>
         )}
         <button className="btn btn-primary" onClick={handleSubmit} disabled={!valid} type="button">
-          {isEdit ? 'Save changes' : 'Add pocket'}
+          {t(isEdit ? 'Save changes' : 'Add pocket')}
         </button>
       </div>
 
       {confirmingDelete && (
         <DeleteConfirmModal
-          itemLabel="this savings entry"
+          itemLabel={t('this savings entry')}
           onConfirmed={handleDelete}
           onClose={() => setConfirmingDelete(false)}
         />

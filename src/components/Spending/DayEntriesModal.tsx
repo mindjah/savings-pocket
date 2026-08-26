@@ -9,6 +9,8 @@ import { computeNextDate } from '../../lib/recurring'
 import { Modal } from '../common/Modal'
 import { useToast } from '../../hooks/useToast'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
+import { useTranslation } from '../../hooks/useTranslation'
+import { tNoPocketWarning } from '../../i18n/translations'
 
 interface Props {
   initialDate: string
@@ -17,6 +19,7 @@ interface Props {
 }
 
 export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Props) {
+  const { t, lang } = useTranslation()
   const [date, setDate] = useState(initialDate)
   const entries = useLiveQuery(
     () => db.spendingEntries.where('date').equals(date).toArray(),
@@ -135,7 +138,7 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
           await applyAutoDebit(debitPocketId as number, parsed, id, comment)
         }
       })
-      toast('Spending entry updated')
+      toast(t('Spending entry updated'))
       handleCancel()
     } else {
       await db.transaction(
@@ -175,14 +178,14 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
           }
         },
       )
-      toast('Spending entry added')
+      toast(t('Spending entry added'))
       onClose()
     }
   }
 
   async function handleDelete(id?: number) {
     if (!id) return
-    if (!confirm('Delete this spending entry?')) return
+    if (!confirm(t('Delete this spending entry?'))) return
     await db.transaction('rw', db.spendingEntries, db.savingsEntries, db.savingsHistory, async () => {
       await reverseAutoDebit(id)
       await db.spendingEntries.delete(id)
@@ -199,14 +202,14 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
     (editingId != null || recurringValid)
 
   return (
-    <Modal title={formatDate(date)} onClose={onClose}>
+    <Modal title={formatDate(date, lang)} onClose={onClose}>
       <div className="form-group">
-        <label htmlFor="spendDate">Date</label>
+        <label htmlFor="spendDate">{t('Date')}</label>
         <input id="spendDate" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
       </div>
 
       <div className="section-title">
-        <span className="muted">Total spent</span>
+        <span className="muted">{t('Total spent')}</span>
         <span className="entry-amount">
           {dayTotalsByCurrency.length === 0
             ? formatMoney(0, defaultCurrency)
@@ -217,10 +220,10 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
       {activeCategories.length === 0 ? (
         <div className="empty-state">
           <span className="icon">🏷️</span>
-          No categories yet.
+          {t('No categories yet.')}
           <div style={{ marginTop: 10 }}>
             <button className="btn btn-primary" onClick={onManageCategories} type="button">
-              Create a category
+              {t('Create a category')}
             </button>
           </div>
         </div>
@@ -235,7 +238,7 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
                     <div className="info">
                       <span className="swatch" style={{ background: cat?.color ?? '#888' }} />
                       <div className="text">
-                        <div className="cat">{cat?.name ?? 'Unknown'}</div>
+                        <div className="cat">{cat?.name ?? t('Unknown')}</div>
                         {e.note && <div className="note">{e.note}</div>}
                       </div>
                     </div>
@@ -256,20 +259,20 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
 
           {!formOpen && editingId == null && (
             <button className="btn btn-primary btn-block" onClick={() => setFormOpen(true)} type="button">
-              + Add expense
+              {t('+ Add expense')}
             </button>
           )}
 
           {(formOpen || editingId != null) && (
           <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div className="form-group">
-              <label htmlFor="spendCategory">Category</label>
+              <label htmlFor="spendCategory">{t('Category')}</label>
               <select
                 id="spendCategory"
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : '')}
               >
-                <option value="">Select…</option>
+                <option value="">{t('Select…')}</option>
                 {activeCategories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -279,7 +282,7 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label htmlFor="spendAmount">Amount</label>
+                <label htmlFor="spendAmount">{t('Amount')}</label>
                 <input
                   id="spendAmount"
                   type="text"
@@ -290,7 +293,7 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="spendCurrency">Currency</label>
+                <label htmlFor="spendCurrency">{t('Currency')}</label>
                 <select
                   id="spendCurrency"
                   value={currency}
@@ -305,19 +308,18 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
               </div>
             </div>
             <div className="form-group">
-              <label htmlFor="spendNote">Note</label>
-              <input id="spendNote" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Optional" />
+              <label htmlFor="spendNote">{t('Note')}</label>
+              <input id="spendNote" value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('Optional')} />
             </div>
 
             {mode === 'auto' && (
               blockedNoPocket ? (
                 <div className="muted" style={{ color: 'var(--danger-strong)' }}>
-                  No saving pocket exists in {currency} — create one in Savings before logging spending in this
-                  currency.
+                  {tNoPocketWarning(lang, currency)}
                 </div>
               ) : (
                 <div className="form-group">
-                  <label htmlFor="debitPocket">Debit from</label>
+                  <label htmlFor="debitPocket">{t('Debit from')}</label>
                   <select
                     id="debitPocket"
                     value={debitPocketId}
@@ -342,7 +344,7 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
                     onChange={(e) => setRecurring(e.target.checked)}
                     style={{ width: 'auto' }}
                   />
-                  <span>Repeat this expense</span>
+                  <span>{t('Repeat this expense')}</span>
                 </label>
 
                 {recurring && (
@@ -353,33 +355,33 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
                         className={recurrenceType === 'monthly' ? 'active' : ''}
                         onClick={() => setRecurrenceType('monthly')}
                       >
-                        Monthly
+                        {t('Monthly')}
                       </button>
                       <button
                         type="button"
                         className={recurrenceType === 'annually' ? 'active' : ''}
                         onClick={() => setRecurrenceType('annually')}
                       >
-                        Annually
+                        {t('Annually')}
                       </button>
                       <button
                         type="button"
                         className={recurrenceType === 'custom' ? 'active' : ''}
                         onClick={() => setRecurrenceType('custom')}
                       >
-                        Every X days
+                        {t('Every X days')}
                       </button>
                     </div>
                     {recurrenceType === 'custom' && (
                       <div className="form-group">
-                        <label htmlFor="intervalDays">Repeats every (days)</label>
+                        <label htmlFor="intervalDays">{t('Repeats every (days)')}</label>
                         <input
                           id="intervalDays"
                           type="text"
                           inputMode="numeric"
                           value={intervalDays}
                           onChange={(e) => setIntervalDays(e.target.value)}
-                          placeholder="e.g. 14"
+                          placeholder={t('e.g. 14')}
                         />
                       </div>
                     )}
@@ -390,10 +392,10 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
 
             <div className="modal-actions">
               <button className="btn" onClick={handleCancel} type="button">
-                Cancel
+                {t('Cancel')}
               </button>
               <button className="btn btn-primary" onClick={handleSave} disabled={!valid} type="button">
-                {editingId != null ? 'Save' : 'Add expense'}
+                {editingId != null ? t('Save') : t('Add expense')}
               </button>
             </div>
           </div>

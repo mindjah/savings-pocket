@@ -104,6 +104,8 @@ export interface RecurringExpense {
 
 export type SavingsTrackingMode = 'manual' | 'auto'
 
+export type Language = 'en' | 'ru'
+
 export interface MetaRecord {
   key: string
   value: unknown

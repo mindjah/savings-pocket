@@ -5,12 +5,15 @@ import type { Category } from '../../db/types'
 import { CATEGORY_COLORS } from '../../lib/constants'
 import { Modal } from '../common/Modal'
 import { useToast } from '../../hooks/useToast'
+import { useTranslation } from '../../hooks/useTranslation'
+import { tCategoryArchiveHint, tDeleteCategoryConfirm } from '../../i18n/translations'
 
 interface Props {
   onClose: () => void
 }
 
 export function CategoryManagerModal({ onClose }: Props) {
+  const { t, lang } = useTranslation()
   const categories = useLiveQuery(
     async () => (await db.categories.toArray()).sort((a, b) => a.name.localeCompare(b.name)),
     [],
@@ -26,7 +29,7 @@ export function CategoryManagerModal({ onClose }: Props) {
     const trimmed = name.trim()
     if (!trimmed) return
     await db.categories.add({ name: trimmed, color, archived: false, createdAt: new Date().toISOString() })
-    toast('Category added')
+    toast(t('Category added'))
     onClose()
   }
 
@@ -39,10 +42,10 @@ export function CategoryManagerModal({ onClose }: Props) {
     if (!cat.id) return
     const count = await db.spendingEntries.where('categoryId').equals(cat.id).count()
     if (count > 0) {
-      alert(`"${cat.name}" has ${count} spending entries. Archive it instead of deleting so history stays intact.`)
+      alert(tCategoryArchiveHint(lang, cat.name, count))
       return
     }
-    if (!confirm(`Delete category "${cat.name}"?`)) return
+    if (!confirm(tDeleteCategoryConfirm(lang, cat.name))) return
     await db.categories.delete(cat.id)
   }
 
@@ -61,20 +64,20 @@ export function CategoryManagerModal({ onClose }: Props) {
     const trimmed = editName.trim()
     if (!trimmed) return
     await db.categories.update(editingId, { name: trimmed, color: editColor })
-    toast('Category updated')
+    toast(t('Category updated'))
     setEditingId(null)
   }
 
   return (
-    <Modal title="Manage categories" onClose={onClose}>
+    <Modal title={t('Manage categories')} onClose={onClose}>
       <div className="form-row">
         <div className="form-group" style={{ flex: 2 }}>
-          <label htmlFor="catName">New category</label>
+          <label htmlFor="catName">{t('New category')}</label>
           <input
             id="catName"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Groceries"
+            placeholder={t('e.g. Groceries')}
             onKeyDown={(e) => e.key === 'Enter' && addCategory()}
           />
         </div>
@@ -92,7 +95,7 @@ export function CategoryManagerModal({ onClose }: Props) {
         ))}
       </div>
       <button className="btn btn-primary btn-block" onClick={addCategory} disabled={!name.trim()} type="button">
-        Add category
+        {t('Add category')}
       </button>
 
       <div className="category-list">
@@ -104,7 +107,7 @@ export function CategoryManagerModal({ onClose }: Props) {
               style={{ flexDirection: 'column', alignItems: 'stretch', gap: 10 }}
             >
               <div className="form-group">
-                <label htmlFor={`editCatName-${cat.id}`}>Name</label>
+                <label htmlFor={`editCatName-${cat.id}`}>{t('Name')}</label>
                 <input
                   id={`editCatName-${cat.id}`}
                   value={editName}
@@ -126,10 +129,10 @@ export function CategoryManagerModal({ onClose }: Props) {
               </div>
               <div className="modal-actions">
                 <button className="btn" onClick={cancelEdit} type="button">
-                  Cancel
+                  {t('Cancel')}
                 </button>
                 <button className="btn btn-primary" onClick={saveEdit} disabled={!editName.trim()} type="button">
-                  Save
+                  {t('Save')}
                 </button>
               </div>
             </div>
@@ -137,7 +140,7 @@ export function CategoryManagerModal({ onClose }: Props) {
             <div className="category-row" key={cat.id}>
               <span className="swatch" style={{ background: cat.color }} />
               <span style={{ flex: 1, opacity: cat.archived ? 0.5 : 1 }}>
-                {cat.name} {cat.archived && <span className="muted">(archived)</span>}
+                {cat.name} {cat.archived && <span className="muted">{t('(archived)')}</span>}
               </span>
               <div className="icon-btn-row">
                 <button className="btn btn-ghost btn-icon" onClick={() => startEdit(cat)} type="button">
@@ -153,7 +156,9 @@ export function CategoryManagerModal({ onClose }: Props) {
             </div>
           ),
         )}
-        {categories?.length === 0 && <div className="muted">No categories yet — add your first one above.</div>}
+        {categories?.length === 0 && (
+          <div className="muted">{t('No categories yet — add your first one above.')}</div>
+        )}
       </div>
     </Modal>
   )

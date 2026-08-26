@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { verifyFaceId } from '../../lib/webauthn'
+import { useTranslation } from '../../hooks/useTranslation'
 
 interface Props {
   onUnlock: () => void
 }
 
 export function LockScreen({ onUnlock }: Props) {
+  const { t } = useTranslation()
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
 
@@ -27,15 +29,15 @@ export function LockScreen({ onUnlock }: Props) {
     <div className="lock-screen">
       <div className="lock-card">
         <span className="lock-icon">🔒</span>
-        <h2>Savings Pocket is locked</h2>
-        <p className="muted">Unlock with Face ID to continue</p>
+        <h2>{t('Savings Pocket is locked')}</h2>
+        <p className="muted">{t('Unlock with Face ID to continue')}</p>
         {failed && (
           <p className="muted" style={{ color: 'var(--danger-strong)' }}>
-            Unlock failed or was cancelled — try again.
+            {t('Unlock failed or was cancelled — try again.')}
           </p>
         )}
         <button className="btn btn-primary btn-block" onClick={attempt} disabled={busy} type="button">
-          {busy ? 'Waiting…' : 'Unlock'}
+          {busy ? t('Waiting…') : t('Unlock')}
         </button>
       </div>
     </div>

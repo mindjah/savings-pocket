@@ -16,10 +16,12 @@ import { PocketHistoryModal } from './PocketHistoryModal'
 import { HistoryModal } from '../common/HistoryModal'
 import { HeaderPortal } from '../common/HeaderPortal'
 import { NoteViewModal } from '../common/NoteViewModal'
+import { useTranslation } from '../../hooks/useTranslation'
 
 type SubTab = 'mine' | 'lent'
 
 export function SavingsView() {
+  const { t } = useTranslation()
   const [subTab, setSubTab] = useState<SubTab>('mine')
   const [savingsCurrencies] = useMetaSetting<Currency[]>('enabledSavingsCurrencies', DEFAULT_SAVINGS_CURRENCIES)
   const [trackingMode] = useMetaSetting<SavingsTrackingMode>('savingsTrackingMode', 'manual')
@@ -66,13 +68,13 @@ export function SavingsView() {
     <div className="view">
       <HeaderPortal>
         <button className="btn btn-accent-text" onClick={() => setShowRates(true)} type="button">
-          Exchange rates
+          {t('Exchange rates')}
         </button>
       </HeaderPortal>
 
       <div className="desktop-header-row">
         <button className="btn btn-accent-text" onClick={() => setShowRates(true)} type="button">
-          Exchange rates
+          {t('Exchange rates')}
         </button>
       </div>
 
@@ -80,10 +82,10 @@ export function SavingsView() {
 
       <div className="segmented">
         <button type="button" className={subTab === 'mine' ? 'active' : ''} onClick={() => setSubTab('mine')}>
-          My money
+          {t('My money')}
         </button>
         <button type="button" className={subTab === 'lent' ? 'active' : ''} onClick={() => setSubTab('lent')}>
-          Lent out
+          {t('Lent out')}
         </button>
       </div>
 
@@ -99,13 +101,13 @@ export function SavingsView() {
       {subTab === 'mine' ? (
         <>
           <div className="section-title" style={{ marginTop: 8 }}>
-            <h2>Savings pockets</h2>
+            <h2>{t('Savings pockets')}</h2>
           </div>
 
           {!entries || entries.length === 0 ? (
             <div className="empty-state">
               <span className="icon">💰</span>
-              No savings tracked yet. Tap + to add your first entry.
+              {t('No savings tracked yet. Tap + to add your first entry.')}
             </div>
           ) : (
             <div className="entry-list">
@@ -133,9 +135,9 @@ export function SavingsView() {
                     <div className="entry-top">
                       <span className="entry-top-left">
                         <span className="entry-amount">{formatMoney(entry.amount, entry.currency)}</span>
-                        <span className={`badge badge-${entry.type}`}>{entry.type === 'cash' ? 'Cash' : 'Card'}</span>
+                        <span className={`badge badge-${entry.type}`}>{t(entry.type === 'cash' ? 'Cash' : 'Card')}</span>
                         {trackingMode === 'auto' && entry.id != null && defaultPocketIds.has(entry.id) && (
-                          <span className="badge badge-default">Default</span>
+                          <span className="badge badge-default">{t('Default')}</span>
                         )}
                       </span>
                       <button
@@ -166,7 +168,7 @@ export function SavingsView() {
                           }
                         }}
                       >
-                        See note
+                        {t('See note')}
                       </span>
                     )}
                     <div
@@ -184,7 +186,7 @@ export function SavingsView() {
                         }
                       }}
                     >
-                      View history
+                      {t('View history')}
                     </div>
                   </div>
                 ))}
@@ -194,13 +196,13 @@ export function SavingsView() {
       ) : (
         <>
           <div className="section-title">
-            <h2>Lent out</h2>
+            <h2>{t('Lent out')}</h2>
           </div>
 
           {!loans || loans.length === 0 ? (
             <div className="empty-state">
               <span className="icon">🤝</span>
-              No loans tracked yet. Tap + to add money you've lent someone.
+              {t("No loans tracked yet. Tap + to add money you've lent someone.")}
             </div>
           ) : (
             <div className="entry-list">
@@ -216,8 +218,8 @@ export function SavingsView() {
                     {loan.note && (
                       <span
                         className="note-indicator"
-                        title="Has a note"
-                        aria-label="Has a note"
+                        title={t('Has a note')}
+                        aria-label={t('Has a note')}
                         role="button"
                         tabIndex={0}
                         onClick={(e) => {
@@ -250,7 +252,7 @@ export function SavingsView() {
                         }
                       }}
                     >
-                      View history
+                      {t('View history')}
                     </div>
                   </button>
                 ))}
@@ -261,7 +263,7 @@ export function SavingsView() {
 
       <button
         className="fab"
-        aria-label={subTab === 'mine' ? 'Add savings pocket' : 'Add loan'}
+        aria-label={t(subTab === 'mine' ? 'Add savings pocket' : 'Add loan')}
         onClick={() => (subTab === 'mine' ? setEditingSavings('new') : setEditingLoan('new'))}
       >
         +

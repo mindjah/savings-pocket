@@ -7,6 +7,7 @@ import { parseAmount } from '../../lib/format'
 import { Modal } from '../common/Modal'
 import { ExpandableTextarea } from '../common/ExpandableTextarea'
 import { useToast } from '../../hooks/useToast'
+import { useTranslation } from '../../hooks/useTranslation'
 
 interface Props {
   entry: LoanEntry | null
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function LoanEntryForm({ entry, defaultCurrency, availableCurrencies, onClose }: Props) {
+  const { t } = useTranslation()
   const isEdit = !!entry
   const [borrowerName, setBorrowerName] = useState(entry?.borrowerName ?? '')
   const [currency, setCurrency] = useState<Currency>(entry?.currency ?? defaultCurrency)
@@ -58,7 +60,7 @@ export function LoanEntryForm({ entry, defaultCurrency, availableCurrencies, onC
         amount: parsedAmount,
         updatedAt: now,
       })
-      toast('Loan updated')
+      toast(t('Loan updated'))
     } else {
       await db.loanEntries.add({
         borrowerName: borrowerName.trim(),
@@ -68,33 +70,33 @@ export function LoanEntryForm({ entry, defaultCurrency, availableCurrencies, onC
         createdAt: now,
         updatedAt: now,
       })
-      toast('Loan added')
+      toast(t('Loan added'))
     }
     onClose()
   }
 
   async function handleDelete() {
     if (!entry?.id) return
-    if (!confirm('Delete this loan and all of its history? This cannot be undone.')) return
+    if (!confirm(t('Delete this loan and all of its history? This cannot be undone.'))) return
     await db.transaction('rw', db.loanEntries, db.loanHistory, async () => {
       await db.loanHistory.where('entryId').equals(entry.id!).delete()
       await db.loanEntries.delete(entry.id!)
     })
-    toast('Loan deleted')
+    toast(t('Loan deleted'))
     onClose()
   }
 
   return (
-    <Modal title={isEdit ? 'Edit loan' : 'Add loan'} onClose={onClose}>
+    <Modal title={t(isEdit ? 'Edit loan' : 'Add loan')} onClose={onClose}>
       <div className="form-row">
         <div className="form-group" style={{ flex: 2 }}>
-          <label htmlFor="borrowerName">Lent to</label>
+          <label htmlFor="borrowerName">{t('Lent to')}</label>
           <input
             id="borrowerName"
             list="known-borrowers"
             value={borrowerName}
             onChange={(e) => setBorrowerName(e.target.value)}
-            placeholder="e.g. John"
+            placeholder={t('e.g. John')}
           />
           <datalist id="known-borrowers">
             {knownNames?.map((name) => (
@@ -103,7 +105,7 @@ export function LoanEntryForm({ entry, defaultCurrency, availableCurrencies, onC
           </datalist>
         </div>
         <div className="form-group">
-          <label htmlFor="loanCurrency">Currency</label>
+          <label htmlFor="loanCurrency">{t('Currency')}</label>
           <select
             id="loanCurrency"
             value={currency}
@@ -120,7 +122,7 @@ export function LoanEntryForm({ entry, defaultCurrency, availableCurrencies, onC
       </div>
 
       <div className="form-group">
-        <label htmlFor="loanAmount">Amount</label>
+        <label htmlFor="loanAmount">{t('Amount')}</label>
         <input
           id="loanAmount"
           type="text"
@@ -133,30 +135,30 @@ export function LoanEntryForm({ entry, defaultCurrency, availableCurrencies, onC
 
       <ExpandableTextarea
         id="loanNote"
-        label="Note"
+        label={t('Note')}
         value={note}
         onChange={setNote}
-        placeholder="Details about this loan"
+        placeholder={t('Details about this loan')}
       />
 
       {amountChanged && (
         <ExpandableTextarea
           id="loanReason"
-          label="Reason for change (saved to history)"
+          label={t('Reason for change (saved to history)')}
           value={reason}
           onChange={setReason}
-          placeholder="Why did this amount change? e.g. partial repayment"
+          placeholder={t('Why did this amount change? e.g. partial repayment')}
         />
       )}
 
       <div className="modal-actions">
         {isEdit && (
           <button className="btn btn-danger" onClick={handleDelete} type="button">
-            Delete
+            {t('Delete')}
           </button>
         )}
         <button className="btn btn-primary" onClick={handleSubmit} disabled={!valid} type="button">
-          {isEdit ? 'Save changes' : 'Add loan'}
+          {t(isEdit ? 'Save changes' : 'Add loan')}
         </button>
       </div>
     </Modal>

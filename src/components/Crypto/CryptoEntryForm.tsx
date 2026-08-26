@@ -6,6 +6,7 @@ import { parseAmount } from '../../lib/format'
 import { Modal } from '../common/Modal'
 import { ExpandableTextarea } from '../common/ExpandableTextarea'
 import { useToast } from '../../hooks/useToast'
+import { useTranslation } from '../../hooks/useTranslation'
 
 interface Props {
   entry: CryptoEntry | null
@@ -15,6 +16,7 @@ interface Props {
 const CUSTOM_VALUE = '__custom__'
 
 export function CryptoEntryForm({ entry, onClose }: Props) {
+  const { t } = useTranslation()
   const isEdit = !!entry
   const initialIsPopular = entry ? POPULAR_COINS.some((c) => c.coinId === entry.coinId) : true
   const [preset, setPreset] = useState(
@@ -71,7 +73,7 @@ export function CryptoEntryForm({ entry, onClose }: Props) {
         note: note.trim(),
         updatedAt: now,
       })
-      toast('Crypto holding updated')
+      toast(t('Crypto holding updated'))
     } else {
       await db.cryptoEntries.add({
         coinId: resolved.coinId,
@@ -82,33 +84,33 @@ export function CryptoEntryForm({ entry, onClose }: Props) {
         createdAt: now,
         updatedAt: now,
       })
-      toast('Crypto holding added')
+      toast(t('Crypto holding added'))
     }
     onClose()
   }
 
   async function handleDelete() {
     if (!entry?.id) return
-    if (!confirm('Delete this crypto holding and its history? This cannot be undone.')) return
+    if (!confirm(t('Delete this crypto holding and its history? This cannot be undone.'))) return
     await db.transaction('rw', db.cryptoEntries, db.cryptoHistory, async () => {
       await db.cryptoHistory.where('entryId').equals(entry.id!).delete()
       await db.cryptoEntries.delete(entry.id!)
     })
-    toast('Crypto holding deleted')
+    toast(t('Crypto holding deleted'))
     onClose()
   }
 
   return (
-    <Modal title={isEdit ? 'Edit crypto holding' : 'Add crypto holding'} onClose={onClose}>
+    <Modal title={t(isEdit ? 'Edit crypto holding' : 'Add crypto holding')} onClose={onClose}>
       <div className="form-group">
-        <label htmlFor="coin">Coin</label>
+        <label htmlFor="coin">{t('Coin')}</label>
         <select id="coin" value={preset} disabled={isEdit} onChange={(e) => setPreset(e.target.value)}>
           {POPULAR_COINS.map((c) => (
             <option key={c.coinId} value={c.coinId}>
               {c.symbol} — {c.name}
             </option>
           ))}
-          <option value={CUSTOM_VALUE}>Custom coin…</option>
+          <option value={CUSTOM_VALUE}>{t('Custom coin…')}</option>
         </select>
       </div>
 
@@ -116,27 +118,27 @@ export function CryptoEntryForm({ entry, onClose }: Props) {
         <>
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="customSymbol">Symbol</label>
+              <label htmlFor="customSymbol">{t('Symbol')}</label>
               <input
                 id="customSymbol"
                 value={customSymbol}
                 disabled={isEdit}
                 onChange={(e) => setCustomSymbol(e.target.value)}
-                placeholder="e.g. LINK"
+                placeholder={t('e.g. LINK')}
               />
             </div>
             <div className="form-group">
-              <label htmlFor="customName">Name</label>
+              <label htmlFor="customName">{t('Name')}</label>
               <input
                 id="customName"
                 value={customName}
                 onChange={(e) => setCustomName(e.target.value)}
-                placeholder="e.g. Chainlink"
+                placeholder={t('e.g. Chainlink')}
               />
             </div>
           </div>
           <div className="form-group">
-            <label htmlFor="customCoinId">CoinGecko id</label>
+            <label htmlFor="customCoinId">{t('CoinGecko id')}</label>
             <input
               id="customCoinId"
               value={customCoinId}
@@ -145,14 +147,14 @@ export function CryptoEntryForm({ entry, onClose }: Props) {
               placeholder="e.g. chainlink"
             />
             <span className="datalist-hint">
-              Find the id in the coin's CoinGecko URL, e.g. coingecko.com/en/coins/<b>chainlink</b>
+              {t("Find the id in the coin's CoinGecko URL, e.g. ")}coingecko.com/en/coins/<b>chainlink</b>
             </span>
           </div>
         </>
       )}
 
       <div className="form-group">
-        <label htmlFor="cryptoAmount">Amount</label>
+        <label htmlFor="cryptoAmount">{t('Amount')}</label>
         <input
           id="cryptoAmount"
           type="text"
@@ -165,30 +167,30 @@ export function CryptoEntryForm({ entry, onClose }: Props) {
 
       <ExpandableTextarea
         id="cryptoNote"
-        label="Note"
+        label={t('Note')}
         value={note}
         onChange={setNote}
-        placeholder="e.g. Cold wallet, exchange name…"
+        placeholder={t('e.g. Cold wallet, exchange name…')}
       />
 
       {amountChanged && (
         <ExpandableTextarea
           id="cryptoReason"
-          label="Reason for change (saved to history)"
+          label={t('Reason for change (saved to history)')}
           value={reason}
           onChange={setReason}
-          placeholder="Why did this amount change?"
+          placeholder={t('Why did this amount change?')}
         />
       )}
 
       <div className="modal-actions">
         {isEdit && (
           <button className="btn btn-danger" onClick={handleDelete} type="button">
-            Delete
+            {t('Delete')}
           </button>
         )}
         <button className="btn btn-primary" onClick={handleSubmit} disabled={!valid} type="button">
-          {isEdit ? 'Save changes' : 'Add holding'}
+          {t(isEdit ? 'Save changes' : 'Add holding')}
         </button>
       </div>
     </Modal>

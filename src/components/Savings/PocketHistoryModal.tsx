@@ -4,6 +4,7 @@ import { db } from '../../db/db'
 import type { Currency } from '../../db/types'
 import { formatDateTime, formatMoney } from '../../lib/format'
 import { Modal } from '../common/Modal'
+import { useTranslation } from '../../hooks/useTranslation'
 
 interface Props {
   entryId: number
@@ -14,6 +15,7 @@ interface Props {
 type Tab = 'manual' | 'spending'
 
 export function PocketHistoryModal({ entryId, currency, onClose }: Props) {
+  const { t, lang } = useTranslation()
   const [tab, setTab] = useState<Tab>('manual')
 
   const history = useLiveQuery(
@@ -24,20 +26,20 @@ export function PocketHistoryModal({ entryId, currency, onClose }: Props) {
   const rows = (history ?? []).filter((h) => (h.source ?? 'manual') === tab)
 
   return (
-    <Modal title="History" onClose={onClose}>
+    <Modal title={t('History')} onClose={onClose}>
       <div className="segmented">
         <button type="button" className={tab === 'manual' ? 'active' : ''} onClick={() => setTab('manual')}>
-          Manual changes
+          {t('Manual changes')}
         </button>
         <button type="button" className={tab === 'spending' ? 'active' : ''} onClick={() => setTab('spending')}>
-          Spending
+          {t('Spending')}
         </button>
       </div>
 
       {rows.length === 0 ? (
         <div className="empty-state">
           <span className="icon">🕓</span>
-          {tab === 'manual' ? 'No manual changes logged yet.' : 'No spending debited from this pocket yet.'}
+          {t(tab === 'manual' ? 'No manual changes logged yet.' : 'No spending debited from this pocket yet.')}
         </div>
       ) : (
         <div className="history-list">
@@ -46,7 +48,7 @@ export function PocketHistoryModal({ entryId, currency, onClose }: Props) {
             return (
               <div className="history-item" key={h.id}>
                 <div className="entry-top">
-                  <span>{formatDateTime(h.date)}</span>
+                  <span>{formatDateTime(h.date, lang)}</span>
                   <span className={delta >= 0 ? 'delta-pos' : 'delta-neg'}>
                     {delta >= 0 ? '+' : ''}
                     {formatMoney(delta, currency)}

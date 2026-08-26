@@ -12,6 +12,7 @@ import { ManageMenuModal } from './ManageMenuModal'
 import { RecurringExpensesModal } from './RecurringExpensesModal'
 import { AnalyticsModal } from './AnalyticsModal'
 import { HeaderPortal } from '../common/HeaderPortal'
+import { useTranslation } from '../../hooks/useTranslation'
 
 function daysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate()
@@ -24,6 +25,7 @@ function mondayIndex(year: number, month: number, day: number) {
 }
 
 export function SpendingView() {
+  const { t } = useTranslation()
   const today = new Date()
   const [year, setYear] = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth())
@@ -113,20 +115,20 @@ export function SpendingView() {
     <div className="view">
       <HeaderPortal>
         <button className="btn btn-accent-text" onClick={() => setManageMenuOpen(true)} type="button">
-          Manage
+          {t('Manage')}
         </button>
       </HeaderPortal>
 
       <div className="section-title">
         <h2>
-          Total spent — {MONTH_NAMES[month]} {year}
+          {t('Total spent')} — {t(MONTH_NAMES[month])} {year}
         </h2>
         <button
           className="btn btn-accent-text header-action-desktop"
           onClick={() => setManageMenuOpen(true)}
           type="button"
         >
-          Manage
+          {t('Manage')}
         </button>
       </div>
       <div className="totals-row">
@@ -140,13 +142,13 @@ export function SpendingView() {
 
       <div className="card">
         <div className="calendar-header">
-          <button className="btn btn-ghost btn-icon" onClick={goPrevMonth} aria-label="Previous month" type="button">
+          <button className="btn btn-ghost btn-icon" onClick={goPrevMonth} aria-label={t('Previous month')} type="button">
             ‹
           </button>
           <span className="month-label">
-            {MONTH_NAMES[month]} {year}
+            {t(MONTH_NAMES[month])} {year}
           </span>
-          <button className="btn btn-ghost btn-icon" onClick={goNextMonth} aria-label="Next month" type="button">
+          <button className="btn btn-ghost btn-icon" onClick={goNextMonth} aria-label={t('Next month')} type="button">
             ›
           </button>
         </div>
@@ -154,7 +156,7 @@ export function SpendingView() {
         <div className="calendar-grid" style={{ marginTop: 12 }}>
           {WEEKDAY_LABELS.map((w) => (
             <div className="weekday-label" key={w}>
-              {w}
+              {t(w)}
             </div>
           ))}
           {cells.map((cell, i) => {
@@ -190,13 +192,13 @@ export function SpendingView() {
       </div>
 
       <div className="section-title">
-        <h2>By category</h2>
+        <h2>{t('By category')}</h2>
       </div>
 
       {breakdown.length === 0 ? (
         <div className="empty-state">
           <span className="icon">📅</span>
-          No spending logged this month yet. Tap any day to add an expense.
+          {t('No spending logged this month yet. Tap any day to add an expense.')}
         </div>
       ) : (
         <div className="category-breakdown">
@@ -208,7 +210,7 @@ export function SpendingView() {
               onClick={() => setCategoryModalFor({ categoryId, currency })}
             >
               <span className="swatch" style={{ background: category?.color ?? '#888' }} />
-              <span style={{ width: 96, flexShrink: 0 }}>{category?.name ?? 'Unknown'}</span>
+              <span style={{ width: 96, flexShrink: 0 }}>{category?.name ?? t('Unknown')}</span>
               <div className="bar-track">
                 <div
                   className="bar-fill"
@@ -221,7 +223,7 @@ export function SpendingView() {
         </div>
       )}
 
-      <button className="fab" aria-label="Add expense" onClick={() => setOpenDay(todayStr)}>
+      <button className="fab" aria-label={t('Add expense')} onClick={() => setOpenDay(todayStr)}>
         +
       </button>
 
@@ -264,7 +266,7 @@ export function SpendingView() {
         <CategoryExpensesModal
           categoryId={categoryModalFor.categoryId}
           currency={categoryModalFor.currency}
-          categoryName={categoryMap.get(categoryModalFor.categoryId)?.name ?? 'Unknown'}
+          categoryName={categoryMap.get(categoryModalFor.categoryId)?.name ?? t('Unknown')}
           monthPrefix={monthPrefix}
           onClose={() => setCategoryModalFor(null)}
         />

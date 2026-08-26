@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { Modal } from '../common/Modal'
+import { useTranslation } from '../../hooks/useTranslation'
+import { tDeleteConfirmBody } from '../../i18n/translations'
 
 interface Props {
   itemLabel: string
@@ -8,15 +10,13 @@ interface Props {
 }
 
 export function DeleteConfirmModal({ itemLabel, onConfirmed, onClose }: Props) {
+  const { t, lang } = useTranslation()
   const [text, setText] = useState('')
   const valid = text === 'DELETE'
 
   return (
-    <Modal title="Confirm deletion" onClose={onClose}>
-      <p className="muted">
-        This will permanently delete {itemLabel} and its full history. Type <strong>DELETE</strong> to
-        continue.
-      </p>
+    <Modal title={t('Confirm deletion')} onClose={onClose}>
+      <p className="muted">{tDeleteConfirmBody(lang, itemLabel)}</p>
       <div className="form-group">
         <input
           autoFocus
@@ -27,7 +27,7 @@ export function DeleteConfirmModal({ itemLabel, onConfirmed, onClose }: Props) {
       </div>
       <div className="modal-actions">
         <button className="btn" onClick={onClose} type="button">
-          Cancel
+          {t('Cancel')}
         </button>
         <button
           className="btn btn-danger"
@@ -38,7 +38,7 @@ export function DeleteConfirmModal({ itemLabel, onConfirmed, onClose }: Props) {
           }}
           type="button"
         >
-          Continue
+          {t('Continue')}
         </button>
       </div>
     </Modal>

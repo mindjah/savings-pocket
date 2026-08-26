@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { Currency } from '../../db/types'
 import { CURRENCIES } from '../../lib/constants'
+import { useTranslation } from '../../hooks/useTranslation'
 
 interface Props {
   value: Currency
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function CurrencySingleSelect({ value, options, onChange }: Props) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
   const groupName = useId()
@@ -40,7 +42,7 @@ export function CurrencySingleSelect({ value, options, onChange }: Props) {
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span>{current ? `${current.symbol} ${current.code}` : 'Select currency'}</span>
+        <span>{current ? `${current.symbol} ${current.code}` : t('Select currency')}</span>
         <span className="chevron">▾</span>
       </button>
       {open && (

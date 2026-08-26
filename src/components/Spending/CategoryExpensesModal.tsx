@@ -4,6 +4,7 @@ import type { Currency } from '../../db/types'
 import { formatDate, formatMoney } from '../../lib/format'
 import { Modal } from '../common/Modal'
 import { useToast } from '../../hooks/useToast'
+import { useTranslation } from '../../hooks/useTranslation'
 
 interface Props {
   categoryId: number
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function CategoryExpensesModal({ categoryId, currency, categoryName, monthPrefix, onClose }: Props) {
+  const { t, lang } = useTranslation()
   const entries = useLiveQuery(
     async () =>
       (await db.spendingEntries.where('date').startsWith(monthPrefix).toArray())
@@ -25,9 +27,9 @@ export function CategoryExpensesModal({ categoryId, currency, categoryName, mont
 
   async function handleDelete(id?: number) {
     if (!id) return
-    if (!confirm('Delete this spending entry?')) return
+    if (!confirm(t('Delete this spending entry?'))) return
     await db.spendingEntries.delete(id)
-    toast('Spending entry deleted')
+    toast(t('Spending entry deleted'))
   }
 
   const total = (entries ?? []).reduce((sum, e) => sum + e.amount, 0)
@@ -35,19 +37,19 @@ export function CategoryExpensesModal({ categoryId, currency, categoryName, mont
   return (
     <Modal title={categoryName} onClose={onClose}>
       <div className="section-title">
-        <span className="muted">Total this month</span>
+        <span className="muted">{t('Total this month')}</span>
         <span className="entry-amount">{formatMoney(total, currency)}</span>
       </div>
 
       {!entries || entries.length === 0 ? (
-        <div className="empty-state">No expenses in this category yet.</div>
+        <div className="empty-state">{t('No expenses in this category yet.')}</div>
       ) : (
         <div className="entry-list">
           {entries.map((e) => (
             <div className="day-entry-row" key={e.id}>
               <div className="info">
                 <div className="text">
-                  <div className="cat">{formatDate(e.date)}</div>
+                  <div className="cat">{formatDate(e.date, lang)}</div>
                   {e.note && (
                     <div className="note" style={{ whiteSpace: 'normal', overflow: 'visible', textOverflow: 'unset' }}>
                       {e.note}

@@ -6,12 +6,17 @@ import { formatMoney } from '../../lib/format'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { exportBackup, importBackup } from '../../lib/backup'
 import { useToast } from '../../hooks/useToast'
-import type { Currency, SavingsTrackingMode } from '../../db/types'
+import type { Currency, Language, SavingsTrackingMode } from '../../db/types'
 import { CurrencyMultiSelect } from '../common/CurrencyMultiSelect'
 import { CurrencySingleSelect } from '../common/CurrencySingleSelect'
 import { disableFaceId, isFaceIdAvailable, registerFaceId } from '../../lib/webauthn'
+import { useTranslation } from '../../hooks/useTranslation'
+import { tImportComplete, tNoPocketYet } from '../../i18n/translations'
 
 export function SettingsView() {
+  const { t } = useTranslation()
+  const [language, setLanguage] = useMetaSetting<Language>('language', 'en')
+
   const [savingsCurrencies, setSavingsCurrencies] = useMetaSetting<Currency[]>(
     'enabledSavingsCurrencies',
     DEFAULT_SAVINGS_CURRENCIES,
@@ -72,7 +77,7 @@ export function SettingsView() {
     await db.meta.put({ key: 'savingsTrackingMode', value: trackingMode })
     await db.meta.put({ key: 'defaultSavingsPocketByCurrency', value: defaultPockets })
     setTrackingChanged(false)
-    toast('Savings tracking settings saved')
+    toast(t('Savings tracking settings saved'))
   }
 
   const [modeInfoOpen, setModeInfoOpen] = useState(false)
@@ -88,16 +93,16 @@ export function SettingsView() {
 
   async function handleToggleFaceId() {
     if (faceIdEnabled) {
-      if (!confirm('Turn off Face ID lock?')) return
+      if (!confirm(t('Turn off Face ID lock?'))) return
       await disableFaceId()
-      toast('Face ID disabled')
+      toast(t('Face ID disabled'))
       return
     }
     setFaceIdBusy(true)
     const ok = await registerFaceId()
     setFaceIdBusy(false)
-    if (ok) toast('Face ID enabled')
-    else alert('Could not set up Face ID on this device.')
+    if (ok) toast(t('Face ID enabled'))
+    else alert(t('Could not set up Face ID on this device.'))
   }
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -108,27 +113,23 @@ export function SettingsView() {
     setBusy(true)
     try {
       await exportBackup()
-      toast('Backup exported')
+      toast(t('Backup exported'))
     } finally {
       setBusy(false)
     }
   }
 
   async function handleImportFile(file: File) {
-    if (
-      !confirm(
-        'Importing will replace ALL current data (savings, crypto, spending, categories) with the contents of this backup file. Continue?',
-      )
-    ) {
+    if (!confirm(t('Importing will replace ALL current data (savings, crypto, spending, categories) with the contents of this backup file. Continue?'))) {
       return
     }
     setBusy(true)
     try {
       const { imported } = await importBackup(file)
       const total = Object.values(imported).reduce((a, b) => a + b, 0)
-      toast(`Import complete — ${total} records restored`)
+      toast(tImportComplete(language, total))
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to import backup')
+      alert(err instanceof Error ? err.message : t('Failed to import backup'))
     } finally {
       setBusy(false)
     }
@@ -137,22 +138,66 @@ export function SettingsView() {
   return (
     <div className="view">
       <div className="section-title">
-        <h2>Currencies</h2>
+        <h2>{t('Language')}</h2>
+      </div>
+
+      <div className="card settings-list">
+        <div className="settings-row">
+          <div className="segmented" style={{ width: '100%' }}>
+            <button type="button" className={language === 'en' ? 'active' : ''} onClick={() => setLanguage('en')}>
+              English
+            </button>
+            <button type="button" className={language === 'ru' ? 'active' : ''} onClick={() => setLanguage('ru')}>
+              Русский
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="section-title">
+        <h2>{t('Security')}</h2>
       </div>
 
       <div className="card settings-list">
         <div className="settings-row wrap">
           <div>
-            <div>Savings currencies</div>
-            <div className="muted">Shown as totals in Savings and Lent out — at least one required</div>
+            <div>{t('Face ID lock')}</div>
+            <div className="muted">
+              {faceIdAvailable === false ? t('Not available on this device or browser') : t('Require Face ID / Touch ID to open the app')}
+            </div>
+          </div>
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={faceIdEnabled}
+              onChange={handleToggleFaceId}
+              disabled={faceIdAvailable === false || faceIdBusy}
+              aria-label={t('Face ID lock')}
+            />
+            <span className="switch-track">
+              <span className="switch-thumb" />
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <div className="section-title">
+        <h2>{t('Currencies')}</h2>
+      </div>
+
+      <div className="card settings-list">
+        <div className="settings-row wrap">
+          <div>
+            <div>{t('Savings currencies')}</div>
+            <div className="muted">{t('Shown as totals in Savings and Lent out — at least one required')}</div>
           </div>
           <CurrencyMultiSelect selected={savingsCurrencies} onChange={setSavingsCurrencies} />
         </div>
 
         <div className="settings-row wrap">
           <div>
-            <div>Total net worth</div>
-            <div className="muted">Currency used to display the combined savings + crypto + lent-out total</div>
+            <div>{t('Total net worth')}</div>
+            <div className="muted">{t('Currency used to display the combined savings + crypto + lent-out total')}</div>
           </div>
           <CurrencySingleSelect value={netWorthCurrency} options={netWorthOptions} onChange={setNetWorthCurrency} />
         </div>
@@ -161,8 +206,8 @@ export function SettingsView() {
       <div className="card settings-list">
         <div className="settings-row wrap">
           <div>
-            <div>Crypto currencies</div>
-            <div className="muted">Fiat currencies shown for crypto holdings and totals</div>
+            <div>{t('Crypto currencies')}</div>
+            <div className="muted">{t('Fiat currencies shown for crypto holdings and totals')}</div>
           </div>
           <CurrencyMultiSelect selected={cryptoCurrencies} onChange={setCryptoCurrencies} />
         </div>
@@ -171,25 +216,25 @@ export function SettingsView() {
       <div className="card settings-list">
         <div className="settings-row wrap">
           <div>
-            <div>Spending currencies</div>
-            <div className="muted">Shown in the spending calendar totals</div>
+            <div>{t('Spending currencies')}</div>
+            <div className="muted">{t('Shown in the spending calendar totals')}</div>
           </div>
           <CurrencyMultiSelect selected={spendingCurrencies} onChange={setSpendingCurrencies} />
         </div>
       </div>
 
       <div className="section-title">
-        <h2>Savings tracking</h2>
+        <h2>{t('Savings tracking')}</h2>
       </div>
 
       <div className="card settings-list">
         <div className="settings-row wrap">
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div>Savings tracking mode</div>
+            <div>{t('Savings tracking mode')}</div>
             <button
               className="btn btn-ghost btn-icon"
               onClick={() => setModeInfoOpen((o) => !o)}
-              aria-label="What do these modes mean?"
+              aria-label={t('What do these modes mean?')}
               type="button"
             >
               ⓘ
@@ -198,27 +243,28 @@ export function SettingsView() {
           {modeInfoOpen && (
             <div className="muted" style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: '0.82rem' }}>
               <p style={{ margin: 0 }}>
-                <strong>Manual</strong> — spending is tracked separately and never changes your saving pocket
-                balances.
+                <strong>{t('Manual')}</strong>
+                {t(' — spending is tracked separately and never changes your saving pocket balances.')}
               </p>
               <p style={{ margin: 0 }}>
-                <strong>Auto spending</strong> — choose a default saving pocket per currency below; every expense
-                you log is automatically debited from that pocket (you can pick a different one per expense) and
-                shows up in that pocket's Spending history.
+                <strong>{t('Auto spending')}</strong>
+                {t(
+                  " — choose a default saving pocket per currency below; every expense you log is automatically debited from that pocket (you can pick a different one per expense) and shows up in that pocket's Spending history.",
+                )}
               </p>
             </div>
           )}
           <select value={trackingMode} onChange={(e) => updateDraftMode(e.target.value as SavingsTrackingMode)}>
-            <option value="manual">Manual</option>
-            <option value="auto">Auto spending</option>
+            <option value="manual">{t('Manual')}</option>
+            <option value="auto">{t('Auto spending')}</option>
           </select>
         </div>
 
         {trackingMode === 'auto' && (
           <div className="settings-row wrap">
             <div>
-              <div>Default saving pocket per currency</div>
-              <div className="muted">Used when you log an expense — you can still override it per expense</div>
+              <div>{t('Default saving pocket per currency')}</div>
+              <div className="muted">{t('Used when you log an expense — you can still override it per expense')}</div>
             </div>
             {spendingCurrencies.map((cur) => {
               const options = pockets.filter((p) => p.currency === cur)
@@ -229,13 +275,13 @@ export function SettingsView() {
                 >
                   <span>{cur}</span>
                   {options.length === 0 ? (
-                    <span className="muted">No pocket in {cur} yet</span>
+                    <span className="muted">{tNoPocketYet(language, cur)}</span>
                   ) : (
                     <select
                       value={defaultPockets[cur] ?? ''}
                       onChange={(e) => updateDraftPocket(cur, e.target.value ? Number(e.target.value) : undefined)}
                     >
-                      <option value="">None selected</option>
+                      <option value="">{t('None selected')}</option>
                       {options.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.location} — {formatMoney(p.amount, p.currency)}
@@ -250,7 +296,7 @@ export function SettingsView() {
         )}
 
         <div className="settings-row">
-          {trackingChanged && <span className="muted">Unsaved changes</span>}
+          {trackingChanged && <span className="muted">{t('Unsaved changes')}</span>}
           <button
             className="btn btn-primary"
             style={{ marginLeft: 'auto' }}
@@ -258,47 +304,23 @@ export function SettingsView() {
             disabled={!trackingChanged}
             type="button"
           >
-            Save
+            {t('Save')}
           </button>
         </div>
       </div>
 
       <div className="section-title">
-        <h2>Security</h2>
-      </div>
-
-      <div className="card settings-list">
-        <div className="settings-row wrap">
-          <div>
-            <div>Face ID lock</div>
-            <div className="muted">
-              {faceIdAvailable === false
-                ? 'Not available on this device or browser'
-                : 'Require Face ID / Touch ID to open the app'}
-            </div>
-          </div>
-          <button
-            className="btn btn-primary"
-            onClick={handleToggleFaceId}
-            disabled={faceIdAvailable === false || faceIdBusy}
-            type="button"
-          >
-            {faceIdEnabled ? 'Turn off' : 'Turn on'}
-          </button>
-        </div>
-      </div>
-
-      <div className="section-title">
-        <h2>Backup</h2>
+        <h2>{t('Backup')}</h2>
       </div>
 
       <div className="card settings-list">
         <p className="muted">
-          All data is stored locally in your browser. Export a backup regularly, especially before clearing browser
-          data or switching devices.
+          {t(
+            'All data is stored locally in your browser. Export a backup regularly, especially before clearing browser data or switching devices.',
+          )}
         </p>
         <button className="btn btn-primary btn-block" onClick={handleExport} disabled={busy} type="button">
-          Export backup (.json)
+          {t('Export backup (.json)')}
         </button>
         <button
           className="btn btn-block"
@@ -306,7 +328,7 @@ export function SettingsView() {
           disabled={busy}
           type="button"
         >
-          Import backup (.json)
+          {t('Import backup (.json)')}
         </button>
         <input
           ref={fileInputRef}
@@ -322,7 +344,7 @@ export function SettingsView() {
       </div>
 
       <p className="muted" style={{ textAlign: 'center' }}>
-        Savings Pocket — your data never leaves this device.
+        {t('Savings Pocket — your data never leaves this device.')}
       </p>
     </div>
   )

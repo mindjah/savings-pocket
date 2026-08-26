@@ -1,4 +1,4 @@
-import type { Currency } from '../db/types'
+import type { Currency, Language } from '../db/types'
 import { CURRENCIES } from './constants'
 
 export function currencySymbol(code: Currency): string {
@@ -42,14 +42,16 @@ export function formatUsdEur(amount: number): string {
   return new Intl.NumberFormat('en-US', { maximumFractionDigits: amount < 1 ? 4 : 2 }).format(amount)
 }
 
-export function formatDate(iso: string): string {
+export function formatDate(iso: string, lang: Language = 'en'): string {
   const d = new Date(iso)
-  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+  const locale = lang === 'ru' ? 'ru-RU' : 'en-GB'
+  return d.toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-export function formatDateTime(iso: string): string {
+export function formatDateTime(iso: string, lang: Language = 'en'): string {
   const d = new Date(iso)
-  return d.toLocaleString('en-GB', {
+  const locale = lang === 'ru' ? 'ru-RU' : 'en-GB'
+  return d.toLocaleString(locale, {
     day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
 }
