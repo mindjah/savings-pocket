@@ -16,11 +16,15 @@ import { DeleteIcon } from '../common/DeleteIcon'
 
 interface Props {
   initialDate: string
+  // True when opened from the "+" FAB — a focused quick-add flow for
+  // today's spending, so it skips straight to the form instead of the
+  // day-overview (total spent, collapsed form) that a calendar-day tap shows.
+  quickAdd?: boolean
   onClose: () => void
   onManageCategories: () => void
 }
 
-export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Props) {
+export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onManageCategories }: Props) {
   const { t, lang } = useTranslation()
   const [date, setDate] = useState(initialDate)
   const entries = useLiveQuery(
@@ -35,7 +39,7 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
   const [mode] = useMetaSetting<SavingsTrackingMode>('savingsTrackingMode', 'manual')
   const toast = useToast()
 
-  const [formOpen, setFormOpen] = useState(false)
+  const [formOpen, setFormOpen] = useState(quickAdd)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [categoryId, setCategoryId] = useState<number | ''>('')
   const [amount, setAmount] = useState('')
@@ -210,14 +214,16 @@ export function DayEntriesModal({ initialDate, onClose, onManageCategories }: Pr
         <input id="spendDate" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
       </div>
 
-      <div className="section-title">
-        <span className="muted">{t('Total spent')}</span>
-        <span className="entry-amount">
-          {dayTotalsByCurrency.length === 0
-            ? formatMoney(0, defaultCurrency)
-            : dayTotalsByCurrency.map(([cur, total]) => formatMoney(total, cur)).join(' · ')}
-        </span>
-      </div>
+      {!quickAdd && (
+        <div className="section-title">
+          <span className="muted">{t('Total spent')}</span>
+          <span className="entry-amount">
+            {dayTotalsByCurrency.length === 0
+              ? formatMoney(0, defaultCurrency)
+              : dayTotalsByCurrency.map(([cur, total]) => formatMoney(total, cur)).join(' · ')}
+          </span>
+        </div>
+      )}
 
       {activeCategories.length === 0 ? (
         <div className="empty-state">

@@ -30,6 +30,7 @@ export function SpendingView() {
   const [year, setYear] = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth())
   const [openDay, setOpenDay] = useState<string | null>(null)
+  const [quickAddOpen, setQuickAddOpen] = useState(false)
   const [manageMenuOpen, setManageMenuOpen] = useState(false)
   const [managingCategories, setManagingCategories] = useState(false)
   const [managingRecurring, setManagingRecurring] = useState(false)
@@ -223,16 +224,28 @@ export function SpendingView() {
         </div>
       )}
 
-      <button className="fab" aria-label={t('Add expense')} onClick={() => setOpenDay(todayStr)}>
+      <button
+        className="fab"
+        aria-label={t('Add expense')}
+        onClick={() => {
+          setOpenDay(todayStr)
+          setQuickAddOpen(true)
+        }}
+      >
         +
       </button>
 
       {openDay && (
         <DayEntriesModal
           initialDate={openDay}
-          onClose={() => setOpenDay(null)}
+          quickAdd={quickAddOpen}
+          onClose={() => {
+            setOpenDay(null)
+            setQuickAddOpen(false)
+          }}
           onManageCategories={() => {
             setOpenDay(null)
+            setQuickAddOpen(false)
             setManagingCategories(true)
           }}
         />

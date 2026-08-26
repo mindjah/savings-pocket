@@ -74,6 +74,14 @@ textarea {
   border-radius: var(--radius-sm);
   padding: 10px 12px;
   width: 100%;
+  min-width: 0;
+}
+
+/* Mobile browsers give the native date field's internal shadow parts a
+   baked-in min-width that ignores the width:100% above, overflowing
+   narrow modals — box-sizing alone doesn't stop it, so clamp explicitly. */
+input[type='date'] {
+  max-width: 100%;
 }
 
 input:focus,
