@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { NavBar, type Tab } from './components/Layout/NavBar'
 import { SavingsView } from './components/Savings/SavingsView'
 import { CryptoView } from './components/Crypto/CryptoView'
@@ -19,6 +19,9 @@ const TITLES: Record<Tab, string> = {
 }
 
 const STORAGE_KEY = 'savings-pocket:activeTab'
+// Quick app-switches (checking a notification, glancing at another app)
+// shouldn't force a re-auth — only re-lock once backgrounded this long.
+const RELOCK_AFTER_MS = 5 * 60 * 1000
 
 function readInitialTab(): Tab {
   const stored = localStorage.getItem(STORAGE_KEY)
@@ -39,11 +42,21 @@ export default function App() {
     materializeRecurringExpenses()
   }, [])
 
-  // Re-lock whenever the app is backgrounded, so a resumed session always
-  // demands another Face ID check rather than trusting a stale unlock.
+  // Re-lock only once the app has been backgrounded for a while — a brief
+  // switch to another app shouldn't demand another Face ID check.
+  const hiddenAtRef = useRef<number | null>(null)
   useEffect(() => {
     function onVisibility() {
-      if (document.visibilityState === 'hidden' && faceIdEnabled) setUnlocked(false)
+      if (!faceIdEnabled) return
+      if (document.visibilityState === 'hidden') {
+        hiddenAtRef.current = Date.now()
+        return
+      }
+      const hiddenAt = hiddenAtRef.current
+      hiddenAtRef.current = null
+      if (hiddenAt != null && Date.now() - hiddenAt >= RELOCK_AFTER_MS) {
+        setUnlocked(false)
+      }
     }
     document.addEventListener('visibilitychange', onVisibility)
     return () => document.removeEventListener('visibilitychange', onVisibility)

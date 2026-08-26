@@ -20,26 +20,40 @@ export function LockScreen({ onUnlock }: Props) {
     hasPasscode().then(setPasscodeAvailable)
   }, [])
 
+  // Guards against overlapping calls to verifyFaceId — both the visibility
+  // listener and a manual button tap can otherwise fire it at once.
+  const inFlight = useRef(false)
+
   async function attempt() {
+    if (inFlight.current) return
+    inFlight.current = true
     setShowPasscodeInput(false)
     setBusy(true)
     setFailed(false)
     const ok = await verifyFaceId()
+    inFlight.current = false
     setBusy(false)
     if (ok) onUnlock()
     else setFailed(true)
   }
 
-  // Fire the prompt immediately so unlocking feels instant — this screen
-  // stays underneath as the fallback (manual retry, or the passcode below)
-  // for when the auto-fired call is blocked, fails, or hangs.
-  const autoFired = useRef(false)
+  // Fire the prompt as soon as the screen is actually visible — on first
+  // mount (app opened fresh) and again every time the tab/app returns to
+  // the foreground after being backgrounded. Browsers block WebAuthn calls
+  // while the page is hidden, so re-locking on background (see App.tsx)
+  // mounts this screen before it's visible again; without re-checking on
+  // "visible", the prompt would only have ever fired at the wrong moment
+  // and never again once you actually come back. Skipped while the user
+  // is mid-passcode entry so a backgrounded app doesn't interrupt them.
   useEffect(() => {
-    if (autoFired.current) return
-    autoFired.current = true
-    attempt()
+    function handleVisible() {
+      if (document.visibilityState === 'visible' && !showPasscodeInput) attempt()
+    }
+    handleVisible()
+    document.addEventListener('visibilitychange', handleVisible)
+    return () => document.removeEventListener('visibilitychange', handleVisible)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [showPasscodeInput])
 
   async function handlePasscodeSubmit() {
     if (passcodeValue.length < 4) return
