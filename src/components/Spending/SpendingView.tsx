@@ -13,6 +13,7 @@ import { RecurringExpensesModal } from './RecurringExpensesModal'
 import { AnalyticsModal } from './AnalyticsModal'
 import { HeaderPortal } from '../common/HeaderPortal'
 import { useTranslation } from '../../hooks/useTranslation'
+import { EntryBadges } from '../common/EntryBadges'
 
 function daysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate()
@@ -53,6 +54,20 @@ export function SpendingView() {
       const dayMap = map.get(e.date) ?? new Map<Currency, number>()
       dayMap.set(e.currency, (dayMap.get(e.currency) ?? 0) + e.amount)
       map.set(e.date, dayMap)
+    }
+    return map
+  }, [entries])
+
+  // date -> whether that day has a recurring-generated entry, or one dated
+  // in the future (planned but not yet happened) — drives the tiny corner badges.
+  const dayBadgesByDate = useMemo(() => {
+    const today = todayIso()
+    const map = new Map<string, { recurring: boolean; upcoming: boolean }>()
+    for (const e of entries ?? []) {
+      const flags = map.get(e.date) ?? { recurring: false, upcoming: false }
+      if (e.recurringExpenseId != null) flags.recurring = true
+      if (e.date > today) flags.upcoming = true
+      map.set(e.date, flags)
     }
     return map
   }, [entries])
@@ -164,6 +179,7 @@ export function SpendingView() {
             if (cell.day === null) return <div className="calendar-cell pad" key={`pad-${i}`} />
             const dayMap = totalsByDay.get(cell.date!)
             const isToday = isCurrentMonth && cell.date === todayStr
+            const badges = dayBadgesByDate.get(cell.date!)
             let primary: [Currency, number] | null = null
             let extraCount = 0
             if (dayMap && dayMap.size > 0) {
@@ -179,6 +195,12 @@ export function SpendingView() {
                 onClick={() => setOpenDay(cell.date)}
                 type="button"
               >
+                <EntryBadges
+                  recurring={badges?.recurring}
+                  upcoming={badges?.upcoming}
+                  size={9}
+                  className="calendar-cell-badges"
+                />
                 <span className="day-num">{cell.day}</span>
                 {primary && (
                   <span className="day-total">

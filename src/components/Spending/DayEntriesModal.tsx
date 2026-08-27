@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import type { Currency, RecurrenceType, SavingsTrackingMode, SpendingEntry } from '../../db/types'
 import { CURRENCIES, DEFAULT_SPENDING_CURRENCIES } from '../../lib/constants'
-import { formatDate, formatMoney, parseAmount } from '../../lib/format'
+import { formatDate, formatMoney, parseAmount, todayIso } from '../../lib/format'
 import { applyAutoDebit, reverseAutoDebit } from '../../lib/autoDebit'
 import { computeNextDate } from '../../lib/recurring'
 import { Modal } from '../common/Modal'
@@ -13,6 +13,9 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { tNoPocketWarning } from '../../i18n/translations'
 import { EditIcon } from '../common/EditIcon'
 import { DeleteIcon } from '../common/DeleteIcon'
+import { EntryBadges } from '../common/EntryBadges'
+import { AddExpenseIcon } from '../common/AddExpenseIcon'
+import { RecurringIcon } from '../common/RecurringIcon'
 
 interface Props {
   initialDate: string
@@ -133,6 +136,8 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
     if (editingId != null) {
       const id = editingId
       await db.transaction('rw', db.spendingEntries, db.savingsEntries, db.savingsHistory, async () => {
+        // Always reverse first — if the date moved into the future, this
+        // correctly un-charges it since the block below won't re-apply.
         await reverseAutoDebit(id)
         await db.spendingEntries.update(id, {
           categoryId,
@@ -141,7 +146,7 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
           note: note.trim(),
           debitedFromPocketId: mode === 'auto' ? (debitPocketId as number) : undefined,
         })
-        if (mode === 'auto' && debitPocketId !== '') {
+        if (mode === 'auto' && debitPocketId !== '' && date <= todayIso()) {
           await applyAutoDebit(debitPocketId as number, parsed, id, comment)
         }
       })
@@ -164,8 +169,13 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
             createdAt: new Date().toISOString(),
           })
           if (mode === 'auto' && debitPocketId !== '') {
-            await applyAutoDebit(debitPocketId as number, parsed, newId, comment)
+            // A future-dated expense isn't charged yet — the pocket is
+            // remembered so materializePendingAutoDebits() can apply it
+            // once the date actually arrives.
             await db.spendingEntries.update(newId, { debitedFromPocketId: debitPocketId as number })
+            if (date <= todayIso()) {
+              await applyAutoDebit(debitPocketId as number, parsed, newId, comment)
+            }
           }
           if (recurring) {
             const intervalDaysValue = recurrenceType === 'custom' ? Math.round(parsedIntervalDays) : undefined
@@ -201,15 +211,28 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
   }
 
   const blockedNoPocket = mode === 'auto' && pocketsForCurrency.length === 0
+  // Recurring and future-dated expenses need a note — they're the ones you
+  // won't have fresh context on later, so the note is what makes "what was
+  // this again?" answerable when it actually shows up in the calendar.
+  const noteRequired = editingId == null && (recurring || date > todayIso())
   const valid =
     categoryId !== '' &&
     parseAmount(amount) > 0 &&
     !blockedNoPocket &&
     (mode !== 'auto' || debitPocketId !== '') &&
-    (editingId != null || recurringValid)
+    (editingId != null || recurringValid) &&
+    (!noteRequired || note.trim().length > 0)
 
   return (
-    <Modal title={formatDate(date, lang)} onClose={onClose}>
+    <Modal
+      title={
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <AddExpenseIcon size={18} />
+          {formatDate(date, lang)}
+        </span>
+      }
+      onClose={onClose}
+    >
       <div className="form-group">
         <label htmlFor="spendDate">{t('Date')}</label>
         <input id="spendDate" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
@@ -247,7 +270,10 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
                     <div className="info">
                       <span className="swatch" style={{ background: cat?.color ?? '#888' }} />
                       <div className="text">
-                        <div className="cat">{cat?.name ?? t('Unknown')}</div>
+                        <div className="cat entry-badges">
+                          <span>{cat?.name ?? t('Unknown')}</span>
+                          <EntryBadges recurring={e.recurringExpenseId != null} upcoming={e.date > todayIso()} />
+                        </div>
                         {e.note && <div className="note">{e.note}</div>}
                       </div>
                     </div>
@@ -317,8 +343,16 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
               </div>
             </div>
             <div className="form-group">
-              <label htmlFor="spendNote">{t('Note')}</label>
-              <input id="spendNote" value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('Optional')} />
+              <label htmlFor="spendNote">
+                {t('Note')}
+                {noteRequired ? ' *' : ''}
+              </label>
+              <input
+                id="spendNote"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder={noteRequired ? '' : t('Optional')}
+              />
             </div>
 
             {mode === 'auto' && (
@@ -353,7 +387,10 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
                     onChange={(e) => setRecurring(e.target.checked)}
                     style={{ width: 'auto' }}
                   />
-                  <span>{t('Repeat this expense')}</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <RecurringIcon size={14} />
+                    {t('Repeat this expense')}
+                  </span>
                 </label>
 
                 {recurring && (

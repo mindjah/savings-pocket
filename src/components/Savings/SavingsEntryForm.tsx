@@ -9,6 +9,7 @@ import { ExpandableTextarea } from '../common/ExpandableTextarea'
 import { DeleteConfirmModal } from './DeleteConfirmModal'
 import { useToast } from '../../hooks/useToast'
 import { useTranslation } from '../../hooks/useTranslation'
+import { AddNewPocketIcon } from '../common/AddNewPocketIcon'
 
 interface Props {
   entry: SavingsEntry | null
@@ -93,7 +94,19 @@ export function SavingsEntryForm({ entry, defaultCurrency, availableCurrencies, 
   }
 
   return (
-    <Modal title={t(isEdit ? 'Edit savings pocket' : 'Add savings pocket')} onClose={onClose}>
+    <Modal
+      title={
+        isEdit ? (
+          t('Edit savings pocket')
+        ) : (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <AddNewPocketIcon size={20} />
+            {t('Add savings pocket')}
+          </span>
+        )
+      }
+      onClose={onClose}
+    >
       <div className="form-row">
         <div className="form-group">
           <label htmlFor="currency">{t('Currency')}</label>

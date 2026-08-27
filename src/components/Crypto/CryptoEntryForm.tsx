@@ -7,6 +7,7 @@ import { Modal } from '../common/Modal'
 import { ExpandableTextarea } from '../common/ExpandableTextarea'
 import { useToast } from '../../hooks/useToast'
 import { useTranslation } from '../../hooks/useTranslation'
+import { AddCryptoIcon } from '../common/AddCryptoIcon'
 
 interface Props {
   entry: CryptoEntry | null
@@ -101,7 +102,19 @@ export function CryptoEntryForm({ entry, onClose }: Props) {
   }
 
   return (
-    <Modal title={t(isEdit ? 'Edit crypto holding' : 'Add crypto holding')} onClose={onClose}>
+    <Modal
+      title={
+        isEdit ? (
+          t('Edit crypto holding')
+        ) : (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <AddCryptoIcon size={20} />
+            {t('Add crypto holding')}
+          </span>
+        )
+      }
+      onClose={onClose}
+    >
       <div className="form-group">
         <label htmlFor="coin">{t('Coin')}</label>
         <select id="coin" value={preset} disabled={isEdit} onChange={(e) => setPreset(e.target.value)}>

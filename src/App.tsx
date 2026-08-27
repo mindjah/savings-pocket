@@ -7,6 +7,7 @@ import { SettingsView } from './components/Settings/SettingsView'
 import { ToastProvider } from './hooks/useToast'
 import { HEADER_ACTIONS_ID } from './components/common/HeaderPortal'
 import { materializeRecurringExpenses } from './lib/recurring'
+import { materializePendingAutoDebits } from './lib/pendingDebits'
 import { LockScreen } from './components/Lock/LockScreen'
 import { useMetaSetting } from './hooks/useMetaSetting'
 import { useTranslation } from './hooks/useTranslation'
@@ -40,6 +41,7 @@ export default function App() {
 
   useEffect(() => {
     materializeRecurringExpenses()
+    materializePendingAutoDebits()
   }, [])
 
   // Re-lock only once the app has been backgrounded for a while — a brief

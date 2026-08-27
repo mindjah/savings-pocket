@@ -1,11 +1,12 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import type { Currency } from '../../db/types'
-import { formatDate, formatMoney } from '../../lib/format'
+import { formatDate, formatMoney, todayIso } from '../../lib/format'
 import { Modal } from '../common/Modal'
 import { useToast } from '../../hooks/useToast'
 import { useTranslation } from '../../hooks/useTranslation'
 import { DeleteIcon } from '../common/DeleteIcon'
+import { EntryBadges } from '../common/EntryBadges'
 
 interface Props {
   categoryId: number
@@ -50,7 +51,10 @@ export function CategoryExpensesModal({ categoryId, currency, categoryName, mont
             <div className="day-entry-row" key={e.id}>
               <div className="info">
                 <div className="text">
-                  <div className="cat">{formatDate(e.date, lang)}</div>
+                  <div className="cat entry-badges">
+                    <span>{formatDate(e.date, lang)}</span>
+                    <EntryBadges recurring={e.recurringExpenseId != null} upcoming={e.date > todayIso()} />
+                  </div>
                   {e.note && (
                     <div className="note" style={{ whiteSpace: 'normal', overflow: 'visible', textOverflow: 'unset' }}>
                       {e.note}

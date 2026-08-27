@@ -485,6 +485,9 @@ h1, h2, h3, p {
   border: none;
   font-size: 1.6rem;
   box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 @media (min-width: 860px) {
@@ -662,6 +665,7 @@ h1, h2, h3, p {
 }
 
 .calendar-cell {
+  position: relative;
   aspect-ratio: 1;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
@@ -674,6 +678,20 @@ h1, h2, h3, p {
   font-size: 0.75rem;
   padding: 2px;
   min-width: 0;
+}
+
+.entry-badge-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.calendar-cell-badges {
+  position: absolute;
+  top: 3px;
+  right: 3px;
 }
 
 .calendar-cell.pad {
@@ -899,6 +917,12 @@ h1, h2, h3, p {
 .day-entry-row .text .cat {
   font-weight: 600;
   font-size: 0.88rem;
+}
+
+.entry-badges {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .day-entry-row .text .note {

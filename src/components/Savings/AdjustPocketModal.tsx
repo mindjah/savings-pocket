@@ -6,6 +6,7 @@ import { Modal } from '../common/Modal'
 import { ExpandableTextarea } from '../common/ExpandableTextarea'
 import { useToast } from '../../hooks/useToast'
 import { useTranslation } from '../../hooks/useTranslation'
+import { AddToPocketIcon } from '../common/AddToPocketIcon'
 
 interface Props {
   entry: SavingsEntry
@@ -46,7 +47,15 @@ export function AdjustPocketModal({ entry, onClose }: Props) {
   }
 
   return (
-    <Modal title={t('Adjust balance')} onClose={onClose}>
+    <Modal
+      title={
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <AddToPocketIcon size={20} />
+          {t('Adjust balance')}
+        </span>
+      }
+      onClose={onClose}
+    >
       <div className="segmented">
         <button type="button" className={direction === 'add' ? 'active' : ''} onClick={() => setDirection('add')}>
           {t('+ Add')}

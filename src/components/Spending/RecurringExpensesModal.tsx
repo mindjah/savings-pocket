@@ -171,6 +171,7 @@ export function RecurringExpensesModal({ onClose }: Props) {
                       <div>
                         {cat?.name ?? t('Unknown')} — {formatMoney(r.amount, r.currency)}
                       </div>
+                      {r.note && <div style={{ fontSize: '0.82rem' }}>{r.note}</div>}
                       <div className="muted">
                         {recurrenceLabel(r.recurrenceType, r.intervalDays, lang)} · {t('Next:')}{' '}
                         {formatDate(r.nextDate, lang)}

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { useTranslation } from '../../hooks/useTranslation'
 
 interface ModalProps {
-  title: string
+  title: ReactNode
   onClose: () => void
   children: ReactNode
 }
