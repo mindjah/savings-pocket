@@ -120,6 +120,8 @@ export const RU: Record<string, string> = {
   Save: 'Сохранить',
   Unknown: 'Неизвестно',
   Optional: 'Необязательно',
+  Mandatory: 'Обязательно',
+  'Mandatory for recurring': 'Обязательно для регулярных расходов',
 
   // Crypto view / form
   Rates: 'Курсы',

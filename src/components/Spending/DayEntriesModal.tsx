@@ -215,6 +215,7 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
   // won't have fresh context on later, so the note is what makes "what was
   // this again?" answerable when it actually shows up in the calendar.
   const noteRequired = editingId == null && (recurring || date > todayIso())
+  const noteMissing = noteRequired && note.trim().length === 0
   const valid =
     categoryId !== '' &&
     parseAmount(amount) > 0 &&
@@ -352,7 +353,13 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder={noteRequired ? '' : t('Optional')}
+                style={noteMissing ? { borderColor: 'var(--danger-strong)' } : undefined}
               />
+              {noteMissing && (
+                <span style={{ fontSize: '0.78rem', color: 'var(--danger-strong)' }}>
+                  {recurring ? t('Mandatory for recurring') : t('Mandatory')}
+                </span>
+              )}
             </div>
 
             {mode === 'auto' && (
