@@ -302,6 +302,7 @@ export function SpendingView() {
           categoryId={categoryModalFor.categoryId}
           currency={categoryModalFor.currency}
           categoryName={categoryMap.get(categoryModalFor.categoryId)?.name ?? t('Unknown')}
+          categoryColor={categoryMap.get(categoryModalFor.categoryId)?.color ?? '#888'}
           monthPrefix={monthPrefix}
           onClose={() => setCategoryModalFor(null)}
         />

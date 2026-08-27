@@ -12,11 +12,12 @@ interface Props {
   categoryId: number
   currency: Currency
   categoryName: string
+  categoryColor: string
   monthPrefix: string
   onClose: () => void
 }
 
-export function CategoryExpensesModal({ categoryId, currency, categoryName, monthPrefix, onClose }: Props) {
+export function CategoryExpensesModal({ categoryId, currency, categoryName, categoryColor, monthPrefix, onClose }: Props) {
   const { t, lang } = useTranslation()
   const entries = useLiveQuery(
     async () =>
@@ -37,7 +38,15 @@ export function CategoryExpensesModal({ categoryId, currency, categoryName, mont
   const total = (entries ?? []).reduce((sum, e) => sum + e.amount, 0)
 
   return (
-    <Modal title={categoryName} onClose={onClose}>
+    <Modal
+      title={
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <span className="swatch" style={{ background: categoryColor }} />
+          {categoryName}
+        </span>
+      }
+      onClose={onClose}
+    >
       <div className="section-title">
         <span className="muted">{t('Total this month')}</span>
         <span className="entry-amount">{formatMoney(total, currency)}</span>

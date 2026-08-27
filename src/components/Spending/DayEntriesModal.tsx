@@ -226,7 +226,7 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
   return (
     <Modal
       title={
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'flex-end', gap: 8 }}>
           {formatDate(date, lang)}
           <AddExpenseIcon size={27} />
         </span>

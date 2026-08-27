@@ -107,7 +107,7 @@ export function CryptoEntryForm({ entry, onClose }: Props) {
         isEdit ? (
           t('Edit crypto holding')
         ) : (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'flex-end', gap: 8 }}>
             {t('Add crypto holding')}
             <AddCryptoIcon size={30} />
           </span>
