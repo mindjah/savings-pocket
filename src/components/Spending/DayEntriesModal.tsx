@@ -227,8 +227,8 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
     <Modal
       title={
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-          <AddExpenseIcon size={18} />
           {formatDate(date, lang)}
+          <AddExpenseIcon size={27} />
         </span>
       }
       onClose={onClose}
@@ -388,8 +388,8 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
                     style={{ width: 'auto' }}
                   />
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                    <RecurringIcon size={14} />
                     {t('Repeat this expense')}
+                    <RecurringIcon size={21} />
                   </span>
                 </label>
 

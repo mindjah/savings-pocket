@@ -50,8 +50,8 @@ export function AdjustPocketModal({ entry, onClose }: Props) {
     <Modal
       title={
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-          <AddToPocketIcon size={20} />
           {t('Adjust balance')}
+          <AddToPocketIcon size={30} />
         </span>
       }
       onClose={onClose}

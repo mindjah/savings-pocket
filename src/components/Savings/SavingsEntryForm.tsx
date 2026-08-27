@@ -100,8 +100,8 @@ export function SavingsEntryForm({ entry, defaultCurrency, availableCurrencies, 
           t('Edit savings pocket')
         ) : (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <AddNewPocketIcon size={20} />
             {t('Add savings pocket')}
+            <AddNewPocketIcon size={30} />
           </span>
         )
       }

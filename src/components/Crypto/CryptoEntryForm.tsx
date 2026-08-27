@@ -108,8 +108,8 @@ export function CryptoEntryForm({ entry, onClose }: Props) {
           t('Edit crypto holding')
         ) : (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <AddCryptoIcon size={20} />
             {t('Add crypto holding')}
+            <AddCryptoIcon size={30} />
           </span>
         )
       }
