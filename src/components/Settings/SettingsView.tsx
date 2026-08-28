@@ -84,6 +84,7 @@ export function SettingsView() {
   }
 
   const [modeInfoOpen, setModeInfoOpen] = useState(false)
+  const [driveInfoOpen, setDriveInfoOpen] = useState(false)
   const pockets = useLiveQuery(() => db.savingsEntries.toArray(), []) ?? []
 
   const [faceIdEnabled] = useMetaSetting<boolean>('faceIdEnabled', false)
@@ -366,6 +367,7 @@ export function SettingsView() {
       </div>
 
       <div className="card settings-list">
+        <div style={{ fontWeight: 700 }}>{t('Manual')}</div>
         <p className="muted">
           {t(
             'All data is stored locally in your browser. Export a backup regularly, especially before clearing browser data or switching devices.',
@@ -396,16 +398,29 @@ export function SettingsView() {
       </div>
 
       <div className="card settings-list">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontWeight: 700 }}>Google Drive</div>
+          {isGoogleDriveConfigured() && (
+            <button
+              className="btn btn-ghost btn-icon"
+              onClick={() => setDriveInfoOpen((o) => !o)}
+              aria-label={t("If sign-in doesn't work, ask the app's owner to add your Google account as a test user.")}
+              type="button"
+            >
+              ⓘ
+            </button>
+          )}
+        </div>
+        {driveInfoOpen && (
+          <p className="muted" style={{ fontSize: '0.8rem' }}>
+            {t("If sign-in doesn't work, ask the app's owner to add your Google account as a test user.")}
+          </p>
+        )}
         <p className="muted">
           {isGoogleDriveConfigured()
             ? t('Sign in with Google to back up or restore from your own Google Drive — no file to save yourself.')
             : t('Google Drive backup is not set up for this deployment.')}
         </p>
-        {isGoogleDriveConfigured() && (
-          <p className="muted" style={{ fontSize: '0.8rem' }}>
-            {t("If sign-in doesn't work, ask the app's owner to add your Google account as a test user.")}
-          </p>
-        )}
         <button
           className="btn btn-primary btn-block"
           onClick={handleDriveBackup}
@@ -423,10 +438,6 @@ export function SettingsView() {
           {t('Restore from Google Drive')}
         </button>
       </div>
-
-      <p className="muted" style={{ textAlign: 'center' }}>
-        {t('Savings Pocket — your data never leaves this device.')}
-      </p>
 
       {showPasscodeSetup && (
         <PasscodeSetupModal
