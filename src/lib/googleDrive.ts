@@ -1,4 +1,4 @@
-import { applyBackupPayload, buildBackupPayload, parseBackupFile } from './backup'
+import { applyBackupPayload, buildBackupPayload, parseBackupFile, recordBackup } from './backup'
 
 // Set at build time via the VITE_GOOGLE_CLIENT_ID env var (see .env.example) —
 // never hardcode a real client id in source, since this file ships to every
@@ -113,6 +113,7 @@ export async function backupToGoogleDrive(): Promise<void> {
     })
     if (!res.ok) throw new Error('Failed to create the Google Drive backup.')
   }
+  await recordBackup()
 }
 
 export async function restoreFromGoogleDrive(): Promise<{ imported: Record<string, number> }> {

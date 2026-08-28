@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import { CURRENCIES, DEFAULT_CRYPTO_CURRENCIES, DEFAULT_SAVINGS_CURRENCIES, DEFAULT_SPENDING_CURRENCIES } from '../../lib/constants'
-import { formatMoney } from '../../lib/format'
+import { formatDate, formatMoney } from '../../lib/format'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { exportBackup, importBackup } from '../../lib/backup'
 import { backupToGoogleDrive, isGoogleDriveConfigured, restoreFromGoogleDrive } from '../../lib/googleDrive'
@@ -15,9 +15,14 @@ import { clearPasscode } from '../../lib/passcode'
 import { useTranslation } from '../../hooks/useTranslation'
 import { tImportComplete, tNoPocketYet } from '../../i18n/translations'
 import { PasscodeSetupModal } from './PasscodeSetupModal'
+import { HeaderPortal } from '../common/HeaderPortal'
+import { GoogleDriveIcon } from '../common/GoogleDriveIcon'
+import { CloudSyncIcon } from '../common/CloudSyncIcon'
+
+const BACKUP_FRESH_DAYS = 7
 
 export function SettingsView() {
-  const { t } = useTranslation()
+  const { t, lang } = useTranslation()
   const [language, setLanguage] = useMetaSetting<Language>('language', 'en')
 
   const [savingsCurrencies, setSavingsCurrencies] = useMetaSetting<Currency[]>(
@@ -117,6 +122,20 @@ export function SettingsView() {
   const [busy, setBusy] = useState(false)
   const toast = useToast()
 
+  const lastBackupRec = useLiveQuery(() => db.meta.get('lastBackupAt'), [])
+  const lastBackupAt = lastBackupRec?.value as string | undefined
+  const daysSinceBackup = lastBackupAt ? (Date.now() - new Date(lastBackupAt).getTime()) / 86400000 : null
+  const backupStatusColor =
+    daysSinceBackup == null ? 'var(--danger-strong)' : daysSinceBackup < BACKUP_FRESH_DAYS ? 'var(--accent)' : 'var(--warning)'
+  const backupStatusText =
+    lastBackupAt == null ? t('Never backed up') : `${t('Last backup')} ${formatDate(lastBackupAt, lang)}`
+  const backupStatusBadge = (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: backupStatusColor, fontSize: '0.8rem', fontWeight: 600 }}>
+      {backupStatusText}
+      <CloudSyncIcon size={16} />
+    </span>
+  )
+
   async function handleExport() {
     setBusy(true)
     try {
@@ -173,6 +192,9 @@ export function SettingsView() {
 
   return (
     <div className="view">
+      <HeaderPortal>{backupStatusBadge}</HeaderPortal>
+      <div className="desktop-header-row">{backupStatusBadge}</div>
+
       <div className="section-title">
         <h2>{t('Language')}</h2>
       </div>
@@ -399,7 +421,10 @@ export function SettingsView() {
 
       <div className="card settings-list">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontWeight: 700 }}>Google Drive</div>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
+            <GoogleDriveIcon size={20} />
+            Google Drive
+          </div>
           {isGoogleDriveConfigured() && (
             <button
               className="btn btn-ghost btn-icon"

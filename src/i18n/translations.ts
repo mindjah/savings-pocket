@@ -268,6 +268,8 @@ export const RU: Record<string, string> = {
   'Importing will replace ALL current data (savings, crypto, spending, categories) with the contents of this backup file. Continue?':
     'Импорт заменит ВСЕ текущие данные (сбережения, крипто, расходы, категории) содержимым этого файла резервной копии. Продолжить?',
   'Backup exported': 'Резервная копия экспортирована',
+  'Never backed up': 'Резервной копии ещё не было',
+  'Last backup': 'Последняя копия:',
   'Failed to import backup': 'Не удалось импортировать резервную копию',
   'Sign in with Google to back up or restore from your own Google Drive — no file to save yourself.':
     'Войдите через Google, чтобы создавать резервные копии в своём Google Drive или восстанавливать их оттуда — без сохранения файла вручную.',

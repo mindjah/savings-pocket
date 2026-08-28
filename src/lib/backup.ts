@@ -42,6 +42,12 @@ export async function applyBackupPayload(parsed: BackupFile): Promise<{ imported
   return { imported }
 }
 
+// Tracked so Settings can show "last backup" status — updated by any
+// successful backup action (local export or Google Drive), never by restore.
+export async function recordBackup(): Promise<void> {
+  await db.meta.put({ key: 'lastBackupAt', value: new Date().toISOString() })
+}
+
 export async function exportBackup(): Promise<void> {
   const payload = await buildBackupPayload()
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
@@ -54,6 +60,7 @@ export async function exportBackup(): Promise<void> {
   a.click()
   a.remove()
   URL.revokeObjectURL(url)
+  await recordBackup()
 }
 
 export async function importBackup(file: File): Promise<{ imported: Record<string, number> }> {
