@@ -4,7 +4,7 @@ import { db } from '../../db/db'
 import { CURRENCIES, DEFAULT_CRYPTO_CURRENCIES, DEFAULT_SAVINGS_CURRENCIES, DEFAULT_SPENDING_CURRENCIES } from '../../lib/constants'
 import { formatDate, formatMoney } from '../../lib/format'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
-import { exportBackup, importBackup } from '../../lib/backup'
+import { exportBackup, importBackup, type LastBackup } from '../../lib/backup'
 import { backupToGoogleDrive, isGoogleDriveConfigured, restoreFromGoogleDrive } from '../../lib/googleDrive'
 import { useToast } from '../../hooks/useToast'
 import type { Currency, Language, SavingsTrackingMode } from '../../db/types'
@@ -18,6 +18,7 @@ import { PasscodeSetupModal } from './PasscodeSetupModal'
 import { HeaderPortal } from '../common/HeaderPortal'
 import { GoogleDriveIcon } from '../common/GoogleDriveIcon'
 import { CloudSyncIcon } from '../common/CloudSyncIcon'
+import { ManualSyncIcon } from '../common/ManualSyncIcon'
 
 const BACKUP_FRESH_DAYS = 7
 
@@ -122,17 +123,17 @@ export function SettingsView() {
   const [busy, setBusy] = useState(false)
   const toast = useToast()
 
-  const lastBackupRec = useLiveQuery(() => db.meta.get('lastBackupAt'), [])
-  const lastBackupAt = lastBackupRec?.value as string | undefined
-  const daysSinceBackup = lastBackupAt ? (Date.now() - new Date(lastBackupAt).getTime()) / 86400000 : null
+  const lastBackupRec = useLiveQuery(() => db.meta.get('lastBackup'), [])
+  const lastBackup = lastBackupRec?.value as LastBackup | undefined
+  const daysSinceBackup = lastBackup ? (Date.now() - new Date(lastBackup.at).getTime()) / 86400000 : null
   const backupStatusColor =
     daysSinceBackup == null ? 'var(--danger-strong)' : daysSinceBackup < BACKUP_FRESH_DAYS ? 'var(--accent)' : 'var(--warning)'
   const backupStatusText =
-    lastBackupAt == null ? t('Never backed up') : `${t('Last backup')} ${formatDate(lastBackupAt, lang)}`
+    lastBackup == null ? t('Never backed up') : `${t('Last backup')} ${formatDate(lastBackup.at, lang)}`
   const backupStatusBadge = (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: backupStatusColor, fontSize: '0.8rem', fontWeight: 600 }}>
       {backupStatusText}
-      <CloudSyncIcon size={16} />
+      {lastBackup?.method === 'manual' ? <ManualSyncIcon size={24} /> : <CloudSyncIcon size={24} />}
     </span>
   )
 

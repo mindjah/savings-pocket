@@ -113,7 +113,7 @@ export async function backupToGoogleDrive(): Promise<void> {
     })
     if (!res.ok) throw new Error('Failed to create the Google Drive backup.')
   }
-  await recordBackup()
+  await recordBackup('google')
 }
 
 export async function restoreFromGoogleDrive(): Promise<{ imported: Record<string, number> }> {

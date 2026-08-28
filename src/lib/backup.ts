@@ -1,5 +1,12 @@
 import { BACKUP_TABLES, db } from '../db/db'
 
+export type BackupMethod = 'manual' | 'google'
+
+export interface LastBackup {
+  at: string
+  method: BackupMethod
+}
+
 export interface BackupFile {
   app: 'savings-pocket'
   version: 1
@@ -44,8 +51,9 @@ export async function applyBackupPayload(parsed: BackupFile): Promise<{ imported
 
 // Tracked so Settings can show "last backup" status — updated by any
 // successful backup action (local export or Google Drive), never by restore.
-export async function recordBackup(): Promise<void> {
-  await db.meta.put({ key: 'lastBackupAt', value: new Date().toISOString() })
+export async function recordBackup(method: BackupMethod): Promise<void> {
+  const value: LastBackup = { at: new Date().toISOString(), method }
+  await db.meta.put({ key: 'lastBackup', value })
 }
 
 export async function exportBackup(): Promise<void> {
@@ -60,7 +68,7 @@ export async function exportBackup(): Promise<void> {
   a.click()
   a.remove()
   URL.revokeObjectURL(url)
-  await recordBackup()
+  await recordBackup('manual')
 }
 
 export async function importBackup(file: File): Promise<{ imported: Record<string, number> }> {
