@@ -36,6 +36,7 @@ export interface CryptoEntry {
   // the live price against this baseline, not against the previous rate refresh.
   baselinePriceUsd?: number
   baselineSetAt?: string
+  pinned?: boolean
 }
 
 export interface CryptoHistory {

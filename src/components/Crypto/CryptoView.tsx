@@ -12,6 +12,7 @@ import { HistoryModal } from '../common/HistoryModal'
 import { BitcoinIcon } from '../common/BitcoinIcon'
 import { NoteViewModal } from '../common/NoteViewModal'
 import { useTranslation } from '../../hooks/useTranslation'
+import { PinIcon } from '../common/PinIcon'
 
 export function CryptoView() {
   const { t } = useTranslation()
@@ -38,6 +39,16 @@ export function CryptoView() {
         db.cryptoEntries.update(entry.id, { baselinePriceUsd: price.usd, baselineSetAt: new Date().toISOString() })
       }
     }
+  }, [entries, prices])
+
+  // Pinned holdings float to the top; within each group, biggest $ value first.
+  const valueUsd = useMemo(() => {
+    const map = new Map<number, number>()
+    for (const e of entries ?? []) {
+      if (e.id == null) continue
+      map.set(e.id, e.amount * priceIn(prices[e.coinId], 'USD'))
+    }
+    return map
   }, [entries, prices])
 
   const visibleCurrencies = CURRENCIES.filter((c) => cryptoCurrencies.includes(c.code))
@@ -85,7 +96,10 @@ export function CryptoView() {
         <div className="entry-list">
           {entries
             .slice()
-            .sort((a, b) => a.symbol.localeCompare(b.symbol))
+            .sort((a, b) => {
+              if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1
+              return (valueUsd.get(b.id ?? -1) ?? 0) - (valueUsd.get(a.id ?? -1) ?? 0)
+            })
             .map((entry) => {
               const price = prices[entry.coinId]
               const trend =
@@ -123,26 +137,34 @@ export function CryptoView() {
                           .join(' · ')}`
                       : t('Price unavailable')}
                   </div>
-                  {entry.note && (
-                    <span
-                      className="note-indicator"
-                      title={t('Has a note')}
-                      aria-label={t('Has a note')}
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setViewingNote(entry.note)
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.stopPropagation()
-                          setViewingNote(entry.note)
-                        }
-                      }}
-                    >
-                      📝
-                    </span>
+                  {(entry.note || entry.pinned) && (
+                    <div style={{ position: 'absolute', bottom: 10, right: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {entry.note && (
+                        <span
+                          className="note-indicator note-indicator-text"
+                          style={{ position: 'static', bottom: 'auto', right: 'auto' }}
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setViewingNote(entry.note)
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.stopPropagation()
+                              setViewingNote(entry.note)
+                            }
+                          }}
+                        >
+                          {t('See note')}
+                        </span>
+                      )}
+                      {entry.pinned && (
+                        <span style={{ color: 'var(--accent)', display: 'flex' }} aria-label={t('Pinned')} title={t('Pinned')}>
+                          <PinIcon size={14} />
+                        </span>
+                      )}
+                    </div>
                   )}
                   <div
                     role="link"

@@ -132,6 +132,8 @@ export const RU: Record<string, string> = {
   'Worth up since last edit': 'Стоимость выросла с последнего изменения',
   'Worth down since last edit': 'Стоимость снизилась с последнего изменения',
   'Has a note': 'Есть заметка',
+  Pinned: 'Закреплено',
+  'Pin to top': 'Закрепить сверху',
   '↻ Refresh rates': '↻ Обновить курсы',
   'Add crypto holding': 'Добавить криптоактив',
   'Edit crypto holding': 'Изменить криптоактив',

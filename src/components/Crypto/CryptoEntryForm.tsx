@@ -27,6 +27,7 @@ export function CryptoEntryForm({ entry, onClose }: Props) {
   const [customSymbol, setCustomSymbol] = useState(!initialIsPopular ? entry?.symbol ?? '' : '')
   const [customName, setCustomName] = useState(!initialIsPopular ? entry?.name ?? '' : '')
   const [amount, setAmount] = useState(entry ? String(entry.amount) : '')
+  const [pinned, setPinned] = useState(entry?.pinned ?? false)
   const [note, setNote] = useState(entry?.note ?? '')
   const [reason, setReason] = useState('')
   const toast = useToast()
@@ -72,6 +73,7 @@ export function CryptoEntryForm({ entry, onClose }: Props) {
         name: resolved.name,
         amount: parsedAmount,
         note: note.trim(),
+        pinned,
         updatedAt: now,
       })
       toast(t('Crypto holding updated'))
@@ -82,6 +84,7 @@ export function CryptoEntryForm({ entry, onClose }: Props) {
         name: resolved.name,
         amount: parsedAmount,
         note: note.trim(),
+        pinned,
         createdAt: now,
         updatedAt: now,
       })
@@ -176,6 +179,16 @@ export function CryptoEntryForm({ entry, onClose }: Props) {
           onChange={(e) => setAmount(e.target.value)}
           placeholder="0.00"
         />
+      </div>
+
+      <div className="settings-row">
+        <div>{t('Pin to top')}</div>
+        <label className="switch">
+          <input type="checkbox" checked={pinned} onChange={(e) => setPinned(e.target.checked)} />
+          <span className="switch-track">
+            <span className="switch-thumb" />
+          </span>
+        </label>
       </div>
 
       <ExpandableTextarea
