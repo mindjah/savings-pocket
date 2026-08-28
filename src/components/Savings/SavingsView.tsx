@@ -18,7 +18,7 @@ import { HeaderPortal } from '../common/HeaderPortal'
 import { NoteViewModal } from '../common/NoteViewModal'
 import { useTranslation } from '../../hooks/useTranslation'
 
-type SubTab = 'mine' | 'lent'
+type SubTab = 'mine' | 'credits' | 'lent'
 
 export function SavingsView() {
   const { t } = useTranslation()
@@ -34,7 +34,9 @@ export function SavingsView() {
     return fxRates ? convertFiat(entry.amount, entry.currency, 'USD', fxRates) : entry.amount
   }
 
-  const entries = useLiveQuery(() => db.savingsEntries.toArray(), [])
+  const allEntries = useLiveQuery(() => db.savingsEntries.toArray(), [])
+  const entries = allEntries?.filter((e) => e.kind !== 'credit')
+  const credits = allEntries?.filter((e) => e.kind === 'credit')
   const loans = useLiveQuery(() => db.loanEntries.toArray(), [])
 
   const [editingSavings, setEditingSavings] = useState<SavingsEntry | null | 'new'>(null)
@@ -52,17 +54,118 @@ export function SavingsView() {
     savingsTotals[e.currency] += e.amount
   })
 
+  const creditTotals: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0, JPY: 0, CNY: 0 }
+  credits?.forEach((e) => {
+    creditTotals[e.currency] += e.amount
+  })
+
   const loanTotals: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0, JPY: 0, CNY: 0 }
   loans?.forEach((l) => {
     loanTotals[l.currency] += l.amount
   })
 
-  const totals = subTab === 'mine' ? savingsTotals : loanTotals
+  const totals = subTab === 'mine' ? savingsTotals : subTab === 'credits' ? creditTotals : loanTotals
   const enabledCurrencies = CURRENCIES.filter((c) => savingsCurrencies.includes(c.code))
-  // Lent out only shows currencies that actually have a loan — no point showing a
+  // Credits/Lent out only show currencies that actually have an entry — no point showing a
   // permanent row of empty chips for currencies you've simply enabled elsewhere.
   const visibleCurrencies =
-    subTab === 'mine' ? enabledCurrencies : enabledCurrencies.filter((c) => loanTotals[c.code] > 0)
+    subTab === 'mine'
+      ? enabledCurrencies
+      : subTab === 'credits'
+        ? enabledCurrencies.filter((c) => creditTotals[c.code] !== 0)
+        : enabledCurrencies.filter((c) => loanTotals[c.code] > 0)
+
+  function renderPocketCard(entry: SavingsEntry) {
+    return (
+      <div
+        className="entry-card"
+        key={entry.id}
+        role="button"
+        tabIndex={0}
+        onClick={() => setEditingSavings(entry)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') setEditingSavings(entry)
+        }}
+      >
+        <div className="entry-top">
+          <span className="entry-top-left">
+            <span className="entry-amount">{formatMoney(entry.amount, entry.currency)}</span>
+            {trackingMode === 'auto' && entry.id != null && defaultPocketIds.has(entry.id) && (
+              <span className="badge badge-default">{t('Default')}</span>
+            )}
+          </span>
+          <button
+            className="pocket-adjust-btn"
+            aria-label="Adjust balance"
+            onClick={(e) => {
+              e.stopPropagation()
+              setAdjustingPocket(entry)
+            }}
+          >
+            +
+          </button>
+        </div>
+        <div className="entry-sub-row">
+          <div className="entry-sub">📍 {entry.location}</div>
+          <span className={`badge badge-${entry.type}`}>{t(entry.type === 'cash' ? 'Cash' : 'Card')}</span>
+          {entry.kind === 'pocket' && entry.purpose && (
+            <span className={`badge badge-${entry.purpose}`}>
+              {t(entry.purpose === 'savings' ? 'Savings' : 'Spending')}
+            </span>
+          )}
+        </div>
+        <div className="entry-footer">
+          <div
+            role="link"
+            tabIndex={0}
+            className="pocket-link-text"
+            onClick={(e) => {
+              e.stopPropagation()
+              if (entry.id != null) setPocketHistoryFor({ id: entry.id, currency: entry.currency })
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && entry.id != null) {
+                e.stopPropagation()
+                setPocketHistoryFor({ id: entry.id, currency: entry.currency })
+              }
+            }}
+          >
+            {t('View history')}
+          </div>
+          {entry.note && (
+            <span
+              className="note-indicator-text"
+              role="button"
+              tabIndex={0}
+              onClick={(e) => {
+                e.stopPropagation()
+                setViewingNote(entry.note)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.stopPropagation()
+                  setViewingNote(entry.note)
+                }
+              }}
+            >
+              {t('See note')}
+            </span>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  function sortPockets(list: SavingsEntry[]) {
+    return list.slice().sort((a, b) => {
+      if (trackingMode === 'auto') {
+        const aDefault = a.id != null && defaultPocketIds.has(a.id)
+        const bDefault = b.id != null && defaultPocketIds.has(b.id)
+        if (aDefault !== bDefault) return aDefault ? -1 : 1
+      }
+      return comparableValue(b) - comparableValue(a)
+    })
+  }
 
   return (
     <div className="view">
@@ -87,6 +190,9 @@ export function SavingsView() {
         <button type="button" className={subTab === 'lent' ? 'active' : ''} onClick={() => setSubTab('lent')}>
           {t('Lent out')}
         </button>
+        <button type="button" className={subTab === 'credits' ? 'active' : ''} onClick={() => setSubTab('credits')}>
+          {t('Credits')}
+        </button>
       </div>
 
       <div className="totals-row">
@@ -101,7 +207,7 @@ export function SavingsView() {
       {subTab === 'mine' ? (
         <>
           <div className="section-title" style={{ marginTop: 8 }}>
-            <h2>{t('Savings pockets')}</h2>
+            <h2>{t('My Pockets')}</h2>
           </div>
 
           {!entries || entries.length === 0 ? (
@@ -110,91 +216,22 @@ export function SavingsView() {
               {t('No savings tracked yet. Tap + to add your first entry.')}
             </div>
           ) : (
-            <div className="entry-list">
-              {entries
-                .slice()
-                .sort((a, b) => {
-                  if (trackingMode === 'auto') {
-                    const aDefault = a.id != null && defaultPocketIds.has(a.id)
-                    const bDefault = b.id != null && defaultPocketIds.has(b.id)
-                    if (aDefault !== bDefault) return aDefault ? -1 : 1
-                  }
-                  return comparableValue(b) - comparableValue(a)
-                })
-                .map((entry) => (
-                  <div
-                    className="entry-card"
-                    key={entry.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setEditingSavings(entry)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') setEditingSavings(entry)
-                    }}
-                  >
-                    <div className="entry-top">
-                      <span className="entry-top-left">
-                        <span className="entry-amount">{formatMoney(entry.amount, entry.currency)}</span>
-                        {trackingMode === 'auto' && entry.id != null && defaultPocketIds.has(entry.id) && (
-                          <span className="badge badge-default">{t('Default')}</span>
-                        )}
-                      </span>
-                      <button
-                        className="pocket-adjust-btn"
-                        aria-label="Adjust balance"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setAdjustingPocket(entry)
-                        }}
-                      >
-                        +
-                      </button>
-                    </div>
-                    <div className="entry-sub-row">
-                      <div className="entry-sub">📍 {entry.location}</div>
-                      <span className={`badge badge-${entry.type}`}>{t(entry.type === 'cash' ? 'Cash' : 'Card')}</span>
-                    </div>
-                    <div className="entry-footer">
-                      <div
-                        role="link"
-                        tabIndex={0}
-                        className="pocket-link-text"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          if (entry.id != null) setPocketHistoryFor({ id: entry.id, currency: entry.currency })
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && entry.id != null) {
-                            e.stopPropagation()
-                            setPocketHistoryFor({ id: entry.id, currency: entry.currency })
-                          }
-                        }}
-                      >
-                        {t('View history')}
-                      </div>
-                      {entry.note && (
-                        <span
-                          className="note-indicator-text"
-                          role="button"
-                          tabIndex={0}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setViewingNote(entry.note)
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.stopPropagation()
-                              setViewingNote(entry.note)
-                            }
-                          }}
-                        >
-                          {t('See note')}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
+            <div className="entry-list">{sortPockets(entries).map(renderPocketCard)}</div>
+          )}
+        </>
+      ) : subTab === 'credits' ? (
+        <>
+          <div className="section-title" style={{ marginTop: 8 }}>
+            <h2>{t('Credits')}</h2>
+          </div>
+
+          {!credits || credits.length === 0 ? (
+            <div className="empty-state">
+              <span className="icon">💳</span>
+              {t('No credits tracked yet. Tap + to add money you owe.')}
             </div>
+          ) : (
+            <div className="entry-list">{sortPockets(credits).map(renderPocketCard)}</div>
           )}
         </>
       ) : (
@@ -267,8 +304,8 @@ export function SavingsView() {
 
       <button
         className="fab"
-        aria-label={t(subTab === 'mine' ? 'Add savings pocket' : 'Add loan')}
-        onClick={() => (subTab === 'mine' ? setEditingSavings('new') : setEditingLoan('new'))}
+        aria-label={t(subTab === 'mine' ? 'Add savings pocket' : subTab === 'credits' ? 'Add credit' : 'Add loan')}
+        onClick={() => (subTab === 'lent' ? setEditingLoan('new') : setEditingSavings('new'))}
       >
         +
       </button>
@@ -276,6 +313,7 @@ export function SavingsView() {
       {editingSavings && (
         <SavingsEntryForm
           entry={editingSavings === 'new' ? null : editingSavings}
+          kind={editingSavings === 'new' ? (subTab === 'credits' ? 'credit' : 'pocket') : editingSavings.kind}
           defaultCurrency={defaultCurrency}
           availableCurrencies={savingsCurrencies}
           onClose={() => setEditingSavings(null)}

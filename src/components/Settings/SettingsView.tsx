@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import { CURRENCIES, DEFAULT_CRYPTO_CURRENCIES, DEFAULT_SAVINGS_CURRENCIES, DEFAULT_SPENDING_CURRENCIES } from '../../lib/constants'
-import { formatDate, formatDateTime, formatMoney } from '../../lib/format'
+import { formatDateOrTime, formatDateTime, formatMoney } from '../../lib/format'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { exportBackup, hasUnsyncedLocalChanges, importBackup, type LastBackup } from '../../lib/backup'
 import { backupToGoogleDrive, DriveBackupCancelled, isGoogleDriveConfigured, restoreFromGoogleDrive } from '../../lib/googleDrive'
@@ -92,7 +92,10 @@ export function SettingsView() {
   const [modeInfoOpen, setModeInfoOpen] = useState(false)
   const [driveInfoOpen, setDriveInfoOpen] = useState(false)
   const [autoBackupEnabled, setAutoBackupEnabled] = useMetaSetting<boolean>('autoBackupToGoogleDrive', false)
-  const pockets = useLiveQuery(() => db.savingsEntries.toArray(), []) ?? []
+  const [includeCreditsInNetWorth, setIncludeCreditsInNetWorth] = useMetaSetting<boolean>('includeCreditsInNetWorth', false)
+  const allPockets = useLiveQuery(() => db.savingsEntries.toArray(), []) ?? []
+  // Credits can't be picked as an auto-debit payment source.
+  const pockets = allPockets.filter((p) => p.kind !== 'credit')
 
   const [faceIdEnabled] = useMetaSetting<boolean>('faceIdEnabled', false)
   const [faceIdAvailable, setFaceIdAvailable] = useState<boolean | null>(null)
@@ -130,7 +133,7 @@ export function SettingsView() {
   const backupStatusColor =
     daysSinceBackup == null ? 'var(--danger-strong)' : daysSinceBackup < BACKUP_FRESH_DAYS ? 'var(--accent)' : 'var(--warning)'
   const backupStatusText =
-    lastBackup == null ? t('Never backed up') : `${t('Last backup')} ${formatDate(lastBackup.at, lang)}`
+    lastBackup == null ? t('Never backed up') : `${t('Last backup')} ${formatDateOrTime(lastBackup.at, lang)}`
   const backupStatusBadge = (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: backupStatusColor, fontSize: '0.8rem', fontWeight: 600 }}>
       {backupStatusText}
@@ -374,6 +377,24 @@ export function SettingsView() {
             })}
           </div>
         )}
+
+        <div className="settings-row">
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div>{t('Include credits in net worth')}</div>
+            <div className="muted">{t('Credits are excluded from Total net worth by default')}</div>
+          </div>
+          <label className="switch" style={{ flexShrink: 0 }}>
+            <input
+              type="checkbox"
+              checked={includeCreditsInNetWorth}
+              onChange={(e) => setIncludeCreditsInNetWorth(e.target.checked)}
+              aria-label={t('Include credits in net worth')}
+            />
+            <span className="switch-track">
+              <span className="switch-thumb" />
+            </span>
+          </label>
+        </div>
 
         <div className="settings-row">
           {trackingChanged && <span className="muted">{t('Unsaved changes')}</span>}

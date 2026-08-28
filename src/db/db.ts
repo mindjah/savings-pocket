@@ -75,6 +75,22 @@ class AppDB extends Dexie {
     this.version(4).stores({
       recurringExpenses: '++id, nextDate',
     })
+
+    this.version(5)
+      .stores({
+        savingsEntries: '++id, currency, type, location, kind',
+      })
+      .upgrade(async (tx) => {
+        // Predates Credits and the savings/spending purpose split — everything
+        // so far is a regular savings pocket.
+        await tx
+          .table('savingsEntries')
+          .toCollection()
+          .modify((entry) => {
+            if (!entry.kind) entry.kind = 'pocket'
+            if (!entry.purpose) entry.purpose = 'savings'
+          })
+      })
   }
 }
 

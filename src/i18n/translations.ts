@@ -26,7 +26,7 @@ export const RU: Record<string, string> = {
   'Exchange rates': 'Курсы валют',
   'My money': 'Мои деньги',
   'Lent out': 'Одолжено',
-  'Savings pockets': 'Копилки сбережений',
+  'My Pockets': 'Мои копилки',
   'No savings tracked yet. Tap + to add your first entry.':
     'Сбережения ещё не добавлены. Нажмите +, чтобы добавить первую запись.',
   Cash: 'Наличные',
@@ -36,6 +36,21 @@ export const RU: Record<string, string> = {
   'View history': 'Смотреть историю',
   "No loans tracked yet. Tap + to add money you've lent someone.":
     'Займы ещё не добавлены. Нажмите +, чтобы добавить одолженные деньги.',
+
+  // Credits
+  Credits: 'Кредиты',
+  'No credits tracked yet. Tap + to add money you owe.':
+    'Кредиты ещё не добавлены. Нажмите +, чтобы добавить деньги, которые вы должны.',
+  'Add credit': 'Добавить кредит',
+  'Edit credit': 'Изменить кредит',
+  'Credit added': 'Кредит добавлен',
+  'Credit updated': 'Кредит обновлён',
+  'Credit deleted': 'Кредит удалён',
+  'this credit': 'этот кредит',
+  'negative — money you owe': 'отрицательное число — деньги, которые вы должны',
+  Purpose: 'Назначение',
+  'Include credits in net worth': 'Учитывать кредиты в общем капитале',
+  'Credits are excluded from Total net worth by default': 'По умолчанию кредиты не учитываются в общем капитале',
 
   // Loan form
   'Add loan': 'Добавить займ',

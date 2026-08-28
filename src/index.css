@@ -440,6 +440,8 @@ h1, h2, h3, p {
 .badge-cash { color: var(--warning); }
 .badge-card { color: #60a5fa; }
 .badge-default { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
+.badge-savings { color: var(--accent); }
+.badge-spending { color: #a78bfa; }
 
 .btn {
   display: inline-flex;

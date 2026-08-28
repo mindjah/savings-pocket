@@ -25,8 +25,10 @@ export function AdjustPocketModal({ entry, onClose }: Props) {
   const parsedAmount = useMemo(() => parseAmount(amount), [amount])
   const delta = direction === 'add' ? parsedAmount : -parsedAmount
   const newAmount = roundFiat(entry.amount + (Number.isNaN(delta) ? 0 : delta), entry.currency)
+  // Credits are debts and naturally go negative — only regular pockets are floored at zero.
+  const isCredit = entry.kind === 'credit'
 
-  const valid = amount.trim() !== '' && !Number.isNaN(parsedAmount) && parsedAmount > 0 && newAmount >= 0
+  const valid = amount.trim() !== '' && !Number.isNaN(parsedAmount) && parsedAmount > 0 && (isCredit || newAmount >= 0)
 
   async function handleConfirm() {
     if (!valid || entry.id == null) return
@@ -80,7 +82,7 @@ export function AdjustPocketModal({ entry, onClose }: Props) {
       {amount.trim() !== '' && !Number.isNaN(parsedAmount) && (
         <div className="muted">
           {formatMoney(entry.amount, entry.currency)} → {formatMoney(newAmount, entry.currency)}
-          {newAmount < 0 && <span style={{ color: 'var(--danger-strong)' }}>{t(" — can't go below zero")}</span>}
+          {!isCredit && newAmount < 0 && <span style={{ color: 'var(--danger-strong)' }}>{t(" — can't go below zero")}</span>}
         </div>
       )}
 

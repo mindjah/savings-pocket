@@ -56,10 +56,10 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
   // Keep an entry's own currency selectable even if it was later disabled in Settings.
   const currencyOptions = CURRENCIES.filter((c) => spendingCurrencies.includes(c.code) || c.code === currency)
 
-  const pocketsForCurrency = useLiveQuery(
-    () => db.savingsEntries.where('currency').equals(currency).toArray(),
-    [currency],
-  ) ?? []
+  // Credits can't be chosen as a payment source for expenses.
+  const pocketsForCurrency = (
+    useLiveQuery(() => db.savingsEntries.where('currency').equals(currency).toArray(), [currency]) ?? []
+  ).filter((p) => p.kind !== 'credit')
 
   async function refreshDebitDefault(cur: Currency, restoreId: number | null) {
     // Read straight from the DB (not the useMetaSetting state) — on the very first
@@ -70,8 +70,10 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
       db.savingsEntries.where('currency').equals(cur).toArray(),
       db.meta.get('defaultSavingsPocketByCurrency'),
     ])
+    const candidates = list.filter((p) => p.kind !== 'credit')
     const defaults = (metaRec?.value as Partial<Record<Currency, number>>) ?? {}
-    const candidate = list.find((p) => p.id === restoreId) ?? list.find((p) => p.id === defaults[cur]) ?? list[0]
+    const candidate =
+      candidates.find((p) => p.id === restoreId) ?? candidates.find((p) => p.id === defaults[cur]) ?? candidates[0]
     setDebitPocketId(candidate?.id ?? '')
   }
 

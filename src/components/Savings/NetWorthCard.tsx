@@ -7,7 +7,8 @@ import { useTranslation } from '../../hooks/useTranslation'
 export function NetWorthCard() {
   const { t } = useTranslation()
   const [displayCurrency] = useMetaSetting<Currency>('netWorthCurrency', 'EUR')
-  const { breakdown, loading, stale, error } = useNetWorth(displayCurrency)
+  const [includeCreditsInNetWorth] = useMetaSetting<boolean>('includeCreditsInNetWorth', false)
+  const { breakdown, loading, stale, error } = useNetWorth(displayCurrency, includeCreditsInNetWorth)
 
   return (
     <div className="card">
@@ -29,11 +30,19 @@ export function NetWorthCard() {
               {t('Savings')}: {formatMoney(breakdown.savingsTotal, displayCurrency)}
             </span>
             <span>
+              {t('Spending')}: {formatMoney(breakdown.spendingTotal, displayCurrency)}
+            </span>
+            <span>
               {t('Crypto')}: {formatMoney(breakdown.cryptoTotal, displayCurrency)}
             </span>
             <span>
               {t('Lent out')}: {formatMoney(breakdown.loansTotal, displayCurrency)}
             </span>
+            {includeCreditsInNetWorth && (
+              <span>
+                {t('Credits')}: {formatMoney(breakdown.creditsTotal, displayCurrency)}
+              </span>
+            )}
           </div>
           {stale && (
             <div className="muted" style={{ marginTop: 8 }}>

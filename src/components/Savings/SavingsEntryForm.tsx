@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
-import type { Currency, MoneyType, SavingsEntry } from '../../db/types'
+import type { Currency, MoneyType, PocketKind, PocketPurpose, SavingsEntry } from '../../db/types'
 import { CURRENCIES } from '../../lib/constants'
 import { parseAmount, roundFiat } from '../../lib/format'
 import { Modal } from '../common/Modal'
@@ -13,12 +13,13 @@ import { AddNewPocketIcon } from '../common/AddNewPocketIcon'
 
 interface Props {
   entry: SavingsEntry | null
+  kind: PocketKind
   defaultCurrency: Currency
   availableCurrencies: Currency[]
   onClose: () => void
 }
 
-export function SavingsEntryForm({ entry, defaultCurrency, availableCurrencies, onClose }: Props) {
+export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurrencies, onClose }: Props) {
   const { t } = useTranslation()
   const isEdit = !!entry
   const [currency, setCurrency] = useState<Currency>(entry?.currency ?? defaultCurrency)
@@ -27,6 +28,7 @@ export function SavingsEntryForm({ entry, defaultCurrency, availableCurrencies, 
     (c) => availableCurrencies.includes(c.code) || c.code === entry?.currency,
   )
   const [type, setType] = useState<MoneyType>(entry?.type ?? 'card')
+  const [purpose, setPurpose] = useState<PocketPurpose>(entry?.purpose ?? 'savings')
   const [location, setLocation] = useState(entry?.location ?? '')
   const [note, setNote] = useState(entry?.note ?? '')
   const [amount, setAmount] = useState(entry ? String(entry.amount) : '')
@@ -35,14 +37,18 @@ export function SavingsEntryForm({ entry, defaultCurrency, availableCurrencies, 
   const toast = useToast()
 
   const knownLocations = useLiveQuery(async () => {
-    const rows = await db.savingsEntries.toArray()
+    const rows = await db.savingsEntries.where('kind').equals(kind).toArray()
     return Array.from(new Set(rows.map((r) => r.location).filter(Boolean)))
-  }, [])
+  }, [kind])
 
   const parsedAmount = useMemo(() => roundFiat(parseAmount(amount), currency), [amount, currency])
   const amountChanged = isEdit && entry && parsedAmount !== entry.amount
+  // Credits are debts, naturally negative — only regular pockets are floored at zero.
   const valid =
-    location.trim().length > 0 && amount.trim() !== '' && !Number.isNaN(parsedAmount) && parsedAmount >= 0
+    location.trim().length > 0 &&
+    amount.trim() !== '' &&
+    !Number.isNaN(parsedAmount) &&
+    (kind === 'credit' || parsedAmount >= 0)
 
   async function handleSubmit() {
     if (!valid) return
@@ -61,23 +67,26 @@ export function SavingsEntryForm({ entry, defaultCurrency, availableCurrencies, 
       await db.savingsEntries.update(entry.id, {
         currency,
         type,
+        purpose: kind === 'pocket' ? purpose : undefined,
         location: location.trim(),
         note: note.trim(),
         amount: parsedAmount,
         updatedAt: now,
       })
-      toast(t('Savings entry updated'))
+      toast(t(kind === 'credit' ? 'Credit updated' : 'Savings entry updated'))
     } else {
       await db.savingsEntries.add({
         currency,
         type,
+        kind,
+        purpose: kind === 'pocket' ? purpose : undefined,
         location: location.trim(),
         note: note.trim(),
         amount: parsedAmount,
         createdAt: now,
         updatedAt: now,
       })
-      toast(t('Savings entry added'))
+      toast(t(kind === 'credit' ? 'Credit added' : 'Savings entry added'))
     }
     onClose()
   }
@@ -89,7 +98,7 @@ export function SavingsEntryForm({ entry, defaultCurrency, availableCurrencies, 
       await db.savingsHistory.where('entryId').equals(entry.id!).delete()
       await db.savingsEntries.delete(entry.id!)
     })
-    toast(t('Savings entry deleted'))
+    toast(t(kind === 'credit' ? 'Credit deleted' : 'Savings entry deleted'))
     onClose()
   }
 
@@ -97,10 +106,10 @@ export function SavingsEntryForm({ entry, defaultCurrency, availableCurrencies, 
     <Modal
       title={
         isEdit ? (
-          t('Edit savings pocket')
+          t(kind === 'credit' ? 'Edit credit' : 'Edit savings pocket')
         ) : (
           <span style={{ display: 'inline-flex', alignItems: 'flex-end', gap: 8 }}>
-            {t('Add savings pocket')}
+            {t(kind === 'credit' ? 'Add credit' : 'Add savings pocket')}
             <AddNewPocketIcon size={30} />
           </span>
         )
@@ -136,8 +145,22 @@ export function SavingsEntryForm({ entry, defaultCurrency, availableCurrencies, 
         </div>
       </div>
 
+      {kind === 'pocket' && (
+        <div className="form-group">
+          <label>{t('Purpose')}</label>
+          <div className="segmented">
+            <button type="button" className={purpose === 'savings' ? 'active' : ''} onClick={() => setPurpose('savings')}>
+              {t('Savings')}
+            </button>
+            <button type="button" className={purpose === 'spending' ? 'active' : ''} onClick={() => setPurpose('spending')}>
+              {t('Spending')}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="form-group">
-        <label htmlFor="amount">{t('Amount')}</label>
+        <label htmlFor="amount">{t('Amount')}{kind === 'credit' ? ` (${t('negative — money you owe')})` : ''}</label>
         <input
           id="amount"
           type="text"
@@ -189,13 +212,13 @@ export function SavingsEntryForm({ entry, defaultCurrency, availableCurrencies, 
           </button>
         )}
         <button className="btn btn-primary" onClick={handleSubmit} disabled={!valid} type="button">
-          {t(isEdit ? 'Save changes' : 'Add pocket')}
+          {t(isEdit ? 'Save changes' : kind === 'credit' ? 'Add credit' : 'Add pocket')}
         </button>
       </div>
 
       {confirmingDelete && (
         <DeleteConfirmModal
-          itemLabel={t('this savings entry')}
+          itemLabel={t(kind === 'credit' ? 'this credit' : 'this savings entry')}
           onConfirmed={handleDelete}
           onClose={() => setConfirmingDelete(false)}
         />

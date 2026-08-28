@@ -1,5 +1,7 @@
 export type Currency = 'EUR' | 'USD' | 'RUB' | 'JPY' | 'CNY'
 export type MoneyType = 'cash' | 'card'
+export type PocketKind = 'pocket' | 'credit'
+export type PocketPurpose = 'savings' | 'spending'
 
 export interface SavingsEntry {
   id?: number
@@ -10,6 +12,10 @@ export interface SavingsEntry {
   note: string
   createdAt: string
   updatedAt: string
+  kind: PocketKind
+  // Only meaningful for kind: 'pocket' — credits are excluded from net worth
+  // by default and don't need a savings/spending split.
+  purpose?: PocketPurpose
 }
 
 export interface SavingsHistory {

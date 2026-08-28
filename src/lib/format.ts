@@ -70,6 +70,23 @@ export function formatDateTime(iso: string, lang: Language = 'en'): string {
   })
 }
 
+export function formatTime(iso: string, lang: Language = 'en'): string {
+  const d = new Date(iso)
+  const locale = lang === 'ru' ? 'ru-RU' : 'en-GB'
+  return d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+}
+
+export function isToday(iso: string): boolean {
+  const d = new Date(iso)
+  const now = new Date()
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate()
+}
+
+// Shows just the time for something that happened today, the full date otherwise.
+export function formatDateOrTime(iso: string, lang: Language = 'en'): string {
+  return isToday(iso) ? formatTime(iso, lang) : formatDate(iso, lang)
+}
+
 export function todayIso(): string {
   const d = new Date()
   const tzOffset = d.getTimezoneOffset() * 60000

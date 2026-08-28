@@ -7,7 +7,7 @@ import { useFiatRates } from './useFiatRates'
 import { convertFiat } from '../lib/fxRates'
 import { priceIn } from '../lib/rates'
 
-export function useNetWorth(displayCurrency: Currency) {
+export function useNetWorth(displayCurrency: Currency, includeCreditsInNetWorth: boolean) {
   const savings = useLiveQuery(() => db.savingsEntries.toArray(), []) ?? []
   const loans = useLiveQuery(() => db.loanEntries.toArray(), []) ?? []
   const cryptoEntries = useLiveQuery(() => db.cryptoEntries.toArray(), []) ?? []
@@ -18,25 +18,27 @@ export function useNetWorth(displayCurrency: Currency) {
 
   const breakdown = useMemo(() => {
     if (!fx) return null
-    const savingsTotal = savings.reduce(
-      (sum, e) => sum + convertFiat(e.amount, e.currency, displayCurrency, fx),
-      0,
-    )
-    const loansTotal = loans.reduce(
-      (sum, e) => sum + convertFiat(e.amount, e.currency, displayCurrency, fx),
-      0,
-    )
+    const sumIn = (entries: { amount: number; currency: Currency }[]) =>
+      entries.reduce((sum, e) => sum + convertFiat(e.amount, e.currency, displayCurrency, fx), 0)
+    const pockets = savings.filter((e) => e.kind !== 'credit')
+    const savingsTotal = sumIn(pockets.filter((e) => (e.purpose ?? 'savings') === 'savings'))
+    const spendingTotal = sumIn(pockets.filter((e) => e.purpose === 'spending'))
+    const creditsTotal = sumIn(savings.filter((e) => e.kind === 'credit'))
+    const loansTotal = sumIn(loans)
     const cryptoTotal = cryptoEntries.reduce(
       (sum, e) => sum + e.amount * priceIn(prices[e.coinId], displayCurrency),
       0,
     )
     return {
       savingsTotal,
+      spendingTotal,
+      creditsTotal,
       loansTotal,
       cryptoTotal,
-      grandTotal: savingsTotal + loansTotal + cryptoTotal,
+      grandTotal:
+        savingsTotal + spendingTotal + loansTotal + cryptoTotal + (includeCreditsInNetWorth ? creditsTotal : 0),
     }
-  }, [fx, savings, loans, cryptoEntries, prices, displayCurrency])
+  }, [fx, savings, loans, cryptoEntries, prices, displayCurrency, includeCreditsInNetWorth])
 
   return {
     breakdown,
