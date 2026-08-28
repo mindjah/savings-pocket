@@ -72,7 +72,6 @@ export const RU: Record<string, string> = {
   Currency: 'Валюта',
   Amount: 'Сумма',
   'Held as': 'Хранится как',
-  'Location (country / bank / place)': 'Место (страна / банк / место)',
   'e.g. Spain — BBVA': 'напр. Испания — BBVA',
   Note: 'Заметка',
   'Details about this money': 'Подробности об этих деньгах',

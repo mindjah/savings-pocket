@@ -106,8 +106,9 @@ export function SavingsView() {
           </button>
         </div>
         <div className="entry-sub-row">
-          <div className="entry-sub">📍 {entry.location}</div>
-          <span className={`badge badge-${entry.type}`}>{t(entry.type === 'cash' ? 'Cash' : 'Card')}</span>
+          <div className="entry-sub pocket-name">
+            📍 {entry.location} {t(entry.type === 'cash' ? 'Cash' : 'Card')}
+          </div>
           {entry.kind === 'pocket' && entry.purpose && (
             <span className={`badge badge-${entry.purpose}`}>
               {t(entry.purpose === 'savings' ? 'Savings' : 'Spending')}
@@ -281,7 +282,7 @@ export function SavingsView() {
                       role="link"
                       tabIndex={0}
                       className="muted"
-                      style={{ textDecoration: 'underline', width: 'fit-content' }}
+                      style={{ textDecoration: 'underline', width: 'fit-content', marginTop: 6 }}
                       onClick={(e) => {
                         e.stopPropagation()
                         if (loan.id != null) setLoanHistoryFor({ id: loan.id, currency: loan.currency })

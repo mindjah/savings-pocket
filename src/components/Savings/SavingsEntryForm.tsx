@@ -172,7 +172,7 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
       </div>
 
       <div className="form-group">
-        <label htmlFor="location">{t('Location (country / bank / place)')}</label>
+        <label htmlFor="location">{t('Name')}</label>
         <input
           id="location"
           list="known-locations"

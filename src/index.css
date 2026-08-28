@@ -357,6 +357,11 @@ h1, h2, h3, p {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  margin-top: 6px;
+}
+
+.pocket-name {
+  font-size: 0.95rem;
 }
 
 .entry-top {
