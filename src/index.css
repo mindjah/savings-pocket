@@ -378,6 +378,13 @@ h1, h2, h3, p {
   flex-wrap: wrap;
 }
 
+.pocket-type-icon {
+  display: flex;
+  align-items: center;
+  color: var(--text);
+  flex-shrink: 0;
+}
+
 .pocket-adjust-btn {
   flex-shrink: 0;
   border: none;

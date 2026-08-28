@@ -17,6 +17,8 @@ import { HistoryModal } from '../common/HistoryModal'
 import { HeaderPortal } from '../common/HeaderPortal'
 import { NoteViewModal } from '../common/NoteViewModal'
 import { useTranslation } from '../../hooks/useTranslation'
+import { CardIcon } from '../common/CardIcon'
+import { CashIcon } from '../common/CashIcon'
 
 type SubTab = 'mine' | 'credits' | 'lent'
 
@@ -89,6 +91,9 @@ export function SavingsView() {
       >
         <div className="entry-top">
           <span className="entry-top-left">
+            <span className="pocket-type-icon" aria-hidden="true">
+              {entry.type === 'cash' ? <CashIcon size={24} /> : <CardIcon size={24} />}
+            </span>
             <span className="entry-amount">{formatMoney(entry.amount, entry.currency)}</span>
             {trackingMode === 'auto' && entry.id != null && defaultPocketIds.has(entry.id) && (
               <span className="badge badge-default">{t('Default')}</span>
