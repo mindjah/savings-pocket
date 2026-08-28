@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import { CURRENCIES, DEFAULT_CRYPTO_CURRENCIES, DEFAULT_SAVINGS_CURRENCIES, DEFAULT_SPENDING_CURRENCIES } from '../../lib/constants'
-import { formatDate, formatMoney } from '../../lib/format'
+import { formatDate, formatDateTime, formatMoney } from '../../lib/format'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
-import { exportBackup, importBackup, type LastBackup } from '../../lib/backup'
-import { backupToGoogleDrive, isGoogleDriveConfigured, restoreFromGoogleDrive } from '../../lib/googleDrive'
+import { exportBackup, hasUnsyncedLocalChanges, importBackup, type LastBackup } from '../../lib/backup'
+import { backupToGoogleDrive, DriveBackupCancelled, isGoogleDriveConfigured, restoreFromGoogleDrive } from '../../lib/googleDrive'
 import { useToast } from '../../hooks/useToast'
 import type { Currency, Language, SavingsTrackingMode } from '../../db/types'
 import { CurrencyMultiSelect } from '../common/CurrencyMultiSelect'
@@ -13,7 +13,7 @@ import { CurrencySingleSelect } from '../common/CurrencySingleSelect'
 import { disableFaceId, isFaceIdAvailable, registerFaceId } from '../../lib/webauthn'
 import { clearPasscode } from '../../lib/passcode'
 import { useTranslation } from '../../hooks/useTranslation'
-import { tImportComplete, tNoPocketYet } from '../../i18n/translations'
+import { tDriveBackupConflict, tImportComplete, tNoPocketYet } from '../../i18n/translations'
 import { PasscodeSetupModal } from './PasscodeSetupModal'
 import { HeaderPortal } from '../common/HeaderPortal'
 import { GoogleDriveIcon } from '../common/GoogleDriveIcon'
@@ -166,9 +166,10 @@ export function SettingsView() {
   async function handleDriveBackup() {
     setBusy(true)
     try {
-      await backupToGoogleDrive()
+      await backupToGoogleDrive((remoteModifiedAt) => confirm(tDriveBackupConflict(lang, formatDateTime(remoteModifiedAt, lang))))
       toast(t('Backed up to Google Drive'))
     } catch (err) {
+      if (err instanceof DriveBackupCancelled) return
       alert(err instanceof Error ? err.message : t('Failed to back up to Google Drive'))
     } finally {
       setBusy(false)
@@ -176,9 +177,11 @@ export function SettingsView() {
   }
 
   async function handleDriveRestore() {
-    if (!confirm(t('Restoring will replace ALL current data (savings, crypto, spending, categories) with your Google Drive backup. Continue?'))) {
-      return
-    }
+    const unsynced = await hasUnsyncedLocalChanges()
+    const confirmMessage = unsynced
+      ? t("You have local changes that haven't been backed up to Google Drive yet — restoring now will replace them with your Google Drive backup and they'll be permanently lost. Continue?")
+      : t('Restoring will replace ALL current data (savings, crypto, spending, categories) with your Google Drive backup. Continue?')
+    if (!confirm(confirmMessage)) return
     setBusy(true)
     try {
       const { imported } = await restoreFromGoogleDrive()

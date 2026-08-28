@@ -1,4 +1,11 @@
-import { applyBackupPayload, buildBackupPayload, parseBackupFile, recordBackup } from './backup'
+import {
+  applyBackupPayload,
+  buildBackupPayload,
+  getDriveSyncState,
+  parseBackupFile,
+  recordBackup,
+  recordDriveSync,
+} from './backup'
 
 // Set at build time via the VITE_GOOGLE_CLIENT_ID env var (see .env.example) —
 // never hardcode a real client id in source, since this file ships to every
@@ -69,26 +76,44 @@ async function requestAccessToken(): Promise<string> {
   })
 }
 
-async function findBackupFileId(token: string): Promise<string | null> {
+// Thrown when the user declines the "this will overwrite unseen data"
+// warning, so callers can skip showing an error alert for it.
+export class DriveBackupCancelled extends Error {}
+
+async function findBackupFile(token: string): Promise<{ id: string; modifiedTime: string } | null> {
   const url = new URL('https://www.googleapis.com/drive/v3/files')
   url.searchParams.set('spaces', 'appDataFolder')
   url.searchParams.set('q', `name='${BACKUP_FILENAME}'`)
-  url.searchParams.set('fields', 'files(id)')
+  url.searchParams.set('fields', 'files(id,modifiedTime)')
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
   if (!res.ok) throw new Error('Could not reach Google Drive.')
-  const json = (await res.json()) as { files?: { id: string }[] }
-  return json.files?.[0]?.id ?? null
+  const json = (await res.json()) as { files?: { id: string; modifiedTime: string }[] }
+  const file = json.files?.[0]
+  return file ? { id: file.id, modifiedTime: file.modifiedTime } : null
 }
 
-export async function backupToGoogleDrive(): Promise<void> {
+// onConflict is asked (and must return true to proceed) only when Drive
+// already holds a backup this device hasn't seen — most likely pushed by
+// another device — since backup is a full overwrite, not a merge. The
+// confirmation text itself is built by the caller so it can be translated.
+export async function backupToGoogleDrive(onConflict: (remoteModifiedAt: string) => boolean): Promise<void> {
   const token = await requestAccessToken()
+  const existing = await findBackupFile(token)
+
+  if (existing) {
+    const syncState = await getDriveSyncState()
+    const remoteUnseen = !syncState || new Date(existing.modifiedTime).getTime() > new Date(syncState.at).getTime()
+    if (remoteUnseen && !onConflict(existing.modifiedTime)) {
+      throw new DriveBackupCancelled()
+    }
+  }
+
   const payload = await buildBackupPayload()
   const body = JSON.stringify(payload)
-  const existingId = await findBackupFileId(token)
 
-  if (existingId) {
+  if (existing) {
     const res = await fetch(
-      `https://www.googleapis.com/upload/drive/v3/files/${existingId}?uploadType=media`,
+      `https://www.googleapis.com/upload/drive/v3/files/${existing.id}?uploadType=media`,
       {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -114,17 +139,20 @@ export async function backupToGoogleDrive(): Promise<void> {
     if (!res.ok) throw new Error('Failed to create the Google Drive backup.')
   }
   await recordBackup('google')
+  await recordDriveSync(payload.exportedAt)
 }
 
 export async function restoreFromGoogleDrive(): Promise<{ imported: Record<string, number> }> {
   const token = await requestAccessToken()
-  const fileId = await findBackupFileId(token)
-  if (!fileId) throw new Error('No backup found in Google Drive yet.')
-  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+  const existing = await findBackupFile(token)
+  if (!existing) throw new Error('No backup found in Google Drive yet.')
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${existing.id}?alt=media`, {
     headers: { Authorization: `Bearer ${token}` },
   })
   if (!res.ok) throw new Error('Failed to download the Google Drive backup.')
   const text = await res.text()
   const parsed = parseBackupFile(text)
-  return applyBackupPayload(parsed)
+  const result = await applyBackupPayload(parsed)
+  await recordDriveSync(parsed.exportedAt)
+  return result
 }

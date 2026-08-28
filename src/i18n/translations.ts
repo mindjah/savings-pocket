@@ -284,6 +284,8 @@ export const RU: Record<string, string> = {
   'Failed to back up to Google Drive': 'Не удалось создать резервную копию в Google Drive',
   'Restoring will replace ALL current data (savings, crypto, spending, categories) with your Google Drive backup. Continue?':
     'Восстановление заменит ВСЕ текущие данные (сбережения, крипто, расходы, категории) резервной копией из Google Drive. Продолжить?',
+  "You have local changes that haven't been backed up to Google Drive yet — restoring now will replace them with your Google Drive backup and they'll be permanently lost. Continue?":
+    'У вас есть локальные изменения, которые ещё не сохранены в Google Drive — восстановление сейчас заменит их резервной копией из Google Drive, и они будут потеряны навсегда. Продолжить?',
   'Failed to restore from Google Drive': 'Не удалось восстановить из Google Drive',
   'Savings Pocket — your data never leaves this device.': 'Savings Pocket — ваши данные никогда не покидают это устройство.',
 
@@ -364,4 +366,11 @@ export function tDeleteConfirmBody(lang: Language, itemLabel: string): string {
     return `Это навсегда удалит ${itemLabel} и всю её историю. Введите DELETE, чтобы продолжить.`
   }
   return `This will permanently delete ${itemLabel} and its full history. Type DELETE to continue.`
+}
+
+export function tDriveBackupConflict(lang: Language, remoteModifiedAt: string): string {
+  if (lang === 'ru') {
+    return `В Google Drive уже есть резервная копия от ${remoteModifiedAt}, возможно, с другого устройства, которую это устройство ещё не видело. Резервное копирование сейчас перезапишет её. Продолжить?`
+  }
+  return `Google Drive already has a backup from ${remoteModifiedAt} — possibly from another device — that this device hasn't seen. Backing up now will overwrite it. Continue?`
 }
