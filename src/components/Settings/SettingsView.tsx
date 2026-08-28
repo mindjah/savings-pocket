@@ -91,6 +91,7 @@ export function SettingsView() {
 
   const [modeInfoOpen, setModeInfoOpen] = useState(false)
   const [driveInfoOpen, setDriveInfoOpen] = useState(false)
+  const [autoBackupEnabled, setAutoBackupEnabled] = useMetaSetting<boolean>('autoBackupToGoogleDrive', false)
   const pockets = useLiveQuery(() => db.savingsEntries.toArray(), []) ?? []
 
   const [faceIdEnabled] = useMetaSetting<boolean>('faceIdEnabled', false)
@@ -466,6 +467,28 @@ export function SettingsView() {
         >
           {t('Restore from Google Drive')}
         </button>
+
+        {isGoogleDriveConfigured() && (
+          <div className="settings-row">
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div>{t('Auto-backup to Google Drive')}</div>
+              <div className="muted">
+                {t('Silently back up to Google Drive a few seconds after each change, using your last sign-in. Only works while the app is open.')}
+              </div>
+            </div>
+            <label className="switch" style={{ flexShrink: 0 }}>
+              <input
+                type="checkbox"
+                checked={autoBackupEnabled}
+                onChange={(e) => setAutoBackupEnabled(e.target.checked)}
+                aria-label={t('Auto-backup to Google Drive')}
+              />
+              <span className="switch-track">
+                <span className="switch-thumb" />
+              </span>
+            </label>
+          </div>
+        )}
       </div>
 
       {showPasscodeSetup && (

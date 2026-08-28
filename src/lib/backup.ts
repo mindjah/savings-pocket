@@ -79,6 +79,18 @@ function rowTimestamp(row: unknown): number {
   return t ? new Date(t).getTime() : 0
 }
 
+// Tracked so the app-open Drive check only ever runs for someone who has
+// signed in before — never triggers a surprise Google sign-in for a feature
+// they've never touched.
+export async function recordDriveConnected(): Promise<void> {
+  await db.meta.put({ key: 'driveEverConnected', value: true })
+}
+
+export async function hasEverConnectedToDrive(): Promise<boolean> {
+  const row = await db.meta.get('driveEverConnected')
+  return row?.value === true
+}
+
 // Warns before a Drive restore silently discards edits this device made
 // since it last backed up to or restored from Drive.
 export async function hasUnsyncedLocalChanges(): Promise<boolean> {

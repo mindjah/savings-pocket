@@ -287,6 +287,9 @@ export const RU: Record<string, string> = {
   "You have local changes that haven't been backed up to Google Drive yet — restoring now will replace them with your Google Drive backup and they'll be permanently lost. Continue?":
     'У вас есть локальные изменения, которые ещё не сохранены в Google Drive — восстановление сейчас заменит их резервной копией из Google Drive, и они будут потеряны навсегда. Продолжить?',
   'Failed to restore from Google Drive': 'Не удалось восстановить из Google Drive',
+  'Auto-backup to Google Drive': 'Авто-бэкап в Google Drive',
+  'Silently back up to Google Drive a few seconds after each change, using your last sign-in. Only works while the app is open.':
+    'Автоматически сохранять резервную копию в Google Drive через несколько секунд после каждого изменения, используя последний вход. Работает только пока приложение открыто.',
   'Savings Pocket — your data never leaves this device.': 'Savings Pocket — ваши данные никогда не покидают это устройство.',
 
   // Month names
@@ -373,4 +376,40 @@ export function tDriveBackupConflict(lang: Language, remoteModifiedAt: string): 
     return `В Google Drive уже есть резервная копия от ${remoteModifiedAt}, возможно, с другого устройства, которую это устройство ещё не видело. Резервное копирование сейчас перезапишет её. Продолжить?`
   }
   return `Google Drive already has a backup from ${remoteModifiedAt} — possibly from another device — that this device hasn't seen. Backing up now will overwrite it. Continue?`
+}
+
+export function tAutoBackupConflict(lang: Language, remoteModifiedAt: string): string {
+  if (lang === 'ru') {
+    return (
+      `Авто-бэкап пропущен — на Google Drive есть данные от ${remoteModifiedAt}, которые это устройство ещё не видело, ` +
+      `вероятно, с другого устройства. Откройте Настройки и нажмите «Restore from Google Drive», чтобы сначала получить их. ` +
+      `Важно: Restore также полностью перезапишет локальную базу этого устройства, включая ту самую правку, которую вы ` +
+      `только что внесли — её нужно будет запомнить и внести заново после restore.`
+    )
+  }
+  return (
+    `Auto-backup skipped — Google Drive has data from ${remoteModifiedAt} this device hasn't seen yet, probably from ` +
+    `another device. Open Settings and tap "Restore from Google Drive" to pull it in first. Note: Restore will also ` +
+    `fully overwrite this device's local database, including the very change you just made — you'll need to remember it ` +
+    `and re-enter it after restoring.`
+  )
+}
+
+export function tStartupDriveOffer(lang: Language, remoteModifiedAt: string, hasLocalChanges: boolean): string {
+  if (lang === 'ru') {
+    if (hasLocalChanges) {
+      return (
+        `На Google Drive есть более новая резервная копия от ${remoteModifiedAt}. На этом устройстве уже есть изменения ` +
+        `с последней синхронизации с Drive — импорт сейчас их перезапишет, и их нужно будет внести заново. Всё равно импортировать?`
+      )
+    }
+    return `На Google Drive есть более новая резервная копия от ${remoteModifiedAt}, которой ещё нет на этом устройстве. Импортировать её сейчас, прежде чем вы начнёте что-то менять здесь?`
+  }
+  if (hasLocalChanges) {
+    return (
+      `Google Drive has a newer backup from ${remoteModifiedAt}. This device already has changes since its last Drive ` +
+      `sync — importing now will overwrite them and you'll need to redo them afterward. Import anyway?`
+    )
+  }
+  return `Google Drive has a newer backup from ${remoteModifiedAt} that isn't on this device yet. Import it now, before you make any changes here?`
 }

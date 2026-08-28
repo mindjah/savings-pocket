@@ -11,6 +11,8 @@ import { materializePendingAutoDebits } from './lib/pendingDebits'
 import { LockScreen } from './components/Lock/LockScreen'
 import { useMetaSetting } from './hooks/useMetaSetting'
 import { useTranslation } from './hooks/useTranslation'
+import { useAutoBackup } from './hooks/useAutoBackup'
+import { useDriveStartupCheck } from './hooks/useDriveStartupCheck'
 
 const TITLES: Record<Tab, string> = {
   savings: 'Savings',
@@ -33,6 +35,18 @@ function readInitialTab(): Tab {
 }
 
 export default function App() {
+  return (
+    <ToastProvider>
+      <AppShell />
+    </ToastProvider>
+  )
+}
+
+// Split from App so hooks here (useDriveStartupCheck, and anything else that
+// needs useToast) render as a descendant of ToastProvider — a hook called
+// directly in App's own body would read the context's no-op default instead,
+// since App isn't itself a child of the ToastProvider it returns.
+function AppShell() {
   const [tab, setTab] = useState<Tab>(readInitialTab)
   const { t } = useTranslation()
   const [faceIdEnabled] = useMetaSetting<boolean>('faceIdEnabled', false)
@@ -43,6 +57,9 @@ export default function App() {
     materializeRecurringExpenses()
     materializePendingAutoDebits()
   }, [])
+
+  useAutoBackup()
+  useDriveStartupCheck(!locked)
 
   // Re-lock only once the app has been backgrounded for a while — a brief
   // switch to another app shouldn't demand another Face ID check.
@@ -70,28 +87,22 @@ export default function App() {
   }
 
   if (locked) {
-    return (
-      <ToastProvider>
-        <LockScreen onUnlock={() => setUnlocked(true)} />
-      </ToastProvider>
-    )
+    return <LockScreen onUnlock={() => setUnlocked(true)} />
   }
 
   return (
-    <ToastProvider>
-      <div className="app-shell">
-        <header className="app-header">
-          <h1>{t(TITLES[tab])}</h1>
-          <div id={HEADER_ACTIONS_ID} className="app-header-actions" />
-        </header>
-        <NavBar active={tab} onChange={handleChange} />
-        <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          {tab === 'savings' && <SavingsView />}
-          {tab === 'crypto' && <CryptoView />}
-          {tab === 'spending' && <SpendingView />}
-          {tab === 'settings' && <SettingsView />}
-        </main>
-      </div>
-    </ToastProvider>
+    <div className="app-shell">
+      <header className="app-header">
+        <h1>{t(TITLES[tab])}</h1>
+        <div id={HEADER_ACTIONS_ID} className="app-header-actions" />
+      </header>
+      <NavBar active={tab} onChange={handleChange} />
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        {tab === 'savings' && <SavingsView />}
+        {tab === 'crypto' && <CryptoView />}
+        {tab === 'spending' && <SpendingView />}
+        {tab === 'settings' && <SettingsView />}
+      </main>
+    </div>
   )
 }
