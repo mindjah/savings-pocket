@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import type { Currency, MoneyType, SavingsEntry } from '../../db/types'
 import { CURRENCIES } from '../../lib/constants'
-import { parseAmount } from '../../lib/format'
+import { parseAmount, roundFiat } from '../../lib/format'
 import { Modal } from '../common/Modal'
 import { ExpandableTextarea } from '../common/ExpandableTextarea'
 import { DeleteConfirmModal } from './DeleteConfirmModal'
@@ -39,7 +39,7 @@ export function SavingsEntryForm({ entry, defaultCurrency, availableCurrencies, 
     return Array.from(new Set(rows.map((r) => r.location).filter(Boolean)))
   }, [])
 
-  const parsedAmount = useMemo(() => parseAmount(amount), [amount])
+  const parsedAmount = useMemo(() => roundFiat(parseAmount(amount), currency), [amount, currency])
   const amountChanged = isEdit && entry && parsedAmount !== entry.amount
   const valid =
     location.trim().length > 0 && amount.trim() !== '' && !Number.isNaN(parsedAmount) && parsedAmount >= 0

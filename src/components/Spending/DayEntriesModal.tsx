@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import type { Currency, RecurrenceType, SavingsTrackingMode, SpendingEntry } from '../../db/types'
 import { CURRENCIES, DEFAULT_SPENDING_CURRENCIES } from '../../lib/constants'
-import { formatDate, formatMoney, parseAmount, todayIso } from '../../lib/format'
+import { formatDate, formatMoney, parseAmount, roundFiat, todayIso } from '../../lib/format'
 import { applyAutoDebit, reverseAutoDebit } from '../../lib/autoDebit'
 import { computeNextDate } from '../../lib/recurring'
 import { Modal } from '../common/Modal'
@@ -125,7 +125,7 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
     !recurring || recurrenceType !== 'custom' || (Number.isFinite(parsedIntervalDays) && parsedIntervalDays > 0)
 
   async function handleSave() {
-    const parsed = parseAmount(amount)
+    const parsed = roundFiat(parseAmount(amount), currency)
     if (categoryId === '' || Number.isNaN(parsed) || parsed <= 0) return
     if (mode === 'auto' && (pocketsForCurrency.length === 0 || debitPocketId === '')) return
     if (editingId == null && !recurringValid) return
@@ -218,7 +218,7 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
   const noteMissing = noteRequired && note.trim().length === 0
   const valid =
     categoryId !== '' &&
-    parseAmount(amount) > 0 &&
+    roundFiat(parseAmount(amount), currency) > 0 &&
     !blockedNoPocket &&
     (mode !== 'auto' || debitPocketId !== '') &&
     (editingId != null || recurringValid) &&

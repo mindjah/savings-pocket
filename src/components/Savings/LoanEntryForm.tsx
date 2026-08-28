@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import type { Currency, LoanEntry } from '../../db/types'
 import { CURRENCIES } from '../../lib/constants'
-import { parseAmount } from '../../lib/format'
+import { parseAmount, roundFiat } from '../../lib/format'
 import { Modal } from '../common/Modal'
 import { ExpandableTextarea } from '../common/ExpandableTextarea'
 import { useToast } from '../../hooks/useToast'
@@ -35,7 +35,7 @@ export function LoanEntryForm({ entry, defaultCurrency, availableCurrencies, onC
     return Array.from(new Set(rows.map((r) => r.borrowerName).filter(Boolean)))
   }, [])
 
-  const parsedAmount = useMemo(() => parseAmount(amount), [amount])
+  const parsedAmount = useMemo(() => roundFiat(parseAmount(amount), currency), [amount, currency])
   const amountChanged = isEdit && entry && parsedAmount !== entry.amount
   const valid =
     borrowerName.trim().length > 0 && amount.trim() !== '' && !Number.isNaN(parsedAmount) && parsedAmount >= 0

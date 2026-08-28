@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { db } from '../../db/db'
 import type { SavingsEntry } from '../../db/types'
-import { formatMoney, parseAmount } from '../../lib/format'
+import { formatMoney, parseAmount, roundFiat } from '../../lib/format'
 import { Modal } from '../common/Modal'
 import { ExpandableTextarea } from '../common/ExpandableTextarea'
 import { useToast } from '../../hooks/useToast'
@@ -24,7 +24,7 @@ export function AdjustPocketModal({ entry, onClose }: Props) {
 
   const parsedAmount = useMemo(() => parseAmount(amount), [amount])
   const delta = direction === 'add' ? parsedAmount : -parsedAmount
-  const newAmount = entry.amount + (Number.isNaN(delta) ? 0 : delta)
+  const newAmount = roundFiat(entry.amount + (Number.isNaN(delta) ? 0 : delta), entry.currency)
 
   const valid = amount.trim() !== '' && !Number.isNaN(parsedAmount) && parsedAmount > 0 && newAmount >= 0
 

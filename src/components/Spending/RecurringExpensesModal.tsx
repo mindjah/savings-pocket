@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import type { RecurrenceType, RecurringExpense } from '../../db/types'
-import { formatDate, formatMoney, parseAmount } from '../../lib/format'
+import { formatDate, formatMoney, parseAmount, roundFiat } from '../../lib/format'
 import { recurrenceLabel } from '../../lib/recurring'
 import { Modal } from '../common/Modal'
 import { useToast } from '../../hooks/useToast'
@@ -44,7 +44,8 @@ export function RecurringExpensesModal({ onClose }: Props) {
     setEditingId(null)
   }
 
-  const parsedAmount = parseAmount(amount)
+  const editingCurrency = recurring?.find((r) => r.id === editingId)?.currency
+  const parsedAmount = editingCurrency ? roundFiat(parseAmount(amount), editingCurrency) : parseAmount(amount)
   const parsedInterval = Number(intervalDays)
   const editValid =
     !Number.isNaN(parsedAmount) &&
@@ -54,7 +55,7 @@ export function RecurringExpensesModal({ onClose }: Props) {
   async function saveEdit(r: RecurringExpense) {
     if (!r.id || !editValid) return
     await db.recurringExpenses.update(r.id, {
-      amount: parsedAmount,
+      amount: roundFiat(parseAmount(amount), r.currency),
       note: note.trim(),
       recurrenceType,
       intervalDays: recurrenceType === 'custom' ? Math.round(parsedInterval) : undefined,

@@ -15,10 +15,24 @@ export function parseAmount(raw: string): number {
 // JPY has no minor unit in everyday use (¥1000, not ¥1000.00).
 const NO_DECIMAL_CURRENCIES: Currency[] = ['JPY']
 
+function fiatDecimals(code: Currency): number {
+  return NO_DECIMAL_CURRENCIES.includes(code) ? 0 : 2
+}
+
+// Rounds a fiat amount to its currency's minor unit (2 decimals, 0 for JPY)
+// at the point it's stored or combined with another amount — not just when
+// displayed — so repeated arithmetic (auto-debits, balance adjustments)
+// can't drift into more than 2 decimal digits of floating-point noise.
+// Never apply this to crypto amounts, which keep their full precision.
+export function roundFiat(amount: number, code: Currency): number {
+  const factor = 10 ** fiatDecimals(code)
+  return Math.round(amount * factor) / factor
+}
+
 export function formatMoney(amount: number, code: Currency): string {
   if (!Number.isFinite(amount)) return '—'
   const sign = amount < 0 ? '-' : ''
-  const decimals = NO_DECIMAL_CURRENCIES.includes(code) ? 0 : 2
+  const decimals = fiatDecimals(code)
   const number = new Intl.NumberFormat('en-US', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,

@@ -1,4 +1,5 @@
 import { db } from '../db/db'
+import { roundFiat } from './format'
 
 // Undoes a previous auto-debit tied to a spending entry (restores the pocket's
 // balance and removes the linked history record). Safe to call on an entry
@@ -19,7 +20,7 @@ export async function applyAutoDebit(pocketId: number, amount: number, spendingE
   const pocket = await db.savingsEntries.get(pocketId)
   if (!pocket) return
   const now = new Date().toISOString()
-  const newAmount = pocket.amount - amount
+  const newAmount = roundFiat(pocket.amount - amount, pocket.currency)
   await db.savingsEntries.update(pocketId, { amount: newAmount, updatedAt: now })
   await db.savingsHistory.add({
     entryId: pocketId,
