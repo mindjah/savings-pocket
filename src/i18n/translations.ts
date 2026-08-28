@@ -269,6 +269,18 @@ export const RU: Record<string, string> = {
     'Импорт заменит ВСЕ текущие данные (сбережения, крипто, расходы, категории) содержимым этого файла резервной копии. Продолжить?',
   'Backup exported': 'Резервная копия экспортирована',
   'Failed to import backup': 'Не удалось импортировать резервную копию',
+  'Sign in with Google to back up or restore from your own Google Drive — no file to save yourself.':
+    'Войдите через Google, чтобы создавать резервные копии в своём Google Drive или восстанавливать их оттуда — без сохранения файла вручную.',
+  'Google Drive backup is not set up for this deployment.': 'Резервное копирование в Google Drive не настроено для этой версии приложения.',
+  "If sign-in doesn't work, ask the app's owner to add your Google account as a test user.":
+    'Если вход не работает, попросите владельца приложения добавить ваш аккаунт Google в список тестовых пользователей.',
+  'Backup to Google Drive': 'Резервная копия в Google Drive',
+  'Restore from Google Drive': 'Восстановить из Google Drive',
+  'Backed up to Google Drive': 'Резервная копия сохранена в Google Drive',
+  'Failed to back up to Google Drive': 'Не удалось создать резервную копию в Google Drive',
+  'Restoring will replace ALL current data (savings, crypto, spending, categories) with your Google Drive backup. Continue?':
+    'Восстановление заменит ВСЕ текущие данные (сбережения, крипто, расходы, категории) резервной копией из Google Drive. Продолжить?',
+  'Failed to restore from Google Drive': 'Не удалось восстановить из Google Drive',
   'Savings Pocket — your data never leaves this device.': 'Savings Pocket — ваши данные никогда не покидают это устройство.',
 
   // Month names

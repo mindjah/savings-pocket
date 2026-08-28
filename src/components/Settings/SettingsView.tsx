@@ -5,6 +5,7 @@ import { CURRENCIES, DEFAULT_CRYPTO_CURRENCIES, DEFAULT_SAVINGS_CURRENCIES, DEFA
 import { formatMoney } from '../../lib/format'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { exportBackup, importBackup } from '../../lib/backup'
+import { backupToGoogleDrive, isGoogleDriveConfigured, restoreFromGoogleDrive } from '../../lib/googleDrive'
 import { useToast } from '../../hooks/useToast'
 import type { Currency, Language, SavingsTrackingMode } from '../../db/types'
 import { CurrencyMultiSelect } from '../common/CurrencyMultiSelect'
@@ -136,6 +137,34 @@ export function SettingsView() {
       toast(tImportComplete(language, total))
     } catch (err) {
       alert(err instanceof Error ? err.message : t('Failed to import backup'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleDriveBackup() {
+    setBusy(true)
+    try {
+      await backupToGoogleDrive()
+      toast(t('Backed up to Google Drive'))
+    } catch (err) {
+      alert(err instanceof Error ? err.message : t('Failed to back up to Google Drive'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleDriveRestore() {
+    if (!confirm(t('Restoring will replace ALL current data (savings, crypto, spending, categories) with your Google Drive backup. Continue?'))) {
+      return
+    }
+    setBusy(true)
+    try {
+      const { imported } = await restoreFromGoogleDrive()
+      const total = Object.values(imported).reduce((a, b) => a + b, 0)
+      toast(tImportComplete(language, total))
+    } catch (err) {
+      alert(err instanceof Error ? err.message : t('Failed to restore from Google Drive'))
     } finally {
       setBusy(false)
     }
@@ -364,6 +393,35 @@ export function SettingsView() {
             e.target.value = ''
           }}
         />
+      </div>
+
+      <div className="card settings-list">
+        <p className="muted">
+          {isGoogleDriveConfigured()
+            ? t('Sign in with Google to back up or restore from your own Google Drive — no file to save yourself.')
+            : t('Google Drive backup is not set up for this deployment.')}
+        </p>
+        {isGoogleDriveConfigured() && (
+          <p className="muted" style={{ fontSize: '0.8rem' }}>
+            {t("If sign-in doesn't work, ask the app's owner to add your Google account as a test user.")}
+          </p>
+        )}
+        <button
+          className="btn btn-primary btn-block"
+          onClick={handleDriveBackup}
+          disabled={busy || !isGoogleDriveConfigured()}
+          type="button"
+        >
+          {t('Backup to Google Drive')}
+        </button>
+        <button
+          className="btn btn-block"
+          onClick={handleDriveRestore}
+          disabled={busy || !isGoogleDriveConfigured()}
+          type="button"
+        >
+          {t('Restore from Google Drive')}
+        </button>
       </div>
 
       <p className="muted" style={{ textAlign: 'center' }}>
