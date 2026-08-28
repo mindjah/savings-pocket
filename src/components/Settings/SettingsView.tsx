@@ -284,9 +284,7 @@ export function SettingsView() {
           </div>
           <CurrencySingleSelect value={netWorthCurrency} options={netWorthOptions} onChange={setNetWorthCurrency} />
         </div>
-      </div>
 
-      <div className="card settings-list">
         <div className="settings-row wrap">
           <div>
             <div>{t('Crypto currencies')}</div>
@@ -294,9 +292,7 @@ export function SettingsView() {
           </div>
           <CurrencyMultiSelect selected={cryptoCurrencies} onChange={setCryptoCurrencies} />
         </div>
-      </div>
 
-      <div className="card settings-list">
         <div className="settings-row wrap">
           <div>
             <div>{t('Spending currencies')}</div>
@@ -308,6 +304,26 @@ export function SettingsView() {
 
       <div className="section-title">
         <h2>{t('Savings tracking')}</h2>
+      </div>
+
+      <div className="card settings-list">
+        <div className="settings-row">
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div>{t('Include credits in net worth')}</div>
+            <div className="muted">{t('Credits are excluded from Total net worth by default')}</div>
+          </div>
+          <label className="switch" style={{ flexShrink: 0 }}>
+            <input
+              type="checkbox"
+              checked={includeCreditsInNetWorth}
+              onChange={(e) => setIncludeCreditsInNetWorth(e.target.checked)}
+              aria-label={t('Include credits in net worth')}
+            />
+            <span className="switch-track">
+              <span className="switch-thumb" />
+            </span>
+          </label>
+        </div>
       </div>
 
       <div className="card settings-list">
@@ -377,24 +393,6 @@ export function SettingsView() {
             })}
           </div>
         )}
-
-        <div className="settings-row">
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div>{t('Include credits in net worth')}</div>
-            <div className="muted">{t('Credits are excluded from Total net worth by default')}</div>
-          </div>
-          <label className="switch" style={{ flexShrink: 0 }}>
-            <input
-              type="checkbox"
-              checked={includeCreditsInNetWorth}
-              onChange={(e) => setIncludeCreditsInNetWorth(e.target.checked)}
-              aria-label={t('Include credits in net worth')}
-            />
-            <span className="switch-track">
-              <span className="switch-thumb" />
-            </span>
-          </label>
-        </div>
 
         <div className="settings-row">
           {trackingChanged && <span className="muted">{t('Unsaved changes')}</span>}

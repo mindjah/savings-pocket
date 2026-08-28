@@ -31,7 +31,10 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
   const [purpose, setPurpose] = useState<PocketPurpose>(entry?.purpose ?? 'savings')
   const [location, setLocation] = useState(entry?.location ?? '')
   const [note, setNote] = useState(entry?.note ?? '')
-  const [amount, setAmount] = useState(entry ? String(entry.amount) : '')
+  // Always the positive magnitude — credits are auto-negated on save (see
+  // storedAmount below) so typing a debt never requires a minus sign, which
+  // several mobile decimal keypads don't even offer.
+  const [amount, setAmount] = useState(entry ? String(Math.abs(entry.amount)) : '')
   const [reason, setReason] = useState('')
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const toast = useToast()
@@ -41,14 +44,11 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
     return Array.from(new Set(rows.map((r) => r.location).filter(Boolean)))
   }, [kind])
 
-  const parsedAmount = useMemo(() => roundFiat(parseAmount(amount), currency), [amount, currency])
-  const amountChanged = isEdit && entry && parsedAmount !== entry.amount
-  // Credits are debts, naturally negative — only regular pockets are floored at zero.
-  const valid =
-    location.trim().length > 0 &&
-    amount.trim() !== '' &&
-    !Number.isNaN(parsedAmount) &&
-    (kind === 'credit' || parsedAmount >= 0)
+  const parsedMagnitude = useMemo(() => roundFiat(Math.abs(parseAmount(amount)), currency), [amount, currency])
+  // Credits are stored as a negative debt; regular pockets stay positive.
+  const storedAmount = kind === 'credit' ? -parsedMagnitude : parsedMagnitude
+  const amountChanged = isEdit && entry && storedAmount !== entry.amount
+  const valid = location.trim().length > 0 && amount.trim() !== '' && !Number.isNaN(parsedMagnitude)
 
   async function handleSubmit() {
     if (!valid) return
@@ -58,7 +58,7 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
         await db.savingsHistory.add({
           entryId: entry.id,
           previousAmount: entry.amount,
-          newAmount: parsedAmount,
+          newAmount: storedAmount,
           date: now,
           comment: reason.trim(),
           source: 'manual',
@@ -70,7 +70,7 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
         purpose: kind === 'pocket' ? purpose : undefined,
         location: location.trim(),
         note: note.trim(),
-        amount: parsedAmount,
+        amount: storedAmount,
         updatedAt: now,
       })
       toast(t(kind === 'credit' ? 'Credit updated' : 'Savings entry updated'))
@@ -82,7 +82,7 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
         purpose: kind === 'pocket' ? purpose : undefined,
         location: location.trim(),
         note: note.trim(),
-        amount: parsedAmount,
+        amount: storedAmount,
         createdAt: now,
         updatedAt: now,
       })
@@ -160,7 +160,7 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
       )}
 
       <div className="form-group">
-        <label htmlFor="amount">{t('Amount')}{kind === 'credit' ? ` (${t('negative — money you owe')})` : ''}</label>
+        <label htmlFor="amount">{t(kind === 'credit' ? 'Amount owed' : 'Amount')}</label>
         <input
           id="amount"
           type="text"

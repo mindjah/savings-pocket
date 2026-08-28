@@ -13,6 +13,7 @@ export const RU: Record<string, string> = {
   Savings: 'Сбережения',
   Crypto: 'Крипто',
   Spending: 'Расходы',
+  'For spending': 'На расходы',
   Settings: 'Настройки',
 
   // Lock screen
@@ -47,7 +48,7 @@ export const RU: Record<string, string> = {
   'Credit updated': 'Кредит обновлён',
   'Credit deleted': 'Кредит удалён',
   'this credit': 'этот кредит',
-  'negative — money you owe': 'отрицательное число — деньги, которые вы должны',
+  'Amount owed': 'Сумма долга',
   Purpose: 'Назначение',
   'Include credits in net worth': 'Учитывать кредиты в общем капитале',
   'Credits are excluded from Total net worth by default': 'По умолчанию кредиты не учитываются в общем капитале',

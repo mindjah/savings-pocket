@@ -30,7 +30,7 @@ export function NetWorthCard() {
               {t('Savings')}: {formatMoney(breakdown.savingsTotal, displayCurrency)}
             </span>
             <span>
-              {t('Spending')}: {formatMoney(breakdown.spendingTotal, displayCurrency)}
+              {t('For spending')}: {formatMoney(breakdown.spendingTotal, displayCurrency)}
             </span>
             <span>
               {t('Crypto')}: {formatMoney(breakdown.cryptoTotal, displayCurrency)}
