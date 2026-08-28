@@ -135,7 +135,6 @@ export function SavingsView() {
                     <div className="entry-top">
                       <span className="entry-top-left">
                         <span className="entry-amount">{formatMoney(entry.amount, entry.currency)}</span>
-                        <span className={`badge badge-${entry.type}`}>{t(entry.type === 'cash' ? 'Cash' : 'Card')}</span>
                         {trackingMode === 'auto' && entry.id != null && defaultPocketIds.has(entry.id) && (
                           <span className="badge badge-default">{t('Default')}</span>
                         )}
@@ -151,42 +150,47 @@ export function SavingsView() {
                         +
                       </button>
                     </div>
-                    <div className="entry-sub">📍 {entry.location}</div>
-                    {entry.note && (
-                      <span
-                        className="note-indicator note-indicator-text"
-                        role="button"
+                    <div className="entry-sub-row">
+                      <div className="entry-sub">📍 {entry.location}</div>
+                      <span className={`badge badge-${entry.type}`}>{t(entry.type === 'cash' ? 'Cash' : 'Card')}</span>
+                    </div>
+                    <div className="entry-footer">
+                      <div
+                        role="link"
                         tabIndex={0}
+                        className="pocket-link-text"
                         onClick={(e) => {
                           e.stopPropagation()
-                          setViewingNote(entry.note)
+                          if (entry.id != null) setPocketHistoryFor({ id: entry.id, currency: entry.currency })
                         }}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
+                          if (e.key === 'Enter' && entry.id != null) {
                             e.stopPropagation()
-                            setViewingNote(entry.note)
+                            setPocketHistoryFor({ id: entry.id, currency: entry.currency })
                           }
                         }}
                       >
-                        {t('See note')}
-                      </span>
-                    )}
-                    <div
-                      role="link"
-                      tabIndex={0}
-                      className="pocket-link-text"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        if (entry.id != null) setPocketHistoryFor({ id: entry.id, currency: entry.currency })
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && entry.id != null) {
-                          e.stopPropagation()
-                          setPocketHistoryFor({ id: entry.id, currency: entry.currency })
-                        }
-                      }}
-                    >
-                      {t('View history')}
+                        {t('View history')}
+                      </div>
+                      {entry.note && (
+                        <span
+                          className="note-indicator-text"
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setViewingNote(entry.note)
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.stopPropagation()
+                              setViewingNote(entry.note)
+                            }
+                          }}
+                        >
+                          {t('See note')}
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}

@@ -137,51 +137,52 @@ export function CryptoView() {
                           .join(' · ')}`
                       : t('Price unavailable')}
                   </div>
-                  {(entry.note || entry.pinned) && (
-                    <div style={{ position: 'absolute', bottom: 10, right: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {entry.note && (
-                        <span
-                          className="note-indicator note-indicator-text"
-                          style={{ position: 'static', bottom: 'auto', right: 'auto' }}
-                          role="button"
-                          tabIndex={0}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setViewingNote(entry.note)
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.stopPropagation()
-                              setViewingNote(entry.note)
-                            }
-                          }}
-                        >
-                          {t('See note')}
-                        </span>
-                      )}
-                      {entry.pinned && (
-                        <span style={{ color: 'var(--accent)', display: 'flex' }} aria-label={t('Pinned')} title={t('Pinned')}>
-                          <PinIcon size={14} />
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  <div
-                    role="link"
-                    tabIndex={0}
-                    className="pocket-link-text"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setHistoryFor(entry)
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
+                  <div className="entry-footer">
+                    <div
+                      role="link"
+                      tabIndex={0}
+                      className="pocket-link-text"
+                      onClick={(e) => {
                         e.stopPropagation()
                         setHistoryFor(entry)
-                      }
-                    }}
-                  >
-                    {t('View history')}
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.stopPropagation()
+                          setHistoryFor(entry)
+                        }
+                      }}
+                    >
+                      {t('View history')}
+                    </div>
+                    {(entry.note || entry.pinned) && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {entry.note && (
+                          <span
+                            className="note-indicator-text"
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setViewingNote(entry.note)
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.stopPropagation()
+                                setViewingNote(entry.note)
+                              }
+                            }}
+                          >
+                            {t('See note')}
+                          </span>
+                        )}
+                        {entry.pinned && (
+                          <span style={{ color: 'var(--accent)', display: 'flex' }} aria-label={t('Pinned')} title={t('Pinned')}>
+                            <PinIcon size={14} />
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </button>
               )
