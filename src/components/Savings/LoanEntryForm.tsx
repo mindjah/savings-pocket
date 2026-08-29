@@ -8,6 +8,7 @@ import { Modal } from '../common/Modal'
 import { ExpandableTextarea } from '../common/ExpandableTextarea'
 import { useToast } from '../../hooks/useToast'
 import { useTranslation } from '../../hooks/useTranslation'
+import { LoanCreditIcon } from '../common/LoanCreditIcon'
 
 interface Props {
   entry: LoanEntry | null
@@ -87,7 +88,21 @@ export function LoanEntryForm({ entry, defaultCurrency, availableCurrencies, onC
   }
 
   return (
-    <Modal title={t(isEdit ? 'Edit loan' : 'Add loan')} onClose={onClose}>
+    <Modal
+      title={
+        isEdit ? (
+          t('Edit loan')
+        ) : (
+          <span style={{ display: 'inline-flex', alignItems: 'flex-end', gap: 8 }}>
+            {t('Add loan')}
+            <span style={{ display: 'inline-flex', transform: 'scaleX(-1)' }}>
+              <LoanCreditIcon size={30} />
+            </span>
+          </span>
+        )
+      }
+      onClose={onClose}
+    >
       <div className="form-row">
         <div className="form-group" style={{ flex: 2 }}>
           <label htmlFor="borrowerName">{t('Lent to')}</label>

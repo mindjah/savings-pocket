@@ -1,11 +1,15 @@
 import Dexie, { type Table } from 'dexie'
 import type {
   Category,
+  CategoryBudget,
   CryptoEntry,
   CryptoHistory,
   LoanEntry,
   LoanHistory,
   MetaRecord,
+  Plan,
+  PlannedExpense,
+  PlannedIncome,
   RecurringExpense,
   SavingsEntry,
   SavingsHistory,
@@ -22,6 +26,10 @@ class AppDB extends Dexie {
   categories!: Table<Category, number>
   spendingEntries!: Table<SpendingEntry, number>
   recurringExpenses!: Table<RecurringExpense, number>
+  plans!: Table<Plan, number>
+  plannedIncome!: Table<PlannedIncome, number>
+  plannedExpenses!: Table<PlannedExpense, number>
+  categoryBudgets!: Table<CategoryBudget, number>
   meta!: Table<MetaRecord, string>
 
   constructor() {
@@ -91,6 +99,13 @@ class AppDB extends Dexie {
             if (!entry.purpose) entry.purpose = 'savings'
           })
       })
+
+    this.version(6).stores({
+      plans: '++id',
+      plannedIncome: '++id, planId',
+      plannedExpenses: '++id, planId, categoryId',
+      categoryBudgets: '++id, categoryId',
+    })
   }
 }
 
@@ -106,5 +121,9 @@ export const BACKUP_TABLES = [
   'categories',
   'spendingEntries',
   'recurringExpenses',
+  'plans',
+  'plannedIncome',
+  'plannedExpenses',
+  'categoryBudgets',
   'meta',
 ] as const

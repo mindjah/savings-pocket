@@ -5,7 +5,7 @@ import type { Currency, RecurrenceType, SavingsTrackingMode, SpendingEntry } fro
 import { CURRENCIES, DEFAULT_SPENDING_CURRENCIES } from '../../lib/constants'
 import { formatDate, formatMoney, parseAmount, roundFiat, todayIso } from '../../lib/format'
 import { applyAutoDebit, reverseAutoDebit } from '../../lib/autoDebit'
-import { computeNextDate } from '../../lib/recurring'
+import { computeNextDate, recurringPreviewDates } from '../../lib/recurring'
 import { Modal } from '../common/Modal'
 import { useToast } from '../../hooks/useToast'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
@@ -38,6 +38,17 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
   const categories = useLiveQuery(() => db.categories.toArray(), [])
   const activeCategories = useMemo(() => categories?.filter((c) => !c.archived) ?? [], [categories])
   const categoryMap = useMemo(() => new Map((categories ?? []).map((c) => [c.id, c])), [categories])
+  const recurringExpenses = useLiveQuery(() => db.recurringExpenses.toArray(), []) ?? []
+  // Recurring expenses with an occurrence (among the next 12 previewed) that
+  // lands on this day but hasn't materialized into a real entry yet (only
+  // happens once the date arrives).
+  const plannedRecurring = useMemo(
+    () =>
+      recurringExpenses.filter(
+        (r) => r.active && recurringPreviewDates(r).includes(date) && !(entries ?? []).some((e) => e.recurringExpenseId === r.id),
+      ),
+    [recurringExpenses, date, entries],
+  )
   const [spendingCurrencies] = useMetaSetting<Currency[]>('enabledSpendingCurrencies', DEFAULT_SPENDING_CURRENCIES)
   const defaultCurrency = spendingCurrencies[0] ?? 'EUR'
   const [mode] = useMetaSetting<SavingsTrackingMode>('savingsTrackingMode', 'manual')
@@ -181,6 +192,12 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
           }
           if (recurring) {
             const intervalDaysValue = recurrenceType === 'custom' ? Math.round(parsedIntervalDays) : undefined
+            // If this first occurrence is still in the future, it hasn't
+            // actually happened yet — nextDate should stay on it (not the
+            // occurrence after) so "next billing date" reflects reality.
+            // materializeRecurringExpenses() skips re-creating a duplicate
+            // entry for it once that date arrives (see its dedup check).
+            const nextDate = date <= todayIso() ? computeNextDate(date, recurrenceType, intervalDaysValue) : date
             const recurringId = await db.recurringExpenses.add({
               categoryId,
               amount: parsed,
@@ -188,7 +205,7 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
               note: note.trim(),
               recurrenceType,
               intervalDays: intervalDaysValue,
-              nextDate: computeNextDate(date, recurrenceType, intervalDaysValue),
+              nextDate,
               active: true,
               debitedFromPocketId: mode === 'auto' && debitPocketId !== '' ? (debitPocketId as number) : undefined,
               createdAt: new Date().toISOString(),
@@ -218,13 +235,36 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
   // this again?" answerable when it actually shows up in the calendar.
   const noteRequired = editingId == null && (recurring || date > todayIso())
   const noteMissing = noteRequired && note.trim().length === 0
+
+  // Auto-debit floor check — mirrors Transfer's "can't go below zero" rule
+  // for a regular pocket. Only relevant when this save will actually charge
+  // the pocket right now (a future-dated expense's debit is deferred, and by
+  // the time it fires the balance may no longer look like this). Credits
+  // have no floor, same as everywhere else.
+  const selectedPocket = pocketsForCurrency.find((p) => p.id === debitPocketId)
+  const editingEntry = editingId != null ? entries?.find((e) => e.id === editingId) : undefined
+  const willDebitNow = mode === 'auto' && debitPocketId !== '' && date <= todayIso()
+  const parsedForDebitCheck = roundFiat(parseAmount(amount), currency)
+  let projectedPocketBalance: number | null = null
+  if (willDebitNow && selectedPocket && selectedPocket.kind !== 'credit') {
+    // Editing an entry already debited from this same pocket: undo that old
+    // debit first before checking the new amount against it.
+    const startingBalance =
+      editingEntry && editingEntry.debitedFromPocketId === selectedPocket.id
+        ? selectedPocket.amount + editingEntry.amount
+        : selectedPocket.amount
+    projectedPocketBalance = roundFiat(startingBalance - parsedForDebitCheck, currency)
+  }
+  const wouldGoNegative = projectedPocketBalance != null && projectedPocketBalance < 0
+
   const valid =
     categoryId !== '' &&
     roundFiat(parseAmount(amount), currency) > 0 &&
     !blockedNoPocket &&
     (mode !== 'auto' || debitPocketId !== '') &&
     (editingId != null || recurringValid) &&
-    (!noteRequired || note.trim().length > 0)
+    (!noteRequired || note.trim().length > 0) &&
+    !wouldGoNegative
 
   return (
     <Modal
@@ -264,6 +304,29 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
         </div>
       ) : (
         <>
+          {!quickAdd && plannedRecurring.length > 0 && (
+            <div className="entry-list">
+              {plannedRecurring.map((r) => {
+                const cat = categoryMap.get(r.categoryId)
+                return (
+                  <div className="day-entry-row" key={`planned-${r.id}`} style={{ opacity: 0.7 }}>
+                    <div className="info">
+                      <span className="swatch" style={{ background: cat?.color ?? '#888' }} />
+                      <div className="text">
+                        <div className="cat entry-badges">
+                          <span>{cat?.name ?? t('Unknown')}</span>
+                          <EntryBadges recurring recurringHappened={false} />
+                        </div>
+                        <div className="note">{t('Recurring expense planned for this day')}</div>
+                      </div>
+                    </div>
+                    <strong>{formatMoney(r.amount, r.currency)}</strong>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
           {!quickAdd && (entries ?? []).length > 0 && (
             <div className="entry-list">
               {entries!.map((e) => {
@@ -275,7 +338,11 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
                       <div className="text">
                         <div className="cat entry-badges">
                           <span>{cat?.name ?? t('Unknown')}</span>
-                          <EntryBadges recurring={e.recurringExpenseId != null} upcoming={e.date > todayIso()} />
+                          <EntryBadges
+                            recurring={e.recurringExpenseId != null}
+                            recurringHappened={e.date <= todayIso()}
+                            upcoming={e.date > todayIso()}
+                          />
                         </div>
                         {e.note && <div className="note">{e.note}</div>}
                       </div>
@@ -383,6 +450,12 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
                       </option>
                     ))}
                   </select>
+                  {wouldGoNegative && projectedPocketBalance != null && (
+                    <div className="muted" style={{ color: 'var(--danger-strong)' }}>
+                      {selectedPocket?.location} → {formatMoney(projectedPocketBalance, currency)}
+                      {t(" — can't go below zero")}
+                    </div>
+                  )}
                 </div>
               )
             )}

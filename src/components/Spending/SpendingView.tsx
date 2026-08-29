@@ -11,9 +11,15 @@ import { CategoryExpensesModal } from './CategoryExpensesModal'
 import { ManageMenuModal } from './ManageMenuModal'
 import { RecurringExpensesModal } from './RecurringExpensesModal'
 import { AnalyticsModal } from './AnalyticsModal'
+import { PlanningModal } from './PlanningModal'
+import { BudgetModal } from './BudgetModal'
+import { BudgetStatusModal } from './BudgetStatusModal'
 import { HeaderPortal } from '../common/HeaderPortal'
+import { ManageIcon } from '../common/ManageIcon'
 import { useTranslation } from '../../hooks/useTranslation'
 import { EntryBadges } from '../common/EntryBadges'
+import { recurringPreviewDates } from '../../lib/recurring'
+import { computeBudgetStatus } from '../../lib/planning'
 
 function daysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate()
@@ -36,8 +42,12 @@ export function SpendingView() {
   const [managingCategories, setManagingCategories] = useState(false)
   const [managingRecurring, setManagingRecurring] = useState(false)
   const [showAnalytics, setShowAnalytics] = useState(false)
+  const [showPlanning, setShowPlanning] = useState(false)
+  const [managingBudget, setManagingBudget] = useState(false)
+  const [showBudgetStatus, setShowBudgetStatus] = useState(false)
   const [categoryModalFor, setCategoryModalFor] = useState<{ categoryId: number; currency: Currency } | null>(null)
   const [spendingCurrencies] = useMetaSetting<Currency[]>('enabledSpendingCurrencies', DEFAULT_SPENDING_CURRENCIES)
+  const [budgetEnabled] = useMetaSetting<boolean>('budgetEnabled', false)
 
   const monthPrefix = `${year}-${pad2(month + 1)}`
   const entries = useLiveQuery(
@@ -46,6 +56,15 @@ export function SpendingView() {
   )
   const categories = useLiveQuery(() => db.categories.toArray(), [])
   const categoryMap = useMemo(() => new Map((categories ?? []).map((c) => [c.id, c])), [categories])
+  const recurringExpenses = useLiveQuery(() => db.recurringExpenses.toArray(), []) ?? []
+  // Each active recurring expense's next 12 occurrence dates — previewed on
+  // the calendar even before they're materialized into real entries (that
+  // only happens once a date actually arrives), so paging the calendar
+  // forward keeps showing it moving one period at a time, not just once.
+  const recurringPreviews = useMemo(
+    () => recurringExpenses.filter((r) => r.active).map((r) => ({ r, dates: recurringPreviewDates(r) })),
+    [recurringExpenses],
+  )
 
   // date -> currency -> total
   const totalsByDay = useMemo(() => {
@@ -55,8 +74,16 @@ export function SpendingView() {
       dayMap.set(e.currency, (dayMap.get(e.currency) ?? 0) + e.amount)
       map.set(e.date, dayMap)
     }
+    // Skipped wherever a real entry already exists for that date (that's
+    // what materializes a preview into an actual total).
+    for (const { r, dates } of recurringPreviews) {
+      for (const date of dates) {
+        if (map.has(date)) continue
+        map.set(date, new Map([[r.currency, r.amount]]))
+      }
+    }
     return map
-  }, [entries])
+  }, [entries, recurringPreviews])
 
   // date -> whether that day has a recurring-generated entry, or one dated
   // in the future (planned but not yet happened) — drives the tiny corner badges.
@@ -69,14 +96,37 @@ export function SpendingView() {
       if (e.date > today) flags.upcoming = true
       map.set(e.date, flags)
     }
+    for (const { dates } of recurringPreviews) {
+      for (const date of dates) {
+        const flags = map.get(date) ?? { recurring: false, upcoming: false }
+        flags.recurring = true
+        if (date > today) flags.upcoming = true
+        map.set(date, flags)
+      }
+    }
     return map
-  }, [entries])
+  }, [entries, recurringPreviews])
 
   const monthTotals: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0, JPY: 0, CNY: 0 }
   entries?.forEach((e) => {
     monthTotals[e.currency] += e.amount
   })
   const visibleCurrencies = CURRENCIES.filter((c) => spendingCurrencies.includes(c.code))
+
+  // Budget status always reflects the real current month, never whatever
+  // month is being browsed elsewhere on this screen.
+  const categoryBudgets = useLiveQuery(() => db.categoryBudgets.toArray(), []) ?? []
+  const realMonthPrefix = `${today.getFullYear()}-${pad2(today.getMonth() + 1)}`
+  const realMonthEntries =
+    useLiveQuery(() => db.spendingEntries.where('date').startsWith(realMonthPrefix).toArray(), [realMonthPrefix]) ?? []
+  const budgetStatus = useMemo(
+    () =>
+      budgetEnabled
+        ? computeBudgetStatus(categoryBudgets, realMonthEntries, today.getDate(), daysInMonth(today.getFullYear(), today.getMonth()))
+        : null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [budgetEnabled, categoryBudgets, realMonthEntries],
+  )
 
   // (categoryId, currency) breakdown, bar width normalized per-currency so amounts
   // in different currencies never get visually compared against each other.
@@ -130,8 +180,9 @@ export function SpendingView() {
   return (
     <div className="view">
       <HeaderPortal>
-        <button className="btn btn-accent-text" onClick={() => setManageMenuOpen(true)} type="button">
+        <button className="btn btn-accent-text manage-btn" onClick={() => setManageMenuOpen(true)} type="button">
           {t('Manage')}
+          <ManageIcon size={20} />
         </button>
       </HeaderPortal>
 
@@ -140,11 +191,12 @@ export function SpendingView() {
           {t('Total spent')} — {t(MONTH_NAMES[month])} {year}
         </h2>
         <button
-          className="btn btn-accent-text header-action-desktop"
+          className="btn btn-accent-text header-action-desktop manage-btn"
           onClick={() => setManageMenuOpen(true)}
           type="button"
         >
           {t('Manage')}
+          <ManageIcon size={20} />
         </button>
       </div>
       <div className="totals-row">
@@ -155,6 +207,36 @@ export function SpendingView() {
           </div>
         ))}
       </div>
+
+      {budgetStatus && (
+        <button
+          className="btn-ghost budget-status-text"
+          style={{
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            display: 'block',
+            width: 'fit-content',
+            fontSize: '0.82rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            color:
+              budgetStatus === 'green'
+                ? 'var(--accent)'
+                : budgetStatus === 'yellow'
+                  ? 'var(--warning)'
+                  : 'var(--danger-strong)',
+          }}
+          onClick={() => setShowBudgetStatus(true)}
+          type="button"
+        >
+          {budgetStatus === 'green'
+            ? t('Spending according to budget')
+            : budgetStatus === 'yellow'
+              ? t('Spending close to budget')
+              : t('Spending over the budget')}
+        </button>
+      )}
 
       <div className="card">
         <div className="calendar-header">
@@ -197,8 +279,9 @@ export function SpendingView() {
               >
                 <EntryBadges
                   recurring={badges?.recurring}
+                  recurringHappened={cell.date! <= todayStr}
                   upcoming={badges?.upcoming}
-                  size={9}
+                  size={16}
                   className="calendar-cell-badges"
                 />
                 <span className="day-num">{cell.day}</span>
@@ -288,6 +371,14 @@ export function SpendingView() {
             setManageMenuOpen(false)
             setShowAnalytics(true)
           }}
+          onPlanning={() => {
+            setManageMenuOpen(false)
+            setShowPlanning(true)
+          }}
+          onBudget={() => {
+            setManageMenuOpen(false)
+            setManagingBudget(true)
+          }}
         />
       )}
 
@@ -296,6 +387,20 @@ export function SpendingView() {
       {managingRecurring && <RecurringExpensesModal onClose={() => setManagingRecurring(false)} />}
 
       {showAnalytics && <AnalyticsModal onClose={() => setShowAnalytics(false)} />}
+
+      {showPlanning && (
+        <PlanningModal
+          onClose={() => setShowPlanning(false)}
+          onManageRecurring={() => {
+            setShowPlanning(false)
+            setManagingRecurring(true)
+          }}
+        />
+      )}
+
+      {managingBudget && <BudgetModal onClose={() => setManagingBudget(false)} />}
+
+      {showBudgetStatus && <BudgetStatusModal onClose={() => setShowBudgetStatus(false)} />}
 
       {categoryModalFor && (
         <CategoryExpensesModal

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import type { SavingsEntry, LoanEntry, Currency, SavingsTrackingMode } from '../../db/types'
@@ -19,12 +19,29 @@ import { NoteViewModal } from '../common/NoteViewModal'
 import { useTranslation } from '../../hooks/useTranslation'
 import { CardIcon } from '../common/CardIcon'
 import { CashIcon } from '../common/CashIcon'
+import { TransferIcon } from '../common/TransferIcon'
+import { TransferModal } from './TransferModal'
 
 type SubTab = 'mine' | 'credits' | 'lent'
 
-export function SavingsView() {
+interface Props {
+  resetKey: number
+}
+
+export function SavingsView({ resetKey }: Props) {
   const { t } = useTranslation()
   const [subTab, setSubTab] = useState<SubTab>('mine')
+
+  // resetKey bumps when the user re-taps the already-active Savings nav tab —
+  // jump back to My money, skipping the very first render (that's not a re-tap).
+  const isFirstResetRef = useRef(true)
+  useEffect(() => {
+    if (isFirstResetRef.current) {
+      isFirstResetRef.current = false
+      return
+    }
+    setSubTab('mine')
+  }, [resetKey])
   const [savingsCurrencies] = useMetaSetting<Currency[]>('enabledSavingsCurrencies', DEFAULT_SAVINGS_CURRENCIES)
   const [trackingMode] = useMetaSetting<SavingsTrackingMode>('savingsTrackingMode', 'manual')
   const [defaultPockets] = useMetaSetting<Partial<Record<Currency, number>>>('defaultSavingsPocketByCurrency', {})
@@ -48,6 +65,7 @@ export function SavingsView() {
   const [loanHistoryFor, setLoanHistoryFor] = useState<{ id: number; currency: Currency } | null>(null)
   const [viewingNote, setViewingNote] = useState<string | null>(null)
   const [showRates, setShowRates] = useState(false)
+  const [showTransfer, setShowTransfer] = useState(false)
 
   const defaultCurrency = savingsCurrencies[0] ?? 'EUR'
 
@@ -214,6 +232,10 @@ export function SavingsView() {
         <>
           <div className="section-title" style={{ marginTop: 8 }}>
             <h2>{t('My Pockets')}</h2>
+            <button className="btn btn-transfer" onClick={() => setShowTransfer(true)} type="button">
+              {t('Transfer')}
+              <TransferIcon size={16} />
+            </button>
           </div>
 
           {!entries || entries.length === 0 ? (
@@ -229,6 +251,10 @@ export function SavingsView() {
         <>
           <div className="section-title" style={{ marginTop: 8 }}>
             <h2>{t('Credits')}</h2>
+            <button className="btn btn-transfer" onClick={() => setShowTransfer(true)} type="button">
+              {t('Transfer')}
+              <TransferIcon size={16} />
+            </button>
           </div>
 
           {!credits || credits.length === 0 ? (
@@ -244,6 +270,10 @@ export function SavingsView() {
         <>
           <div className="section-title">
             <h2>{t('Lent out')}</h2>
+            <button className="btn btn-transfer" onClick={() => setShowTransfer(true)} type="button">
+              {t('Transfer')}
+              <TransferIcon size={16} />
+            </button>
           </div>
 
           {!loans || loans.length === 0 ? (
@@ -357,6 +387,8 @@ export function SavingsView() {
       {viewingNote != null && <NoteViewModal note={viewingNote} onClose={() => setViewingNote(null)} />}
 
       {showRates && <ExchangeRatesModal onClose={() => setShowRates(false)} />}
+
+      {showTransfer && <TransferModal onClose={() => setShowTransfer(false)} />}
     </div>
   )
 }

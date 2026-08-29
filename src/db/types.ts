@@ -109,6 +109,52 @@ export interface RecurringExpense {
   createdAt: string
 }
 
+// Planning sandbox — forward-looking "can I afford this" scratchpads, fully
+// decoupled from real pocket balances and the spending calendar. Never
+// written to by anything except the planning screens themselves. Multiple
+// named plans can exist; each owns its own income/expense line items.
+export interface Plan {
+  id?: number
+  name: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PlannedIncome {
+  id?: number
+  planId: number
+  source: string
+  amount: number
+  currency: Currency
+  createdAt: string
+}
+
+export interface PlannedExpense {
+  id?: number
+  planId: number
+  categoryId: number
+  amount: number
+  currency: Currency
+  note: string
+  createdAt: string
+}
+
+// A standing monthly spending target per category — always compared against
+// "the current calendar month," same as recurring expenses' fixed amounts.
+// Multiple entries per category are allowed (e.g. a couple of line items
+// that together make up that category's budget) — same shape as planned
+// expenses. Purely a tracking/comparison layer: never written to
+// spendingEntries, savingsEntries, or the calendar.
+export interface CategoryBudget {
+  id?: number
+  categoryId: number
+  amount: number
+  currency: Currency
+  note: string
+  createdAt: string
+  updatedAt: string
+}
+
 export type SavingsTrackingMode = 'manual' | 'auto'
 
 export type Language = 'en' | 'ru'

@@ -62,7 +62,11 @@ export function CategoryExpensesModal({ categoryId, currency, categoryName, cate
                 <div className="text">
                   <div className="cat entry-badges">
                     <span>{formatDate(e.date, lang)}</span>
-                    <EntryBadges recurring={e.recurringExpenseId != null} upcoming={e.date > todayIso()} />
+                    <EntryBadges
+                      recurring={e.recurringExpenseId != null}
+                      recurringHappened={e.date <= todayIso()}
+                      upcoming={e.date > todayIso()}
+                    />
                   </div>
                   {e.note && (
                     <div className="note" style={{ whiteSpace: 'normal', overflow: 'visible', textOverflow: 'unset' }}>

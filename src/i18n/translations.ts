@@ -53,6 +53,17 @@ export const RU: Record<string, string> = {
   'Include credits in net worth': 'Учитывать кредиты в общем капитале',
   'Credits are excluded from Total net worth by default': 'По умолчанию кредиты не учитываются в общем капитале',
 
+  // Transfer
+  Transfer: 'Перевод',
+  Pockets: 'Копилки',
+  'Move from': 'Откуда',
+  'Move to': 'Куда',
+  'Move money between any of your own pockets, credits, and loans.':
+    'Переводите деньги между любыми своими копилками, кредитами и займами.',
+  'No other account in this currency to transfer to.': 'Нет другого счёта в этой валюте, куда можно перевести.',
+  'Transfer completed': 'Перевод выполнен',
+  'e.g. Moving savings to a better rate account': 'напр. Перенос сбережений на счёт с лучшей ставкой',
+
   // Loan form
   'Add loan': 'Добавить займ',
   'Edit loan': 'Изменить займ',
@@ -173,6 +184,7 @@ export const RU: Record<string, string> = {
   'Total spent': 'Потрачено всего',
   'No spending logged this month yet. Tap any day to add an expense.':
     'В этом месяце расходов пока нет. Нажмите на день, чтобы добавить расход.',
+  'Recurring expense planned for this day': 'На этот день запланирован повторяющийся расход',
   'By category': 'По категориям',
   Date: 'Дата',
   'Previous month': 'Предыдущий месяц',
@@ -213,6 +225,75 @@ export const RU: Record<string, string> = {
   'Manage Categories': 'Управление категориями',
   'Manage Recurring Expenses': 'Управление регулярными расходами',
   Analytics: 'Аналитика',
+  'Planning sandbox': 'Песочница планирования',
+  'Manage budget': 'Управление бюджетом',
+
+  // Monthly planning
+  'A sandbox to see what you can afford this month — separate from your real pockets and spending until it actually happens. Save multiple named plans to compare.':
+    'Песочница, чтобы увидеть, что вы можете себе позволить в этом месяце — отдельно от реальных копилок и расходов, пока это не произойдёт на самом деле. Сохраняйте несколько именованных планов, чтобы сравнивать.',
+  'No plans yet. Create one below to start sketching out a month.':
+    'Пока нет планов. Создайте один ниже, чтобы начать планировать месяц.',
+  'New plan name': 'Название нового плана',
+  'e.g. Typical month': 'напр. Обычный месяц',
+  'Create plan': 'Создать план',
+  'Plan created': 'План создан',
+  'Plan deleted': 'План удалён',
+  'this plan': 'этот план',
+  'Delete this plan': 'Удалить этот план',
+  'Planned income': 'Планируемый доход',
+  'No planned income yet.': 'Пока нет запланированного дохода.',
+  Source: 'Источник',
+  'e.g. Salary': 'напр. Зарплата',
+  'Add income': 'Добавить доход',
+  'Fixed expenses': 'Фиксированные расходы',
+  'No recurring expenses due this month.': 'В этом месяце нет предстоящих регулярных расходов.',
+  'Other planned expenses': 'Другие планируемые расходы',
+  'No other planned expenses yet.': 'Пока нет других планируемых расходов.',
+  'Add planned expense': 'Добавить планируемый расход',
+  'Save plan': 'Сохранить план',
+  'Plan saved': 'План сохранён',
+  'Add at least one income source and one expense before saving.':
+    'Добавьте хотя бы один источник дохода и один расход перед сохранением.',
+  Summary: 'Итого',
+  'Add planned income or expenses to see a summary.': 'Добавьте планируемый доход или расходы, чтобы увидеть итоги.',
+  Income: 'Доход',
+  'Other planned': 'Другое планируемое',
+  Remaining: 'Осталось',
+  'Per category': 'По категориям',
+  'No planned expenses in any category yet.': 'Пока нет планируемых расходов ни в одной категории.',
+  Planned: 'Запланировано',
+  Actual: 'Фактически',
+
+  // Budget
+  'Enable budget tracking': 'Включить отслеживание бюджета',
+  'Shows a spending-pace warning under Total spent on the Spending screen':
+    'Показывает предупреждение о темпе расходов под «Потрачено всего» на экране расходов',
+  'Fill from a saved plan': 'Заполнить из сохранённого плана',
+  'This will replace your current (unsaved) budget with this plan. Continue?':
+    'Это заменит ваш текущий (несохранённый) бюджет этим планом. Продолжить?',
+  Apply: 'Применить',
+  'Budget filled from plan': 'Бюджет заполнен из плана',
+  'Total budget': 'Общий бюджет',
+  'No total budget set yet.': 'Общий бюджет ещё не задан.',
+  'Add total budget': 'Добавить общий бюджет',
+  'Enter a total budget amount before saving.': 'Введите сумму общего бюджета перед сохранением.',
+  Allocated: 'Распределено',
+  'Budget expenses': 'Бюджетные расходы',
+  'No budget expenses yet.': 'Пока нет бюджетных расходов.',
+  'Add budget expense': 'Добавить бюджетный расход',
+  'Save budget': 'Сохранить бюджет',
+  'Budget saved': 'Бюджет сохранён',
+  'Budget expenses exceed the total budget. Reduce them or raise the total before saving.':
+    'Бюджетные расходы превышают общий бюджет. Уменьшите их или увеличьте общий бюджет перед сохранением.',
+  'From plan:': 'Из плана:',
+  'Budget status': 'Статус бюджета',
+  'No budget set yet. Set one up in Manage budget.': 'Бюджет ещё не задан. Настройте его в разделе «Управление бюджетом».',
+  Budget: 'Бюджет',
+  'Remove budget': 'Удалить бюджет',
+  Spent: 'Потрачено',
+  'Spending according to budget': 'Расходы в рамках бюджета',
+  'Spending close to budget': 'Расходы близки к бюджету',
+  'Spending over the budget': 'Расходы превышают бюджет',
 
   // Recurring expenses
   'Manage recurring expenses': 'Управление регулярными расходами',
@@ -384,6 +465,12 @@ export function tDeleteConfirmBody(lang: Language, itemLabel: string): string {
     return `Это навсегда удалит ${itemLabel} и всю её историю. Введите DELETE, чтобы продолжить.`
   }
   return `This will permanently delete ${itemLabel} and its full history. Type DELETE to continue.`
+}
+
+export function tBudgetExceeded(lang: Language, remainingLabel: string): string {
+  return lang === 'ru'
+    ? `Это превышает общий бюджет. Осталось распределить: ${remainingLabel}.`
+    : `This exceeds your total budget. You have ${remainingLabel} left to allocate.`
 }
 
 export function tDriveBackupConflict(lang: Language, remoteModifiedAt: string): string {

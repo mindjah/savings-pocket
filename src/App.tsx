@@ -81,7 +81,19 @@ function AppShell() {
     return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [faceIdEnabled])
 
+  const [savingsResetKey, setSavingsResetKey] = useState(0)
+
   function handleChange(next: Tab) {
+    if (next === tab) {
+      // Re-tapping the already-active Savings tab jumps back to its first
+      // sub-tab and scrolls up — the same "tap to go home" pattern as most
+      // apps' bottom nav bars.
+      if (next === 'savings') {
+        setSavingsResetKey((k) => k + 1)
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+      return
+    }
     setTab(next)
     localStorage.setItem(STORAGE_KEY, next)
   }
@@ -98,7 +110,7 @@ function AppShell() {
       </header>
       <NavBar active={tab} onChange={handleChange} />
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {tab === 'savings' && <SavingsView />}
+        {tab === 'savings' && <SavingsView resetKey={savingsResetKey} />}
         {tab === 'crypto' && <CryptoView />}
         {tab === 'spending' && <SpendingView />}
         {tab === 'settings' && <SettingsView />}

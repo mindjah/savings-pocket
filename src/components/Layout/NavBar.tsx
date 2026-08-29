@@ -1,14 +1,17 @@
 import type { ReactNode } from 'react'
 import { BitcoinIcon } from '../common/BitcoinIcon'
+import { SavingsNavIcon } from '../common/SavingsNavIcon'
+import { CalendarNavIcon } from '../common/CalendarNavIcon'
+import { SettingsNavIcon } from '../common/SettingsNavIcon'
 import { useTranslation } from '../../hooks/useTranslation'
 
 export type Tab = 'savings' | 'crypto' | 'spending' | 'settings'
 
 const TABS: { key: Tab; label: string; icon: ReactNode }[] = [
-  { key: 'savings', label: 'Savings', icon: '💰' },
+  { key: 'savings', label: 'Savings', icon: <SavingsNavIcon size={20} /> },
   { key: 'crypto', label: 'Crypto', icon: <BitcoinIcon size={20} /> },
-  { key: 'spending', label: 'Spending', icon: '📅' },
-  { key: 'settings', label: 'Settings', icon: '⚙️' },
+  { key: 'spending', label: 'Spending', icon: <CalendarNavIcon size={20} /> },
+  { key: 'settings', label: 'Settings', icon: <SettingsNavIcon size={20} /> },
 ]
 
 interface Props {

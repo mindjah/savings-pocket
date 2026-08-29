@@ -141,6 +141,10 @@ h1, h2, h3, p {
   display: none;
 }
 
+.manage-btn {
+  font-size: 1.05rem;
+}
+
 .desktop-header-row {
   display: none;
 }
@@ -484,6 +488,13 @@ h1, h2, h3, p {
   border-color: color-mix(in srgb, var(--danger) 40%, var(--border));
 }
 
+.btn-transfer {
+  background: none;
+  border-color: transparent;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+}
+
 .btn-block {
   width: 100%;
 }
@@ -602,6 +613,20 @@ h1, h2, h3, p {
   flex: 1;
 }
 
+.transfer-row-icon {
+  flex: 0 0 auto;
+  align-self: flex-end;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-bottom: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+}
+
 .segmented {
   display: flex;
   background: var(--surface);
@@ -718,8 +743,13 @@ h1, h2, h3, p {
 
 .calendar-cell-badges {
   position: absolute;
-  top: 3px;
-  right: 3px;
+  top: -7px;
+  right: -7px;
+  z-index: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 4px;
 }
 
 .calendar-cell.pad {
@@ -762,6 +792,26 @@ h1, h2, h3, p {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 10px 12px;
+}
+
+.list-frame {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.list-frame-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.list-frame-row:not(:last-child) {
+  border-bottom: 1px solid var(--border);
 }
 
 .switch {
