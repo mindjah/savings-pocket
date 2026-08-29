@@ -491,8 +491,12 @@ h1, h2, h3, p {
 .btn-transfer {
   background: none;
   border-color: transparent;
-  padding: 6px 12px;
-  font-size: 0.82rem;
+  padding: 8px 14px;
+  font-size: 0.95rem;
+}
+
+.section-title-bottom {
+  align-items: baseline;
 }
 
 .btn-block {
@@ -746,10 +750,17 @@ h1, h2, h3, p {
   top: -7px;
   right: -7px;
   z-index: 1;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: transparent;
   border-radius: 999px;
   padding: 2px 4px;
+  transform: scale(0.78);
+  transform-origin: top right;
+}
+
+@media (min-width: 860px) {
+  .calendar-cell-badges {
+    transform: none;
+  }
 }
 
 .calendar-cell.pad {

@@ -230,12 +230,14 @@ export function SavingsView({ resetKey }: Props) {
 
       {subTab === 'mine' ? (
         <>
-          <div className="section-title" style={{ marginTop: 8 }}>
+          <div className="section-title section-title-bottom" style={{ marginTop: 8 }}>
             <h2>{t('My Pockets')}</h2>
-            <button className="btn btn-transfer" onClick={() => setShowTransfer(true)} type="button">
-              {t('Transfer')}
-              <TransferIcon size={16} />
-            </button>
+            {entries && entries.length > 0 && (
+              <button className="btn btn-transfer" onClick={() => setShowTransfer(true)} type="button">
+                {t('Transfer')}
+                <TransferIcon size={20} />
+              </button>
+            )}
           </div>
 
           {!entries || entries.length === 0 ? (
@@ -249,12 +251,14 @@ export function SavingsView({ resetKey }: Props) {
         </>
       ) : subTab === 'credits' ? (
         <>
-          <div className="section-title" style={{ marginTop: 8 }}>
+          <div className="section-title section-title-bottom" style={{ marginTop: 8 }}>
             <h2>{t('Credits')}</h2>
-            <button className="btn btn-transfer" onClick={() => setShowTransfer(true)} type="button">
-              {t('Transfer')}
-              <TransferIcon size={16} />
-            </button>
+            {credits && credits.length > 0 && (
+              <button className="btn btn-transfer" onClick={() => setShowTransfer(true)} type="button">
+                {t('Transfer')}
+                <TransferIcon size={20} />
+              </button>
+            )}
           </div>
 
           {!credits || credits.length === 0 ? (
@@ -268,12 +272,14 @@ export function SavingsView({ resetKey }: Props) {
         </>
       ) : (
         <>
-          <div className="section-title">
+          <div className="section-title section-title-bottom">
             <h2>{t('Lent out')}</h2>
-            <button className="btn btn-transfer" onClick={() => setShowTransfer(true)} type="button">
-              {t('Transfer')}
-              <TransferIcon size={16} />
-            </button>
+            {loans && loans.length > 0 && (
+              <button className="btn btn-transfer" onClick={() => setShowTransfer(true)} type="button">
+                {t('Transfer')}
+                <TransferIcon size={20} />
+              </button>
+            )}
           </div>
 
           {!loans || loans.length === 0 ? (
