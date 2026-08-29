@@ -64,6 +64,141 @@ function BudgetEntryRow({ entry, category, currencyOptions, onChange, onDelete, 
   )
 }
 
+interface AddTotalBudgetModalProps {
+  currencyOptions: { code: Currency; symbol: string }[]
+  defaultCurrency: Currency
+  onAdd: (currency: Currency, amount: number) => void
+  onClose: () => void
+}
+
+function AddTotalBudgetModal({ currencyOptions, defaultCurrency, onAdd, onClose }: AddTotalBudgetModalProps) {
+  const { t } = useTranslation()
+  const [amount, setAmount] = useState('')
+  const [currency, setCurrency] = useState<Currency>(defaultCurrency)
+  const parsed = roundFiat(parseAmount(amount), currency)
+  const valid = !Number.isNaN(parsed) && parsed > 0
+
+  function submit() {
+    if (!valid) return
+    onAdd(currency, parsed)
+    onClose()
+  }
+
+  return (
+    <Modal title={t('Add total budget')} onClose={onClose}>
+      <div className="form-row">
+        <div className="form-group">
+          <label htmlFor="newTotalBudgetAmount">{t('Amount')}</label>
+          <input
+            id="newTotalBudgetAmount"
+            type="text"
+            inputMode="decimal"
+            autoFocus
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && submit()}
+            placeholder="0.00"
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="newTotalBudgetCurrency">{t('Currency')}</label>
+          <select id="newTotalBudgetCurrency" value={currency} onChange={(e) => setCurrency(e.target.value as Currency)}>
+            {currencyOptions.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.symbol} {c.code}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <button className={`btn btn-block${valid ? ' btn-primary' : ''}`} onClick={submit} disabled={!valid} type="button">
+        {t('Add total budget')}
+      </button>
+    </Modal>
+  )
+}
+
+interface AddBudgetExpenseModalProps {
+  categories: Category[]
+  currencyOptions: { code: Currency; symbol: string }[]
+  defaultCurrency: Currency
+  onAdd: (categoryId: number, amount: number, currency: Currency, note: string) => void
+  onClose: () => void
+}
+
+function AddBudgetExpenseModal({ categories, currencyOptions, defaultCurrency, onAdd, onClose }: AddBudgetExpenseModalProps) {
+  const { t } = useTranslation()
+  const [categoryId, setCategoryId] = useState<number | ''>('')
+  const [amount, setAmount] = useState('')
+  const [currency, setCurrency] = useState<Currency>(defaultCurrency)
+  const [note, setNote] = useState('')
+  const parsed = roundFiat(parseAmount(amount), currency)
+  const valid = categoryId !== '' && !Number.isNaN(parsed) && parsed > 0
+
+  function submit() {
+    if (!valid) return
+    onAdd(categoryId as number, parsed, currency, note.trim())
+    onClose()
+  }
+
+  return (
+    <Modal title={t('Add budget expense')} onClose={onClose}>
+      <div className="form-group">
+        <label htmlFor="newBudgetCategory">{t('Category')}</label>
+        <select
+          id="newBudgetCategory"
+          autoFocus
+          value={categoryId}
+          onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : '')}
+        >
+          <option value="">{t('Select…')}</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="form-row">
+        <div className="form-group">
+          <label htmlFor="newBudgetAmount">{t('Amount')}</label>
+          <input
+            id="newBudgetAmount"
+            type="text"
+            inputMode="decimal"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="0.00"
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="newBudgetCurrency">{t('Currency')}</label>
+          <select id="newBudgetCurrency" value={currency} onChange={(e) => setCurrency(e.target.value as Currency)}>
+            {currencyOptions.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.symbol} {c.code}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <div className="form-group">
+        <label htmlFor="newBudgetNote">{t('Note')}</label>
+        <input
+          id="newBudgetNote"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && submit()}
+          placeholder={t('Optional')}
+        />
+      </div>
+      <button className={`btn btn-block${valid ? ' btn-primary' : ''}`} onClick={submit} disabled={!valid} type="button">
+        {t('Add budget expense')}
+      </button>
+    </Modal>
+  )
+}
+
 export function BudgetModal({ onClose }: Props) {
   const { t } = useTranslation()
   const toast = useToast()
@@ -81,6 +216,9 @@ export function BudgetModal({ onClose }: Props) {
   const [draftTotalInputs, setDraftTotalInputs] = useState<Partial<Record<Currency, string>>>({})
   const [draftBudgets, setDraftBudgets] = useState<CategoryBudget[]>([])
   const [draftLoaded, setDraftLoaded] = useState(false)
+  // Tracks whether the draft has diverged from what's actually saved, so
+  // closing the modal can warn instead of silently discarding it.
+  const [dirty, setDirty] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -132,45 +270,37 @@ export function BudgetModal({ onClose }: Props) {
   const hasTotalBudget = totalsByCurrency.length > 0
   const canSaveBudget = hasTotalBudget && overAllocatedCurrencies.length === 0
 
-  // --- add-total-budget form ---
-  const [newTotalAmount, setNewTotalAmount] = useState('')
-  const [newTotalCurrency, setNewTotalCurrency] = useState<Currency>(defaultCurrency)
-  const parsedNewTotalAmount = roundFiat(parseAmount(newTotalAmount), newTotalCurrency)
-  const newTotalValid = !Number.isNaN(parsedNewTotalAmount) && parsedNewTotalAmount > 0
+  const [showAddTotal, setShowAddTotal] = useState(false)
+  const [showAddEntry, setShowAddEntry] = useState(false)
 
-  function addTotalBudget() {
-    if (!newTotalValid) return
-    setDraftTotalInputs((prev) => ({ ...prev, [newTotalCurrency]: String(parsedNewTotalAmount) }))
-    setNewTotalAmount('')
+  function addTotalBudget(currency: Currency, amount: number) {
+    setDraftTotalInputs((prev) => ({ ...prev, [currency]: String(amount) }))
+    setDirty(true)
+  }
+
+  function removeTotalBudget(currency: Currency) {
+    setDraftTotalInputs((prev) => {
+      const next = { ...prev }
+      delete next[currency]
+      return next
+    })
+    setDirty(true)
+  }
+
+  function changeTotalBudgetAmount(currency: Currency, value: string) {
+    setDraftTotalInputs((prev) => ({ ...prev, [currency]: value }))
+    setDirty(true)
   }
 
   const [selectedPlanId, setSelectedPlanId] = useState<number | ''>('')
 
-  // --- add form ---
-  const [entryCategoryId, setEntryCategoryId] = useState<number | ''>('')
-  const [entryAmount, setEntryAmount] = useState('')
-  const [entryCurrency, setEntryCurrency] = useState<Currency>(defaultCurrency)
-  const [entryNote, setEntryNote] = useState('')
-  const parsedEntryAmount = roundFiat(parseAmount(entryAmount), entryCurrency)
-  const entryValid = entryCategoryId !== '' && !Number.isNaN(parsedEntryAmount) && parsedEntryAmount > 0
-
-  function addEntry() {
-    if (!entryValid) return
+  function addEntry(categoryId: number, amount: number, currency: Currency, note: string) {
     const now = new Date().toISOString()
     setDraftBudgets((prev) => [
       ...prev,
-      {
-        id: nextTempId(),
-        categoryId: entryCategoryId as number,
-        amount: parsedEntryAmount,
-        currency: entryCurrency,
-        note: entryNote.trim(),
-        createdAt: now,
-        updatedAt: now,
-      },
+      { id: nextTempId(), categoryId, amount, currency, note, createdAt: now, updatedAt: now },
     ])
-    setEntryAmount('')
-    setEntryNote('')
+    setDirty(true)
   }
 
   function updateEntry(id: number, amountStr: string, currency: Currency) {
@@ -179,11 +309,13 @@ export function BudgetModal({ onClose }: Props) {
     setDraftBudgets((prev) =>
       prev.map((b) => (b.id === id ? { ...b, amount: parsed, currency, updatedAt: new Date().toISOString() } : b)),
     )
+    setDirty(true)
   }
 
   function deleteEntry(id?: number) {
     if (id == null) return
     setDraftBudgets((prev) => prev.filter((b) => b.id !== id))
+    setDirty(true)
   }
 
   async function fillFromPlan() {
@@ -222,6 +354,7 @@ export function BudgetModal({ onClose }: Props) {
       })
       return next
     })
+    setDirty(true)
     toast(t('Budget filled from plan'))
   }
 
@@ -255,203 +388,158 @@ export function BudgetModal({ onClose }: Props) {
     onClose()
   }
 
+  function handleClose() {
+    if (dirty && !confirm(t('You have unsaved changes. Close without saving?'))) return
+    onClose()
+  }
+
   if (!draftLoaded) return null
 
   return (
-    <Modal title={t('Manage budget')} onClose={onClose}>
-      <div className="settings-row">
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div>{t('Enable budget tracking')}</div>
-          <div className="muted">{t('Shows a spending-pace warning under Total spent on the Spending screen')}</div>
-        </div>
-        <label className="switch" style={{ flexShrink: 0 }}>
-          <input
-            type="checkbox"
-            checked={budgetEnabled}
-            onChange={(e) => setBudgetEnabled(e.target.checked)}
-            aria-label={t('Enable budget tracking')}
-          />
-          <span className="switch-track">
-            <span className="switch-thumb" />
-          </span>
-        </label>
-      </div>
-
-      <div className="section-title">
-        <h2>{t('Fill from a saved plan')}</h2>
-      </div>
-      <div className="form-row" style={{ marginBottom: 10 }}>
-        <div className="form-group" style={{ flex: 1 }}>
-          <select value={selectedPlanId} onChange={(e) => setSelectedPlanId(e.target.value ? Number(e.target.value) : '')}>
-            <option value="">{t('Select…')}</option>
-            {plans.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <button className="btn btn-primary" onClick={fillFromPlan} disabled={selectedPlanId === ''} type="button">
-          {t('Apply')}
-        </button>
-      </div>
-
-      <div className="section-title">
-        <h2>{t('Total budget')}</h2>
-      </div>
-      {totalsByCurrency.length === 0 ? (
-        <div className="muted">{t('No total budget set yet.')}</div>
-      ) : (
-        <div className="list-frame">
-          {totalsByCurrency.map(({ currency, amount }) => {
-            const allocated = allocatedInCurrency(currency)
-            const over = allocated > amount
-            return (
-              <div className="list-frame-row" key={currency}>
-                <div style={{ flex: 1 }}>
-                  <div>{currency}</div>
-                  <div className="muted" style={{ fontSize: '0.82rem', color: over ? 'var(--danger-strong)' : undefined }}>
-                    {t('Allocated')}: {formatMoney(allocated, currency)} / {formatMoney(amount, currency)}
-                  </div>
-                </div>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={draftTotalInputs[currency] ?? ''}
-                  onChange={(e) => setDraftTotalInputs((prev) => ({ ...prev, [currency]: e.target.value }))}
-                  placeholder="0.00"
-                  style={{ width: 80 }}
-                />
-                <button
-                  className="btn btn-ghost btn-icon"
-                  onClick={() =>
-                    setDraftTotalInputs((prev) => {
-                      const next = { ...prev }
-                      delete next[currency]
-                      return next
-                    })
-                  }
-                  type="button"
-                  aria-label={t('Remove budget')}
-                >
-                  <DeleteIcon />
-                </button>
-              </div>
-            )
-          })}
-        </div>
-      )}
-      <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="totalBudgetAmount">{t('Amount')}</label>
-          <input
-            id="totalBudgetAmount"
-            type="text"
-            inputMode="decimal"
-            value={newTotalAmount}
-            onChange={(e) => setNewTotalAmount(e.target.value)}
-            placeholder="0.00"
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="totalBudgetCurrency">{t('Currency')}</label>
-          <select id="totalBudgetCurrency" value={newTotalCurrency} onChange={(e) => setNewTotalCurrency(e.target.value as Currency)}>
-            {currencyOptions.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.symbol} {c.code}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-      <button
-        className="btn btn-block"
-        onClick={addTotalBudget}
-        disabled={!newTotalValid}
-        type="button"
-        style={{ marginBottom: 10 }}
-      >
-        {t('Add total budget')}
-      </button>
-
-      <div className="section-title">
-        <h2>{t('Budget expenses')}</h2>
-      </div>
-      {sortedBudgets.length === 0 ? (
-        <div className="muted">{t('No budget expenses yet.')}</div>
-      ) : (
-        <div className="list-frame">
-          {sortedBudgets.map((b) => (
-            <BudgetEntryRow
-              key={b.id}
-              entry={b}
-              category={categoryMap.get(b.categoryId)}
-              currencyOptions={currencyOptions}
-              onChange={(amount, currency) => updateEntry(b.id!, amount, currency)}
-              onDelete={() => deleteEntry(b.id)}
-              removeLabel={t('Remove budget')}
-            />
-          ))}
-        </div>
-      )}
-      <div className="form-group">
-        <label htmlFor="budgetCategory">{t('Category')}</label>
-        <select
-          id="budgetCategory"
-          value={entryCategoryId}
-          onChange={(e) => setEntryCategoryId(e.target.value ? Number(e.target.value) : '')}
-        >
-          <option value="">{t('Select…')}</option>
-          {activeCategories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="form-row">
-        <div className="form-group">
-          <label htmlFor="budgetAmount">{t('Amount')}</label>
-          <input
-            id="budgetAmount"
-            type="text"
-            inputMode="decimal"
-            value={entryAmount}
-            onChange={(e) => setEntryAmount(e.target.value)}
-            placeholder="0.00"
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="budgetCurrency">{t('Currency')}</label>
-          <select id="budgetCurrency" value={entryCurrency} onChange={(e) => setEntryCurrency(e.target.value as Currency)}>
-            {currencyOptions.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.symbol} {c.code}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-      <div className="form-group">
-        <label htmlFor="budgetNote">{t('Note')}</label>
-        <input id="budgetNote" value={entryNote} onChange={(e) => setEntryNote(e.target.value)} placeholder={t('Optional')} />
-      </div>
-      <button className="btn btn-block" onClick={addEntry} disabled={!entryValid} type="button">
-        {t('Add budget expense')}
-      </button>
-
-      <div style={{ borderTop: '1px solid var(--border)', marginTop: 20, paddingTop: 16 }}>
-        <button className="btn btn-primary btn-block" onClick={saveBudget} disabled={!canSaveBudget} type="button">
-          {t('Save budget')}
-        </button>
-        {!canSaveBudget && (
-          <div className="muted" style={{ textAlign: 'center', marginTop: 8, color: 'var(--danger-strong)' }}>
-            {!hasTotalBudget
-              ? t('Enter a total budget amount before saving.')
-              : t('Budget expenses exceed the total budget. Reduce them or raise the total before saving.')}
+    <>
+      <Modal title={t('Manage budget')} onClose={handleClose}>
+        <div className="settings-row">
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div>{t('Enable budget tracking')}</div>
+            <div className="muted">{t('Shows a spending-pace warning under Total spent on the Spending screen')}</div>
           </div>
-        )}
-      </div>
-    </Modal>
+          <label className="switch" style={{ flexShrink: 0 }}>
+            <input
+              type="checkbox"
+              checked={budgetEnabled}
+              onChange={(e) => setBudgetEnabled(e.target.checked)}
+              aria-label={t('Enable budget tracking')}
+            />
+            <span className="switch-track">
+              <span className="switch-thumb" />
+            </span>
+          </label>
+        </div>
+
+        <div className="section-title">
+          <h2>{t('Fill from a saved plan')}</h2>
+        </div>
+        <div className="card settings-list">
+          <div className="form-row" style={{ margin: 0 }}>
+            <div className="form-group" style={{ flex: 1 }}>
+              <select value={selectedPlanId} onChange={(e) => setSelectedPlanId(e.target.value ? Number(e.target.value) : '')}>
+                <option value="">{t('Select…')}</option>
+                {plans.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button className="btn btn-primary" onClick={fillFromPlan} disabled={selectedPlanId === ''} type="button">
+              {t('Apply')}
+            </button>
+          </div>
+        </div>
+
+        <div className="section-title">
+          <h2>{t('Total budget')}</h2>
+        </div>
+        <div className="card settings-list">
+          {totalsByCurrency.length === 0 ? (
+            <div className="muted">{t('No total budget set yet.')}</div>
+          ) : (
+            <div className="list-frame">
+              {totalsByCurrency.map(({ currency, amount }) => {
+                const allocated = allocatedInCurrency(currency)
+                const over = allocated > amount
+                return (
+                  <div className="list-frame-row" key={currency}>
+                    <div style={{ flex: 1 }}>
+                      <div>{currency}</div>
+                      <div className="muted" style={{ fontSize: '0.82rem', color: over ? 'var(--danger-strong)' : undefined }}>
+                        {t('Allocated')}: {formatMoney(allocated, currency)} / {formatMoney(amount, currency)}
+                      </div>
+                    </div>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={draftTotalInputs[currency] ?? ''}
+                      onChange={(e) => changeTotalBudgetAmount(currency, e.target.value)}
+                      placeholder="0.00"
+                      style={{ width: 80 }}
+                    />
+                    <button
+                      className="btn btn-ghost btn-icon"
+                      onClick={() => removeTotalBudget(currency)}
+                      type="button"
+                      aria-label={t('Remove budget')}
+                    >
+                      <DeleteIcon />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          <button className="btn btn-accent-outline btn-block" onClick={() => setShowAddTotal(true)} type="button">
+            {t('Add total budget')}
+          </button>
+        </div>
+
+        <div className="section-title">
+          <h2>{t('Budget expenses')}</h2>
+        </div>
+        <div className="card settings-list">
+          {sortedBudgets.length === 0 ? (
+            <div className="muted">{t('No budget expenses yet.')}</div>
+          ) : (
+            <div className="list-frame">
+              {sortedBudgets.map((b) => (
+                <BudgetEntryRow
+                  key={b.id}
+                  entry={b}
+                  category={categoryMap.get(b.categoryId)}
+                  currencyOptions={currencyOptions}
+                  onChange={(amount, currency) => updateEntry(b.id!, amount, currency)}
+                  onDelete={() => deleteEntry(b.id)}
+                  removeLabel={t('Remove budget')}
+                />
+              ))}
+            </div>
+          )}
+          <button className="btn btn-accent-outline btn-block" onClick={() => setShowAddEntry(true)} type="button">
+            {t('Add budget expense')}
+          </button>
+        </div>
+
+        <div style={{ borderTop: '1px solid var(--border)', marginTop: 20, paddingTop: 16 }}>
+          <button className="btn btn-primary btn-block" onClick={saveBudget} disabled={!canSaveBudget} type="button">
+            {t('Save budget')}
+          </button>
+          {!canSaveBudget && (
+            <div className="muted" style={{ textAlign: 'center', marginTop: 8, color: 'var(--danger-strong)' }}>
+              {!hasTotalBudget
+                ? t('Enter a total budget amount before saving.')
+                : t('Budget expenses exceed the total budget. Reduce them or raise the total before saving.')}
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {showAddTotal && (
+        <AddTotalBudgetModal
+          currencyOptions={currencyOptions}
+          defaultCurrency={defaultCurrency}
+          onAdd={addTotalBudget}
+          onClose={() => setShowAddTotal(false)}
+        />
+      )}
+
+      {showAddEntry && (
+        <AddBudgetExpenseModal
+          categories={activeCategories}
+          currencyOptions={currencyOptions}
+          defaultCurrency={defaultCurrency}
+          onAdd={addEntry}
+          onClose={() => setShowAddEntry(false)}
+        />
+      )}
+    </>
   )
 }

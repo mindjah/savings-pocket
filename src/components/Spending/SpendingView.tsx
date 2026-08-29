@@ -116,16 +116,23 @@ export function SpendingView() {
   // Budget status always reflects the real current month, never whatever
   // month is being browsed elsewhere on this screen.
   const categoryBudgets = useLiveQuery(() => db.categoryBudgets.toArray(), []) ?? []
+  const [totalBudgetLimit] = useMetaSetting<Partial<Record<Currency, number>>>('totalBudgetLimit', {})
   const realMonthPrefix = `${today.getFullYear()}-${pad2(today.getMonth() + 1)}`
   const realMonthEntries =
     useLiveQuery(() => db.spendingEntries.where('date').startsWith(realMonthPrefix).toArray(), [realMonthPrefix]) ?? []
   const budgetStatus = useMemo(
     () =>
       budgetEnabled
-        ? computeBudgetStatus(categoryBudgets, realMonthEntries, today.getDate(), daysInMonth(today.getFullYear(), today.getMonth()))
+        ? computeBudgetStatus(
+            categoryBudgets,
+            totalBudgetLimit,
+            realMonthEntries,
+            today.getDate(),
+            daysInMonth(today.getFullYear(), today.getMonth()),
+          )
         : null,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [budgetEnabled, categoryBudgets, realMonthEntries],
+    [budgetEnabled, categoryBudgets, totalBudgetLimit, realMonthEntries],
   )
 
   // (categoryId, currency) breakdown, bar width normalized per-currency so amounts
@@ -221,20 +228,21 @@ export function SpendingView() {
             fontWeight: 700,
             cursor: 'pointer',
             color:
-              budgetStatus === 'green'
+              budgetStatus.level === 'green'
                 ? 'var(--accent)'
-                : budgetStatus === 'yellow'
+                : budgetStatus.level === 'yellow'
                   ? 'var(--warning)'
                   : 'var(--danger-strong)',
           }}
           onClick={() => setShowBudgetStatus(true)}
           type="button"
         >
-          {budgetStatus === 'green'
+          {budgetStatus.level === 'green'
             ? t('Spending according to budget')
-            : budgetStatus === 'yellow'
+            : budgetStatus.level === 'yellow'
               ? t('Spending close to budget')
               : t('Spending over the budget')}
+          {budgetStatus.level !== 'red' && budgetStatus.someCategoryOverBudget && t(', but some limits are exceeded')}
         </button>
       )}
 

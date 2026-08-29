@@ -283,17 +283,20 @@ export const RU: Record<string, string> = {
   'Add budget expense': 'Добавить бюджетный расход',
   'Save budget': 'Сохранить бюджет',
   'Budget saved': 'Бюджет сохранён',
+  'You have unsaved changes. Close without saving?': 'Есть несохранённые изменения. Закрыть без сохранения?',
   'Budget expenses exceed the total budget. Reduce them or raise the total before saving.':
     'Бюджетные расходы превышают общий бюджет. Уменьшите их или увеличьте общий бюджет перед сохранением.',
   'From plan:': 'Из плана:',
   'Budget status': 'Статус бюджета',
   'No budget set yet. Set one up in Manage budget.': 'Бюджет ещё не задан. Настройте его в разделе «Управление бюджетом».',
+  'Other categories': 'Другие категории',
   Budget: 'Бюджет',
   'Remove budget': 'Удалить бюджет',
   Spent: 'Потрачено',
   'Spending according to budget': 'Расходы в рамках бюджета',
   'Spending close to budget': 'Расходы близки к бюджету',
   'Spending over the budget': 'Расходы превышают бюджет',
+  ', but some limits are exceeded': ', но по некоторым категориям превышение',
 
   // Recurring expenses
   'Manage recurring expenses': 'Управление регулярными расходами',

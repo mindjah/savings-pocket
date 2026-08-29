@@ -32,37 +32,73 @@ export function planCategoryTotals(plannedExpenses: PlannedExpense[], fixedExpen
 
 export type BudgetStatusLevel = 'green' | 'yellow' | 'red'
 
-// A category only counts against the budget total once it has a budget set
-// for it — spending in an un-budgeted category doesn't affect the status.
-// Status compares "fraction of budget already spent" against "fraction of
-// the month already elapsed": spending noticeably faster than the calendar
-// is moving is the yellow warning sign, before it tips over into red.
+// Compares "fraction of a budget already spent" against "fraction of the
+// month already elapsed": spending noticeably faster than the calendar is
+// moving is the yellow warning sign, before it tips over into red at 100%.
+export function categoryPaceLevel(actual: number, budget: number, elapsedFraction: number): BudgetStatusLevel {
+  if (budget <= 0) return 'green'
+  const usedFraction = actual / budget
+  if (usedFraction > 1) return 'red'
+  if (usedFraction > elapsedFraction + 0.15) return 'yellow'
+  return 'green'
+}
+
+export interface BudgetStatusResult {
+  level: BudgetStatusLevel
+  // True when the overall total-budget level isn't red, but at least one
+  // individually-budgeted category is already over its own amount.
+  someCategoryOverBudget: boolean
+}
+
+// The headline status compares ALL real spending this month (every category,
+// budgeted or not) against the per-currency total budget cap — that's the
+// number the user actually can't go over. `someCategoryOverBudget` is a
+// secondary signal surfaced alongside it: even while under the total, an
+// individual category can already have blown past its own line item.
 export function computeBudgetStatus(
   budgets: CategoryBudget[],
+  totalBudgets: Partial<Record<Currency, number>>,
   spendingThisMonth: SpendingEntry[],
   dayOfMonth: number,
   daysInMonth: number,
-): BudgetStatusLevel | null {
-  if (budgets.length === 0) return null
-
-  const totalsByCurrency = new Map<Currency, { budget: number; actual: number }>()
-  const ensure = (c: Currency) => totalsByCurrency.get(c) ?? totalsByCurrency.set(c, { budget: 0, actual: 0 }).get(c)!
-  const budgetedKeys = new Set(budgets.map((b) => `${b.categoryId}:${b.currency}`))
-  budgets.forEach((b) => {
-    ensure(b.currency).budget += b.amount
-  })
-  spendingThisMonth.forEach((e) => {
-    if (!budgetedKeys.has(`${e.categoryId}:${e.currency}`)) return
-    ensure(e.currency).actual += e.amount
-  })
+): BudgetStatusResult | null {
+  const totalEntries = Object.entries(totalBudgets).filter(([, amount]) => (amount ?? 0) > 0) as [Currency, number][]
+  if (totalEntries.length === 0) return null
 
   const elapsedFraction = dayOfMonth / daysInMonth
-  let worst: BudgetStatusLevel = 'green'
-  for (const { budget, actual } of totalsByCurrency.values()) {
-    if (budget <= 0) continue
-    const usedFraction = actual / budget
-    if (usedFraction > 1) return 'red'
-    if (usedFraction > elapsedFraction + 0.15) worst = 'yellow'
+
+  const actualAllByCurrency = new Map<Currency, number>()
+  spendingThisMonth.forEach((e) => {
+    actualAllByCurrency.set(e.currency, (actualAllByCurrency.get(e.currency) ?? 0) + e.amount)
+  })
+  let level: BudgetStatusLevel = 'green'
+  for (const [currency, budgetAmount] of totalEntries) {
+    const lvl = categoryPaceLevel(actualAllByCurrency.get(currency) ?? 0, budgetAmount, elapsedFraction)
+    if (lvl === 'red') {
+      level = 'red'
+      break
+    }
+    if (lvl === 'yellow') level = 'yellow'
   }
-  return worst
+
+  const categoryBudgetByKey = new Map<string, number>()
+  budgets.forEach((b) => {
+    const key = `${b.categoryId}:${b.currency}`
+    categoryBudgetByKey.set(key, (categoryBudgetByKey.get(key) ?? 0) + b.amount)
+  })
+  const categoryActualByKey = new Map<string, number>()
+  spendingThisMonth.forEach((e) => {
+    const key = `${e.categoryId}:${e.currency}`
+    if (!categoryBudgetByKey.has(key)) return
+    categoryActualByKey.set(key, (categoryActualByKey.get(key) ?? 0) + e.amount)
+  })
+  let someCategoryOverBudget = false
+  for (const [key, budgetAmount] of categoryBudgetByKey) {
+    if (budgetAmount > 0 && (categoryActualByKey.get(key) ?? 0) / budgetAmount > 1) {
+      someCategoryOverBudget = true
+      break
+    }
+  }
+
+  return { level, someCategoryOverBudget }
 }

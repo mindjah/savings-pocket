@@ -483,6 +483,10 @@ h1, h2, h3, p {
   color: var(--accent-contrast);
 }
 
+.btn-accent-outline {
+  color: var(--accent);
+}
+
 .btn-danger {
   color: var(--danger-strong);
   border-color: color-mix(in srgb, var(--danger) 40%, var(--border));
