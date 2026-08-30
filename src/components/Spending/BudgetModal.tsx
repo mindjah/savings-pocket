@@ -9,6 +9,7 @@ import { Modal } from '../common/Modal'
 import { useToast } from '../../hooks/useToast'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { useTranslation } from '../../hooks/useTranslation'
+import { BudgetIcon } from '../common/BudgetIcon'
 
 interface Props {
   onClose: () => void
@@ -543,7 +544,10 @@ export function BudgetModal({ onClose }: Props) {
                     type="button"
                   >
                     <div style={{ flex: 1 }}>
-                      <div>{currency}</div>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <BudgetIcon size={16} />
+                        {currency}
+                      </div>
                       <div className="muted" style={{ fontSize: '0.82rem', color: over ? 'var(--danger-strong)' : undefined }}>
                         {t('Allocated')}: {formatMoney(allocated, currency)} / {formatMoney(amount, currency)}
                       </div>

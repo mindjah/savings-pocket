@@ -11,6 +11,7 @@ import { Modal } from '../common/Modal'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { useTranslation } from '../../hooks/useTranslation'
 import { tSpentConvertedFrom } from '../../i18n/translations'
+import { BudgetIcon } from '../common/BudgetIcon'
 
 interface Props {
   onClose: () => void
@@ -378,7 +379,15 @@ export function BudgetStatusModal({ onClose }: Props) {
   const donutSize = currencySummaries.length > 1 ? 148 : 200
 
   return (
-    <Modal title={t('Budget status')} onClose={onClose}>
+    <Modal
+      title={
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <BudgetIcon size={20} />
+          {t('Budget status')}
+        </span>
+      }
+      onClose={onClose}
+    >
       {currencySummaries.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '16px 12px', margin: '4px 0 20px' }}>
           {currencySummaries.map((s) => (
