@@ -463,6 +463,12 @@ export function tSpentConvertedFrom(lang: Language, amountText: string): string 
   return lang === 'ru' ? `Потрачено (конвертировано) из ${amountText}` : `Spent converted from ${amountText}`
 }
 
+export function tOverspentButOverallFine(lang: Language, currency: string): string {
+  return lang === 'ru'
+    ? `Превышен бюджет в ${currency}, но в целом бюджет соблюдается`
+    : `You overspent in ${currency}, but you're on track with the overall budget`
+}
+
 export function tCategoryArchiveHint(lang: Language, name: string, count: number): string {
   if (lang === 'ru') {
     return `«${name}» содержит записей расходов: ${count}. Заархивируйте вместо удаления, чтобы сохранить историю.`

@@ -94,14 +94,38 @@ export function computeBudgetStatus(
   spendingThisMonth.forEach((e) => {
     actualAllByCurrency.set(e.currency, (actualAllByCurrency.get(e.currency) ?? 0) + e.amount)
   })
+
+  // Overall pace: every total-budget currency is converted into whichever
+  // one has the largest REAL (converted) amount and pooled together, then
+  // compared against ALL spending this month (any currency) converted the
+  // same way — total budgets in different currencies are one combined pool
+  // for this headline check, even though the donuts below keep showing each
+  // currency's own distribution fully separately.
   let level: BudgetStatusLevel = 'green'
-  for (const [currency, budgetAmount] of totalEntries) {
-    const lvl = categoryPaceLevel(actualAllByCurrency.get(currency) ?? 0, budgetAmount, elapsedFraction)
-    if (lvl === 'red') {
-      level = 'red'
-      break
+  if (fx) {
+    const refCurrency = totalEntries.reduce((best, cur) =>
+      convertFiat(cur[1], cur[0], 'USD', fx) > convertFiat(best[1], best[0], 'USD', fx) ? cur : best,
+    )[0]
+    const totalBudgetConverted = totalEntries.reduce(
+      (sum, [currency, amount]) => sum + (currency === refCurrency ? amount : convertFiat(amount, currency, refCurrency, fx)),
+      0,
+    )
+    const totalActualConverted = Array.from(actualAllByCurrency.entries()).reduce(
+      (sum, [currency, amount]) => sum + (currency === refCurrency ? amount : convertFiat(amount, currency, refCurrency, fx)),
+      0,
+    )
+    level = categoryPaceLevel(totalActualConverted, totalBudgetConverted, elapsedFraction)
+  } else {
+    // Exchange rates not loaded yet — fall back to judging each currency's
+    // own total independently rather than guessing at a combined figure.
+    for (const [currency, budgetAmount] of totalEntries) {
+      const lvl = categoryPaceLevel(actualAllByCurrency.get(currency) ?? 0, budgetAmount, elapsedFraction)
+      if (lvl === 'red') {
+        level = 'red'
+        break
+      }
+      if (lvl === 'yellow') level = 'yellow'
     }
-    if (lvl === 'yellow') level = 'yellow'
   }
 
   // Grouped per category (not per category+currency) — a category budgeted

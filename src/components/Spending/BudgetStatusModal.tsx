@@ -9,7 +9,7 @@ import { convertFiat } from '../../lib/fxRates'
 import { useFiatRates } from '../../hooks/useFiatRates'
 import { Modal } from '../common/Modal'
 import { useTranslation } from '../../hooks/useTranslation'
-import { tSpentConvertedFrom } from '../../i18n/translations'
+import { tSpentConvertedFrom, tOverspentButOverallFine } from '../../i18n/translations'
 import { BudgetIcon } from '../common/BudgetIcon'
 
 interface Props {
@@ -37,6 +37,7 @@ interface CurrencySummary {
   unbudgetedTotal: number
   scaleBase: number
   percentage: number
+  totalSpent: number
 }
 
 function BudgetDonut({
@@ -46,11 +47,13 @@ function BudgetDonut({
   unbudgetedTotal,
   scaleBase,
   percentage,
+  totalSpent,
   size,
   onUnbudgetedInfoClick,
   unbudgetedInfoLabel,
-}: CurrencySummary & { size: number; onUnbudgetedInfoClick: () => void; unbudgetedInfoLabel: string }) {
-  const { t } = useTranslation()
+  overallOver,
+}: CurrencySummary & { size: number; onUnbudgetedInfoClick: () => void; unbudgetedInfoLabel: string; overallOver: boolean | null }) {
+  const { t, lang } = useTranslation()
   const strokeWidth = size * 0.13
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
@@ -158,6 +161,11 @@ function BudgetDonut({
           {t('of')} {formatMoney(budget, currency)}
         </span>
       </div>
+      {totalSpent > budget && overallOver === false && (
+        <div className="muted" style={{ fontSize: '0.75rem', marginTop: 2, width: '100%', textAlign: 'center' }}>
+          {tOverspentButOverallFine(lang, currency)}
+        </div>
+      )}
     </div>
   )
 }
@@ -439,9 +447,31 @@ export function BudgetStatusModal({ onClose }: Props) {
       const totalSpent = budgetedSpent + unbudgetedTotal
       const percentage = budget > 0 ? (totalSpent / budget) * 100 : 0
 
-      return { currency, budget, segments, unbudgetedTotal, scaleBase: Math.max(budget, totalSpent), percentage }
+      return { currency, budget, segments, unbudgetedTotal, scaleBase: Math.max(budget, totalSpent), percentage, totalSpent }
     })
   }, [totalBudgetLimit, budgetByKey, actualByKey, categoryMap, fx])
+
+  // Whether the plan AS A WHOLE is over budget, once every total-budget
+  // currency's amount and every currency's actual spending is converted into
+  // one common currency and pooled — mirrors the same check that drives the
+  // status pill on the Spending screen. Used only to decide whether to show
+  // the "overspent in X, but fine overall" note under an individually
+  // over-budget currency; the donuts themselves stay fully separate.
+  const overallStatus = useMemo(() => {
+    if (currencySummaries.length === 0 || !fx) return null
+    const refCurrency = currencySummaries.reduce((best, cur) =>
+      convertFiat(cur.budget, cur.currency, 'USD', fx) > convertFiat(best.budget, best.currency, 'USD', fx) ? cur : best,
+    ).currency
+    const totalBudget = currencySummaries.reduce(
+      (sum, s) => sum + (s.currency === refCurrency ? s.budget : convertFiat(s.budget, s.currency, refCurrency, fx)),
+      0,
+    )
+    const totalSpentConverted = currencySummaries.reduce(
+      (sum, s) => sum + (s.currency === refCurrency ? s.totalSpent : convertFiat(s.totalSpent, s.currency, refCurrency, fx)),
+      0,
+    )
+    return { over: totalSpentConverted > totalBudget }
+  }, [currencySummaries, fx])
 
   // Header total next to "Categories not in budget": one converted+combined
   // figure if there's a single budgeted currency, one figure per currency
@@ -479,6 +509,7 @@ export function BudgetStatusModal({ onClose }: Props) {
                 size={donutSize}
                 onUnbudgetedInfoClick={() => setUnbudgetedInfoOpen((o) => !o)}
                 unbudgetedInfoLabel={t('This spending is not budgeted.')}
+                overallOver={overallStatus?.over ?? null}
               />
             </div>
           ))}
