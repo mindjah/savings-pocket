@@ -247,25 +247,69 @@ export function BudgetStatusModal({ onClose }: Props) {
   const { budgetedRows, otherRows } = useMemo(() => {
     const budgetedCategoryIds = new Set(Array.from(budgetByKey.values()).map((v) => v.categoryId))
 
-    const budgetedRows = Array.from(budgetByKey.entries())
-      .map(([key, v]) => {
-        const nativeActual = actualByKey.get(key) ?? 0
-        const spilloverByCurrency = spilloverInfo.spilloverByRowKey.get(key)
-        const spilloverLines = spilloverByCurrency
-          ? Array.from(spilloverByCurrency.entries()).map(([currency, amount]) => ({ currency, amount }))
-          : []
-        const spilloverConverted =
-          fx && spilloverByCurrency
-            ? Array.from(spilloverByCurrency.entries()).reduce((sum, [cur, amt]) => sum + convertFiat(amt, cur, v.currency, fx), 0)
-            : 0
-        const actual = nativeActual + spilloverConverted
-        return { ...v, actual, spilloverLines, level: categoryPaceLevel(actual, v.budget, elapsedFraction) }
+    // A category may be genuinely budgeted in more than one currency — group
+    // its entries so those get merged into one card below, rather than one
+    // being judged over budget on its own while the category as a whole
+    // (once everything's converted into a common currency) is still fine.
+    const entriesByCategory = new Map<number, { key: string; currency: Currency; budget: number }[]>()
+    budgetByKey.forEach((v, key) => {
+      const list = entriesByCategory.get(v.categoryId) ?? []
+      list.push({ key, currency: v.currency, budget: v.budget })
+      entriesByCategory.set(v.categoryId, list)
+    })
+
+    const budgetedRows = Array.from(entriesByCategory.entries())
+      .map(([categoryId, entries]) => {
+        const currencies = entries.map((entry) => {
+          const nativeActual = actualByKey.get(entry.key) ?? 0
+          const spilloverByCurrency = spilloverInfo.spilloverByRowKey.get(entry.key)
+          const spilloverLines = spilloverByCurrency
+            ? Array.from(spilloverByCurrency.entries()).map(([currency, amount]) => ({ currency, amount }))
+            : []
+          const spilloverConverted =
+            fx && spilloverByCurrency
+              ? Array.from(spilloverByCurrency.entries()).reduce((sum, [cur, amt]) => sum + convertFiat(amt, cur, entry.currency, fx), 0)
+              : 0
+          const actual = nativeActual + spilloverConverted
+          return {
+            currency: entry.currency,
+            budget: entry.budget,
+            actual,
+            spilloverLines,
+            level: categoryPaceLevel(actual, entry.budget, elapsedFraction),
+          }
+        })
+
+        // Genuinely budgeted in 2+ currencies: also compare the combined
+        // (converted) totals — being over budget in one currency alone
+        // doesn't mean the category as a whole is over budget.
+        let overall: { currency: Currency; left: number; over: boolean } | null = null
+        if (currencies.length > 1 && fx) {
+          const refCurrency = currencies.reduce((best, cur) => (cur.budget > best.budget ? cur : best)).currency
+          const totalBudget = currencies.reduce(
+            (sum, c) => sum + (c.currency === refCurrency ? c.budget : convertFiat(c.budget, c.currency, refCurrency, fx)),
+            0,
+          )
+          const totalActual = currencies.reduce(
+            (sum, c) => sum + (c.currency === refCurrency ? c.actual : convertFiat(c.actual, c.currency, refCurrency, fx)),
+            0,
+          )
+          overall = { currency: refCurrency, left: totalBudget - totalActual, over: totalBudget > 0 && totalActual > totalBudget }
+        }
+
+        // Sorting/escalation follows the combined check when there is one
+        // (a multi-currency category "in the red" on just one currency but
+        // fine overall shouldn't sort or flag as if it were over budget).
+        const sortLevel: BudgetStatusLevel = overall ? (overall.over ? 'red' : 'green') : currencies[0].level
+        const sortMetric = overall ? -overall.left : currencies[0].actual - currencies[0].budget
+
+        return { categoryId, currencies, overall, sortLevel, sortMetric }
       })
       // Worst first (red, then yellow, then green), most-over as a tiebreak.
       .sort((a, b) => {
         const order: Record<BudgetStatusLevel, number> = { red: 0, yellow: 1, green: 2 }
-        if (order[a.level] !== order[b.level]) return order[a.level] - order[b.level]
-        return b.actual - b.budget - (a.actual - a.budget)
+        if (order[a.sortLevel] !== order[b.sortLevel]) return order[a.sortLevel] - order[b.sortLevel]
+        return b.sortMetric - a.sortMetric
       })
 
     // Spending in categories that have no budget of their own — still real
@@ -439,18 +483,21 @@ export function BudgetStatusModal({ onClose }: Props) {
             <div className="list-frame">
               {budgetedRows.map((r) => {
                 const cat = categoryMap.get(r.categoryId)
-                const left = r.budget - r.actual
                 return (
-                  <div className="list-frame-row" key={`${r.categoryId}:${r.currency}`}>
+                  <div className="list-frame-row" key={r.categoryId}>
                     <span className="swatch" style={{ background: cat?.color ?? '#888' }} />
                     <div style={{ flex: 1 }}>
                       <div>{cat?.name ?? t('Unknown')}</div>
-                      <div className="muted" style={{ fontSize: '0.82rem' }}>
-                        {t('Budget')}: {formatMoney(r.budget, r.currency)} · {t('Spent')}: {formatMoney(r.actual, r.currency)}
-                      </div>
-                      {r.spilloverLines.map((line) => (
-                        <div className="muted" style={{ fontSize: '0.78rem' }} key={line.currency}>
-                          {tSpentConvertedFrom(lang, `${formatMoney(line.amount, line.currency)} ${line.currency}`)}
+                      {r.currencies.map((c) => (
+                        <div key={c.currency}>
+                          <div className="muted" style={{ fontSize: '0.82rem' }}>
+                            {t('Budget')}: {formatMoney(c.budget, c.currency)} · {t('Spent')}: {formatMoney(c.actual, c.currency)}
+                          </div>
+                          {c.spilloverLines.map((line) => (
+                            <div className="muted" style={{ fontSize: '0.78rem' }} key={line.currency}>
+                              {tSpentConvertedFrom(lang, `${formatMoney(line.amount, line.currency)} ${line.currency}`)}
+                            </div>
+                          ))}
                         </div>
                       ))}
                     </div>
@@ -458,7 +505,21 @@ export function BudgetStatusModal({ onClose }: Props) {
                       <div className="muted" style={{ fontSize: '0.68rem' }}>
                         {t('Left')}
                       </div>
-                      <strong style={{ color: LEVEL_COLOR[r.level] }}>{formatMoney(left, r.currency)}</strong>
+                      {r.currencies.map((c) => (
+                        <strong key={c.currency} style={{ display: 'block', color: LEVEL_COLOR[c.level] }}>
+                          {formatMoney(c.budget - c.actual, c.currency)}
+                        </strong>
+                      ))}
+                      {r.overall && (
+                        <>
+                          <div className="muted" style={{ fontSize: '0.68rem', marginTop: 4 }}>
+                            {t('Overall left')}
+                          </div>
+                          <strong style={{ color: r.overall.over ? 'var(--danger-strong)' : 'var(--accent)' }}>
+                            {formatMoney(r.overall.left, r.overall.currency)}
+                          </strong>
+                        </>
+                      )}
                     </div>
                   </div>
                 )

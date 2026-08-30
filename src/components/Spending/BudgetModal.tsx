@@ -71,18 +71,20 @@ function AddTotalBudgetModal({ currencyOptions, onAdd, onClose }: AddTotalBudget
 interface AddBudgetExpenseModalProps {
   categories: Category[]
   currencyOptions: { code: Currency; symbol: string }[]
+  existingPairs: Set<string>
   onAdd: (categoryId: number, amount: number, currency: Currency, note: string) => void
   onClose: () => void
 }
 
-function AddBudgetExpenseModal({ categories, currencyOptions, onAdd, onClose }: AddBudgetExpenseModalProps) {
+function AddBudgetExpenseModal({ categories, currencyOptions, existingPairs, onAdd, onClose }: AddBudgetExpenseModalProps) {
   const { t } = useTranslation()
   const [categoryId, setCategoryId] = useState<number | ''>('')
   const [amount, setAmount] = useState('')
   const [currency, setCurrency] = useState<Currency | ''>(currencyOptions.length === 1 ? currencyOptions[0].code : '')
   const [note, setNote] = useState('')
   const parsed = currency ? roundFiat(parseAmount(amount), currency) : NaN
-  const valid = categoryId !== '' && currency !== '' && !Number.isNaN(parsed) && parsed > 0
+  const duplicate = categoryId !== '' && currency !== '' && existingPairs.has(`${categoryId}:${currency}`)
+  const valid = categoryId !== '' && currency !== '' && !Number.isNaN(parsed) && parsed > 0 && !duplicate
 
   function submit() {
     if (!valid || !currency) return
@@ -137,6 +139,11 @@ function AddBudgetExpenseModal({ categories, currencyOptions, onAdd, onClose }: 
           placeholder={t('Optional')}
         />
       </div>
+      {duplicate && (
+        <div className="muted" style={{ color: 'var(--danger-strong)', marginBottom: 8 }}>
+          {t('This category already has a budget in this currency.')}
+        </div>
+      )}
       <button className={`btn btn-block${valid ? ' btn-primary' : ''}`} onClick={submit} disabled={!valid} type="button">
         {t('Add budget expense')}
       </button>
@@ -197,19 +204,21 @@ interface EditBudgetExpenseModalProps {
   entry: CategoryBudget
   categories: Category[]
   currencyOptions: { code: Currency; symbol: string }[]
+  existingPairs: Set<string>
   onSave: (categoryId: number, amount: number, currency: Currency, note: string) => void
   onDelete: () => void
   onClose: () => void
 }
 
-function EditBudgetExpenseModal({ entry, categories, currencyOptions, onSave, onDelete, onClose }: EditBudgetExpenseModalProps) {
+function EditBudgetExpenseModal({ entry, categories, currencyOptions, existingPairs, onSave, onDelete, onClose }: EditBudgetExpenseModalProps) {
   const { t } = useTranslation()
   const [categoryId, setCategoryId] = useState(entry.categoryId)
   const [amount, setAmount] = useState(String(entry.amount))
   const [currency, setCurrency] = useState<Currency>(entry.currency)
   const [note, setNote] = useState(entry.note)
   const parsed = roundFiat(parseAmount(amount), currency)
-  const valid = !Number.isNaN(parsed) && parsed > 0
+  const duplicate = existingPairs.has(`${categoryId}:${currency}`)
+  const valid = !Number.isNaN(parsed) && parsed > 0 && !duplicate
 
   function submit() {
     if (!valid) return
@@ -267,6 +276,11 @@ function EditBudgetExpenseModal({ entry, categories, currencyOptions, onSave, on
           placeholder={t('Optional')}
         />
       </div>
+      {duplicate && (
+        <div className="muted" style={{ color: 'var(--danger-strong)', marginBottom: 8 }}>
+          {t('This category already has a budget in this currency.')}
+        </div>
+      )}
       <button className={`btn btn-block${valid ? ' btn-primary' : ''}`} onClick={submit} disabled={!valid} type="button">
         {t('Save')}
       </button>
@@ -339,6 +353,10 @@ export function BudgetModal({ onClose }: Props) {
     [draftBudgets, categoryMap],
   )
   const plans = useLiveQuery(() => db.plans.toArray(), []) ?? []
+
+  function budgetPairsExcluding(excludeId?: number) {
+    return new Set(draftBudgets.filter((b) => b.id !== excludeId).map((b) => `${b.categoryId}:${b.currency}`))
+  }
 
   function allocatedInCurrency(currency: Currency, excludeId?: number) {
     return draftBudgets
@@ -631,6 +649,7 @@ export function BudgetModal({ onClose }: Props) {
         <AddBudgetExpenseModal
           categories={activeCategories}
           currencyOptions={expenseCurrencyOptions}
+          existingPairs={budgetPairsExcluding()}
           onAdd={addEntry}
           onClose={() => setShowAddEntry(false)}
         />
@@ -665,6 +684,7 @@ export function BudgetModal({ onClose }: Props) {
               entry={entry}
               categories={categories}
               currencyOptions={editCurrencyOptions}
+              existingPairs={budgetPairsExcluding(entry.id)}
               onSave={(categoryId, amount, currency, note) => updateEntry(entry.id!, categoryId, amount, currency, note)}
               onDelete={() => deleteEntry(entry.id)}
               onClose={() => setEditingEntryId(null)}

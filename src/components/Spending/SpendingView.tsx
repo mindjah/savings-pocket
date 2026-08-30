@@ -5,6 +5,7 @@ import type { Currency } from '../../db/types'
 import { CURRENCIES, DEFAULT_SPENDING_CURRENCIES, MONTH_NAMES, WEEKDAY_LABELS } from '../../lib/constants'
 import { formatMoney, formatMoneyCompact, pad2, todayIso, ymd } from '../../lib/format'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
+import { useFiatRates } from '../../hooks/useFiatRates'
 import { DayEntriesModal } from './DayEntriesModal'
 import { CategoryManagerModal } from './CategoryManagerModal'
 import { CategoryExpensesModal } from './CategoryExpensesModal'
@@ -168,6 +169,7 @@ export function SpendingView({ resetKey }: Props) {
     () => realMonthEntriesRaw.filter((e) => e.date <= todayIso()),
     [realMonthEntriesRaw],
   )
+  const { rates: fx } = useFiatRates()
   const budgetStatus = useMemo(
     () =>
       budgetEnabled
@@ -177,10 +179,11 @@ export function SpendingView({ resetKey }: Props) {
             realMonthEntries,
             today.getDate(),
             daysInMonth(today.getFullYear(), today.getMonth()),
+            fx,
           )
         : null,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [budgetEnabled, categoryBudgets, totalBudgetLimit, realMonthEntries],
+    [budgetEnabled, categoryBudgets, totalBudgetLimit, realMonthEntries, fx],
   )
 
   // (categoryId, currency) breakdown, bar width normalized per-currency so amounts

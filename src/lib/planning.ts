@@ -1,4 +1,5 @@
 import type { CategoryBudget, Currency, PlannedExpense, RecurringExpense, SpendingEntry } from '../db/types'
+import { convertFiat, type FxRates } from './fxRates'
 
 // Active recurring expenses that belong to the given month (yyyy-mm prefix)
 // — the "fixed expenses" for that month. Computed on the fly, never
@@ -82,6 +83,7 @@ export function computeBudgetStatus(
   spendingThisMonth: SpendingEntry[],
   dayOfMonth: number,
   daysInMonth: number,
+  fx: FxRates | null,
 ): BudgetStatusResult | null {
   const totalEntries = Object.entries(totalBudgets).filter(([, amount]) => (amount ?? 0) > 0) as [Currency, number][]
   if (totalEntries.length === 0) return null
@@ -102,22 +104,51 @@ export function computeBudgetStatus(
     if (lvl === 'yellow') level = 'yellow'
   }
 
-  const categoryBudgetByKey = new Map<string, number>()
+  // Grouped per category (not per category+currency) — a category budgeted
+  // in more than one currency is judged as a whole, converting everything
+  // into one of its own currencies, rather than flagging it "over budget"
+  // just because ONE of its currencies individually ran over while the
+  // category as a whole is still fine.
+  const budgetByCategoryCurrency = new Map<number, Map<Currency, number>>()
   budgets.forEach((b) => {
-    const key = `${b.categoryId}:${b.currency}`
-    categoryBudgetByKey.set(key, (categoryBudgetByKey.get(key) ?? 0) + b.amount)
+    const byCurrency = budgetByCategoryCurrency.get(b.categoryId) ?? new Map<Currency, number>()
+    byCurrency.set(b.currency, (byCurrency.get(b.currency) ?? 0) + b.amount)
+    budgetByCategoryCurrency.set(b.categoryId, byCurrency)
   })
-  const categoryActualByKey = new Map<string, number>()
+  const actualByCategoryCurrency = new Map<number, Map<Currency, number>>()
   spendingThisMonth.forEach((e) => {
-    const key = `${e.categoryId}:${e.currency}`
-    if (!categoryBudgetByKey.has(key)) return
-    categoryActualByKey.set(key, (categoryActualByKey.get(key) ?? 0) + e.amount)
+    const byCurrency = budgetByCategoryCurrency.get(e.categoryId)
+    if (!byCurrency || !byCurrency.has(e.currency)) return
+    const actualByCurrency = actualByCategoryCurrency.get(e.categoryId) ?? new Map<Currency, number>()
+    actualByCurrency.set(e.currency, (actualByCurrency.get(e.currency) ?? 0) + e.amount)
+    actualByCategoryCurrency.set(e.categoryId, actualByCurrency)
   })
+
   let overBudgetCategoryCount = 0
-  for (const [key, budgetAmount] of categoryBudgetByKey) {
-    if (budgetAmount > 0 && (categoryActualByKey.get(key) ?? 0) / budgetAmount > 1) overBudgetCategoryCount++
-  }
-  const budgetedCategoryCount = categoryBudgetByKey.size
+  budgetByCategoryCurrency.forEach((byCurrency, categoryId) => {
+    const actualByCurrency = actualByCategoryCurrency.get(categoryId)
+    const currencies = Array.from(byCurrency.keys())
+    if (currencies.length === 1 || !fx) {
+      let over = false
+      byCurrency.forEach((budgetAmount, currency) => {
+        const actual = actualByCurrency?.get(currency) ?? 0
+        if (budgetAmount > 0 && actual / budgetAmount > 1) over = true
+      })
+      if (over) overBudgetCategoryCount++
+      return
+    }
+    const refCurrency = currencies.reduce((best, cur) => ((byCurrency.get(cur) ?? 0) > (byCurrency.get(best) ?? 0) ? cur : best))
+    let totalBudget = 0
+    let totalActual = 0
+    byCurrency.forEach((budgetAmount, currency) => {
+      totalBudget += currency === refCurrency ? budgetAmount : convertFiat(budgetAmount, currency, refCurrency, fx)
+    })
+    actualByCurrency?.forEach((actualAmount, currency) => {
+      totalActual += currency === refCurrency ? actualAmount : convertFiat(actualAmount, currency, refCurrency, fx)
+    })
+    if (totalBudget > 0 && totalActual / totalBudget > 1) overBudgetCategoryCount++
+  })
+  const budgetedCategoryCount = budgetByCategoryCurrency.size
 
   if (budgetedCategoryCount > 0 && overBudgetCategoryCount / budgetedCategoryCount >= 0.5) {
     level = 'red'
