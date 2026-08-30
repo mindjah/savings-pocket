@@ -20,6 +20,7 @@ import { CheckIcon } from '../common/CheckIcon'
 import { WarningIcon } from '../common/WarningIcon'
 import { XMarkIcon } from '../common/XMarkIcon'
 import { useTranslation } from '../../hooks/useTranslation'
+import { tLimitsExceededInCategories } from '../../i18n/translations'
 import { EntryBadges } from '../common/EntryBadges'
 import { recurringPreviewDates } from '../../lib/recurring'
 import { computeBudgetStatus } from '../../lib/planning'
@@ -35,7 +36,7 @@ function mondayIndex(year: number, month: number, day: number) {
 }
 
 export function SpendingView() {
-  const { t } = useTranslation()
+  const { t, lang } = useTranslation()
   const today = new Date()
   const [year, setYear] = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth())
@@ -225,7 +226,27 @@ export function SpendingView() {
         ))}
       </div>
 
-      {budgetStatus && (
+      {budgetStatus && (() => {
+        const hasCategoryIssue = budgetStatus.overBudgetCategoryCount > 0
+        const isOrange = budgetStatus.level !== 'red' && hasCategoryIssue
+        const color =
+          budgetStatus.level === 'red'
+            ? 'var(--danger-strong)'
+            : isOrange
+              ? 'var(--warning-strong)'
+              : budgetStatus.level === 'yellow'
+                ? 'var(--warning)'
+                : 'var(--accent)'
+        const text =
+          budgetStatus.level === 'red'
+            ? t('Spending over the budget')
+            : isOrange
+              ? tLimitsExceededInCategories(lang, budgetStatus.overBudgetCategoryCount)
+              : budgetStatus.level === 'yellow'
+                ? t('Spending close to budget')
+                : t('Spending according to budget')
+        const StatusIcon = budgetStatus.level === 'red' ? XMarkIcon : isOrange || budgetStatus.level === 'yellow' ? WarningIcon : CheckIcon
+        return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <button
             className="btn-ghost budget-status-text"
@@ -240,29 +261,13 @@ export function SpendingView() {
               fontSize: '0.82rem',
               fontWeight: 700,
               cursor: 'pointer',
-              color:
-                budgetStatus.level === 'green'
-                  ? 'var(--accent)'
-                  : budgetStatus.level === 'yellow'
-                    ? 'var(--warning)'
-                    : 'var(--danger-strong)',
+              color,
             }}
             onClick={() => setShowBudgetStatus(true)}
             type="button"
           >
-            {budgetStatus.level === 'green' ? (
-              <CheckIcon size={13} />
-            ) : budgetStatus.level === 'yellow' ? (
-              <WarningIcon size={13} />
-            ) : (
-              <XMarkIcon size={13} />
-            )}
-            {budgetStatus.level === 'green'
-              ? t('Spending according to budget')
-              : budgetStatus.level === 'yellow'
-                ? t('Spending close to budget')
-                : t('Spending over the budget')}
-            {budgetStatus.level !== 'red' && budgetStatus.someCategoryOverBudget && t(', but some limits are exceeded')}
+            <StatusIcon size={13} />
+            {text}
           </button>
           <button
             className="btn btn-ghost btn-icon"
@@ -274,7 +279,8 @@ export function SpendingView() {
             ⓘ
           </button>
         </div>
-      )}
+        )
+      })()}
 
       <div className="card">
         <div className="calendar-header">

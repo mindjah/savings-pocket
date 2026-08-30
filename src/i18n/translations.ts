@@ -303,7 +303,6 @@ export const RU: Record<string, string> = {
   'Spending according to budget': 'Расходы в рамках бюджета',
   'Spending close to budget': 'Расходы близки к бюджету',
   'Spending over the budget': 'Расходы превышают бюджет',
-  ', but some limits are exceeded': ', но по некоторым категориям превышение',
 
   // Recurring expenses
   'Manage recurring expenses': 'Управление регулярными расходами',
@@ -438,6 +437,20 @@ function ruDayWord(n: number): string {
 
 export function tDays(lang: Language, n: number): string {
   return lang === 'ru' ? `${n} ${ruDayWord(n)}` : `${n} day${n === 1 ? '' : 's'}`
+}
+
+// Prepositional case ("in N categories"): singular for counts ending in 1
+// (except 11), plural prepositional otherwise — e.g. "в 21 категории" but
+// "в 2/5/11 категориях".
+function ruCategoryWordPrepositional(n: number): string {
+  const mod10 = n % 10
+  const mod100 = n % 100
+  return mod10 === 1 && mod100 !== 11 ? 'категории' : 'категориях'
+}
+
+export function tLimitsExceededInCategories(lang: Language, n: number): string {
+  if (lang === 'ru') return `Лимиты превышены в ${n} ${ruCategoryWordPrepositional(n)}`
+  return `Limits exceeded in ${n} categor${n === 1 ? 'y' : 'ies'}`
 }
 
 export function tCategoryArchiveHint(lang: Language, name: string, count: number): string {

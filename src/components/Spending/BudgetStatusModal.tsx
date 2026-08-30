@@ -25,13 +25,28 @@ interface DonutSegment {
   color: string
 }
 
-function BudgetDonut({ currency, budget, spent, segments }: { currency: Currency; budget: number; spent: number; segments: DonutSegment[] }) {
+interface CurrencyTotal {
+  currency: Currency
+  spent: number
+  budget: number
+}
+
+function BudgetDonut({
+  percentage,
+  segments,
+  scaleBase,
+  currencyTotals,
+}: {
+  percentage: number
+  segments: DonutSegment[]
+  scaleBase: number
+  currencyTotals: CurrencyTotal[]
+}) {
   const { t } = useTranslation()
   const size = 200
   const strokeWidth = 26
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
-  const scaleBase = Math.max(budget, spent)
 
   const arcs = segments
     .filter((s) => s.amount > 0)
@@ -43,46 +58,52 @@ function BudgetDonut({ currency, budget, spent, segments }: { currency: Currency
     }, [])
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0 20px' }}>
-      <div style={{ position: 'relative', width: size, height: size }}>
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
-          <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="var(--border)" strokeWidth={strokeWidth} />
-          {arcs.map((a) => (
-            <circle
-              key={a.categoryId}
-              cx={size / 2}
-              cy={size / 2}
-              r={radius}
-              fill="none"
-              stroke={a.color}
-              strokeWidth={strokeWidth}
-              strokeDasharray={`${a.len} ${circumference - a.len}`}
-              strokeDashoffset={a.offset}
-            />
-          ))}
-        </svg>
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textAlign: 'center',
-            padding: '0 12px',
-          }}
-        >
-          <div className="muted" style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-            {t('Spent')}
-          </div>
-          <div style={{ fontSize: '1.2rem', fontWeight: 800, lineHeight: 1.25 }}>{formatMoney(spent, currency)}</div>
-          <div className="muted" style={{ fontSize: '0.75rem' }}>
-            {t('of')} {formatMoney(budget, currency)}
+    <>
+      <div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0 16px' }}>
+        <div style={{ position: 'relative', width: size, height: size }}>
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
+            <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="var(--border)" strokeWidth={strokeWidth} />
+            {arcs.map((a) => (
+              <circle
+                key={a.categoryId}
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                fill="none"
+                stroke={a.color}
+                strokeWidth={strokeWidth}
+                strokeDasharray={`${a.len} ${circumference - a.len}`}
+                strokeDashoffset={a.offset}
+              />
+            ))}
+          </svg>
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              padding: '0 12px',
+            }}
+          >
+            <div className="muted" style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+              {t('Spent')}
+            </div>
+            <div style={{ fontSize: '1.6rem', fontWeight: 800, lineHeight: 1.25 }}>{Math.round(percentage)}%</div>
           </div>
         </div>
       </div>
-    </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '6px 20px', marginBottom: 20 }}>
+        {currencyTotals.map(({ currency, spent, budget }) => (
+          <div key={currency} style={{ fontSize: '0.85rem' }}>
+            <strong>{formatMoney(spent, currency)}</strong> <span className="muted">{t('of')} {formatMoney(budget, currency)}</span>
+          </div>
+        ))}
+      </div>
+    </>
   )
 }
 
@@ -107,7 +128,13 @@ export function BudgetStatusModal({ onClose }: Props) {
     [spendingThisMonthRaw],
   )
 
-  const donuts = useMemo(() => {
+  // One combined diagram rather than one per currency: the ring shows the
+  // category breakdown for whichever currency is furthest along its own
+  // budget (same "worst wins" logic as the overall status color), and its
+  // fraction drives the center percentage — currencies can't be summed
+  // together without a conversion rate, so each one's absolute total is
+  // listed separately underneath instead.
+  const budgetSummary = useMemo(() => {
     const spentByCurrency = new Map<Currency, number>()
     const segmentsByCurrency = new Map<Currency, Map<number, number>>()
     spendingThisMonth.forEach((e) => {
@@ -117,13 +144,30 @@ export function BudgetStatusModal({ onClose }: Props) {
       segmentsByCurrency.set(e.currency, segMap)
     })
     const currencyBudgets = Object.entries(totalBudgetLimit).filter(([, amt]) => (amt ?? 0) > 0) as [Currency, number][]
-    return currencyBudgets.map(([currency, budget]) => {
-      const segMap = segmentsByCurrency.get(currency) ?? new Map<number, number>()
-      const segments = Array.from(segMap.entries())
-        .map(([categoryId, amount]) => ({ categoryId, amount, color: categoryMap.get(categoryId)?.color ?? '#888' }))
-        .sort((a, b) => b.amount - a.amount)
-      return { currency, budget, spent: spentByCurrency.get(currency) ?? 0, segments }
-    })
+    if (currencyBudgets.length === 0) return null
+
+    const currencyTotals: CurrencyTotal[] = currencyBudgets.map(([currency, budget]) => ({
+      currency,
+      budget,
+      spent: spentByCurrency.get(currency) ?? 0,
+    }))
+
+    const primary = currencyTotals.reduce((worst, cur) =>
+      cur.spent / cur.budget > worst.spent / worst.budget ? cur : worst,
+    )
+    const percentage = primary.budget > 0 ? (primary.spent / primary.budget) * 100 : 0
+
+    const segMap = segmentsByCurrency.get(primary.currency) ?? new Map<number, number>()
+    const segments = Array.from(segMap.entries())
+      .map(([categoryId, amount]) => ({ categoryId, amount, color: categoryMap.get(categoryId)?.color ?? '#888' }))
+      .sort((a, b) => b.amount - a.amount)
+
+    return {
+      percentage,
+      scaleBase: Math.max(primary.budget, primary.spent),
+      segments,
+      currencyTotals,
+    }
   }, [spendingThisMonth, totalBudgetLimit, categoryMap])
 
   const { budgetedRows, otherRows } = useMemo(() => {
@@ -170,9 +214,14 @@ export function BudgetStatusModal({ onClose }: Props) {
 
   return (
     <Modal title={t('Budget status')} onClose={onClose}>
-      {donuts.map((d) => (
-        <BudgetDonut key={d.currency} currency={d.currency} budget={d.budget} spent={d.spent} segments={d.segments} />
-      ))}
+      {budgetSummary && (
+        <BudgetDonut
+          percentage={budgetSummary.percentage}
+          segments={budgetSummary.segments}
+          scaleBase={budgetSummary.scaleBase}
+          currencyTotals={budgetSummary.currencyTotals}
+        />
+      )}
 
       {!hasAnything ? (
         <div className="empty-state">

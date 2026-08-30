@@ -60,16 +60,22 @@ export function categoryPaceLevel(actual: number, budget: number, elapsedFractio
 
 export interface BudgetStatusResult {
   level: BudgetStatusLevel
-  // True when the overall total-budget level isn't red, but at least one
-  // individually-budgeted category is already over its own amount.
-  someCategoryOverBudget: boolean
+  // How many individually-budgeted categories are already over their own
+  // amount, out of how many categories have a budget at all. Used both to
+  // surface "limits exceeded in N categories" and, once at least half of
+  // the budgeted categories are blown, to escalate the overall level to red
+  // even if the total budget itself hasn't been exceeded yet.
+  overBudgetCategoryCount: number
+  budgetedCategoryCount: number
 }
 
 // The headline status compares ALL real spending this month (every category,
 // budgeted or not) against the per-currency total budget cap — that's the
-// number the user actually can't go over. `someCategoryOverBudget` is a
+// number the user actually can't go over. overBudgetCategoryCount is a
 // secondary signal surfaced alongside it: even while under the total, an
-// individual category can already have blown past its own line item.
+// individual category can already have blown past its own line item — and
+// once that's true for half or more of the budgeted categories, the overall
+// level escalates to red regardless of the total-budget pace.
 export function computeBudgetStatus(
   budgets: CategoryBudget[],
   totalBudgets: Partial<Record<Currency, number>>,
@@ -107,13 +113,15 @@ export function computeBudgetStatus(
     if (!categoryBudgetByKey.has(key)) return
     categoryActualByKey.set(key, (categoryActualByKey.get(key) ?? 0) + e.amount)
   })
-  let someCategoryOverBudget = false
+  let overBudgetCategoryCount = 0
   for (const [key, budgetAmount] of categoryBudgetByKey) {
-    if (budgetAmount > 0 && (categoryActualByKey.get(key) ?? 0) / budgetAmount > 1) {
-      someCategoryOverBudget = true
-      break
-    }
+    if (budgetAmount > 0 && (categoryActualByKey.get(key) ?? 0) / budgetAmount > 1) overBudgetCategoryCount++
+  }
+  const budgetedCategoryCount = categoryBudgetByKey.size
+
+  if (budgetedCategoryCount > 0 && overBudgetCategoryCount / budgetedCategoryCount >= 0.5) {
+    level = 'red'
   }
 
-  return { level, someCategoryOverBudget }
+  return { level, overBudgetCategoryCount, budgetedCategoryCount }
 }
