@@ -153,7 +153,7 @@ function BudgetDonut({
           <div style={{ fontSize: size > 160 ? '1.6rem' : '1.15rem', fontWeight: 800, lineHeight: 1.25 }}>{Math.round(percentage)}%</div>
         </div>
       </div>
-      <div style={{ fontSize: '0.85rem', marginTop: 8 }}>
+      <div style={{ fontSize: '0.85rem', marginTop: 8, width: '100%', textAlign: 'center' }}>
         <strong>{formatMoney(segments.reduce((sum, s) => sum + s.amount, 0) + unbudgetedTotal, currency)}</strong>{' '}
         <span className="muted">
           {t('of')} {formatMoney(budget, currency)}
@@ -204,17 +204,16 @@ export function BudgetStatusModal({ onClose }: Props) {
     return { budgetByKey, actualByKey }
   }, [budgets, spendingThisMonth])
 
-  // Only when the whole plan has a single total-budget currency: spending in a
-  // budgeted category, but paid in some other currency, isn't truly
-  // "unbudgeted" — it's folded straight into that category's own row
+  // Spending in a budgeted category, but paid in some other currency, isn't
+  // truly "unbudgeted" — it's folded straight into that category's own row
   // (converted into whichever of its budgeted currencies is the plan's main
   // one, or its only one) instead of appearing as a separate unbudgeted line.
-  // With more than one total-budget currency the categories stay fully
-  // separated per currency, same as before.
+  // Applies regardless of how many total-budget currencies exist — the donut
+  // display (below) still keeps a currency that has its own total budget
+  // fully separate/native there; this only affects the row-list numbers.
   const spilloverInfo = useMemo(() => {
     const totalCurrencies = Object.entries(totalBudgetLimit).filter(([, amt]) => (amt ?? 0) > 0) as [Currency, number][]
-    if (totalCurrencies.length !== 1) return null
-    const mainCurrency = totalCurrencies[0][0]
+    const mainCurrency = totalCurrencies.length > 0 ? totalCurrencies.reduce((best, cur) => (cur[1] > best[1] ? cur : best))[0] : undefined
 
     const rowKeyByCategory = new Map<number, string>()
     budgetByKey.forEach((v, key) => {
@@ -243,7 +242,7 @@ export function BudgetStatusModal({ onClose }: Props) {
     const budgetedRows = Array.from(budgetByKey.entries())
       .map(([key, v]) => {
         const nativeActual = actualByKey.get(key) ?? 0
-        const spilloverByCurrency = spilloverInfo?.spilloverByRowKey.get(key)
+        const spilloverByCurrency = spilloverInfo.spilloverByRowKey.get(key)
         const spilloverLines = spilloverByCurrency
           ? Array.from(spilloverByCurrency.entries()).map(([currency, amount]) => ({ currency, amount }))
           : []
@@ -262,17 +261,14 @@ export function BudgetStatusModal({ onClose }: Props) {
       })
 
     // Spending in categories that have no budget of their own — still real
-    // money spent, so shown below the budgeted rows rather than hidden.
-    // (When spilloverInfo is active, a budgeted category's cross-currency
-    // spend was already folded into its budgetedRows entry above, so it's
-    // excluded here rather than double-counted.)
+    // money spent, so shown below the budgeted rows rather than hidden. A
+    // budgeted category's cross-currency spend was already folded into its
+    // budgetedRows entry above, so it's excluded here rather than double-counted.
     const otherRows = Array.from(actualByKey.entries())
       .filter(([key]) => {
         if (budgetByKey.has(key)) return false
-        if (spilloverInfo) {
-          const [categoryIdStr] = key.split(':')
-          if (budgetedCategoryIds.has(Number(categoryIdStr))) return false
-        }
+        const [categoryIdStr] = key.split(':')
+        if (budgetedCategoryIds.has(Number(categoryIdStr))) return false
         return true
       })
       .map(([key, actual]) => {
@@ -289,16 +285,21 @@ export function BudgetStatusModal({ onClose }: Props) {
   //
   // A category that's budgeted in one currency but also has spending in a
   // DIFFERENT currency ("spillover") isn't truly unbudgeted — it's the same
-  // planned category, just paid in another currency — so that spend is
-  // converted into the main currency and merged into that category's own
-  // colored segment there, rather than lumped into the generic striped
-  // bucket. (A category genuinely budgeted in two currencies keeps each
-  // currency's slice in its own respective donut, unconverted — segments
-  // below are already filtered per-donut-currency, so that's unaffected.)
+  // planned category, just paid in another currency:
+  //   - if that OTHER currency itself has its own total budget (its own
+  //     donut), the spend is shown natively there, merged into the
+  //     category's own colored segment — no conversion, it's already "at
+  //     home" in that donut.
+  //   - if that other currency has no donut of its own, the spend is
+  //     converted into the main currency and merged into the category's
+  //     segment there instead.
+  // (A category genuinely budgeted in two currencies keeps each currency's
+  // slice in its own respective donut, unconverted — segments below are
+  // already filtered per-donut-currency, so that's unaffected.)
   //
-  // Spending in a category with NO budget anywhere, in a currency that has
-  // no total budget of its own, still gets converted into the main currency
-  // — but rolls into the single striped "not in budget" slice instead.
+  // Spending in a category with NO budget anywhere: shown in its own
+  // currency's striped "not in budget" slice if that currency has a donut,
+  // otherwise converted into the main currency's striped slice instead.
   const currencySummaries = useMemo<CurrencySummary[]>(() => {
     const totalCurrencies = Object.entries(totalBudgetLimit).filter(([, amt]) => (amt ?? 0) > 0) as [Currency, number][]
     if (totalCurrencies.length === 0) return []
@@ -308,15 +309,21 @@ export function BudgetStatusModal({ onClose }: Props) {
     const budgetedCategoryIds = new Set(Array.from(budgetByKey.values()).map((v) => v.categoryId))
 
     const nativeUnbudgetedByCurrency = new Map<Currency, number>()
-    const spilloverByCategory = new Map<number, number>()
+    const nativeSpilloverByCurrency = new Map<Currency, Map<number, number>>()
+    const convertedSpilloverByCategory = new Map<number, number>()
     actualByKey.forEach((amount, key) => {
       if (budgetByKey.has(key)) return
       const [categoryIdStr, currencyStr] = key.split(':')
       const categoryId = Number(categoryIdStr)
       const currency = currencyStr as Currency
       if (budgetedCategoryIds.has(categoryId)) {
-        const convertedAmount = currency === mainCurrency ? amount : fx ? convertFiat(amount, currency, mainCurrency, fx) : 0
-        spilloverByCategory.set(categoryId, (spilloverByCategory.get(categoryId) ?? 0) + convertedAmount)
+        if (budgetedCurrencySet.has(currency)) {
+          const byCategory = nativeSpilloverByCurrency.get(currency) ?? new Map<number, number>()
+          byCategory.set(categoryId, (byCategory.get(categoryId) ?? 0) + amount)
+          nativeSpilloverByCurrency.set(currency, byCategory)
+        } else if (fx) {
+          convertedSpilloverByCategory.set(categoryId, (convertedSpilloverByCategory.get(categoryId) ?? 0) + convertFiat(amount, currency, mainCurrency, fx))
+        }
       } else {
         nativeUnbudgetedByCurrency.set(currency, (nativeUnbudgetedByCurrency.get(currency) ?? 0) + amount)
       }
@@ -341,9 +348,19 @@ export function BudgetStatusModal({ onClose }: Props) {
           segmentByCategory.set(v.categoryId, { key: `cat-${v.categoryId}`, amount, color: categoryMap.get(v.categoryId)?.color ?? '#888' })
         })
 
-      // Spillover only ever lands in the main currency's donut.
+      // Native spillover: a budgeted category paid in exactly this currency,
+      // merged straight into its own segment here — no conversion needed.
+      nativeSpilloverByCurrency.get(currency)?.forEach((amount, categoryId) => {
+        if (amount <= 0) return
+        const existing = segmentByCategory.get(categoryId)
+        if (existing) existing.amount += amount
+        else segmentByCategory.set(categoryId, { key: `cat-${categoryId}`, amount, color: categoryMap.get(categoryId)?.color ?? '#888' })
+      })
+
+      // Converted spillover (from a currency with no donut of its own) only
+      // ever lands in the main currency's donut.
       if (currency === mainCurrency) {
-        spilloverByCategory.forEach((amount, categoryId) => {
+        convertedSpilloverByCategory.forEach((amount, categoryId) => {
           if (amount <= 0) return
           const existing = segmentByCategory.get(categoryId)
           if (existing) existing.amount += amount
@@ -391,7 +408,7 @@ export function BudgetStatusModal({ onClose }: Props) {
       {currencySummaries.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '16px 12px', margin: '4px 0 20px' }}>
           {currencySummaries.map((s) => (
-            <div key={s.currency} style={{ flex: currencySummaries.length > 1 ? '0 1 calc(50% - 6px)' : '0 1 100%' }}>
+            <div key={s.currency} style={{ flex: currencySummaries.length > 1 ? '0 1 calc(50% - 6px)' : '0 1 100%', minWidth: 0 }}>
               <BudgetDonut
                 {...s}
                 size={donutSize}
