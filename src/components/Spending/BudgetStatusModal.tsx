@@ -212,6 +212,16 @@ export function BudgetStatusModal({ onClose }: Props) {
     return { budgetByKey, actualByKey }
   }, [budgets, spendingThisMonth])
 
+  // The plan's main currency: whichever total-budget currency has the
+  // largest amount. Used to pick which donut absorbs converted spillover,
+  // and — as of this fix — as the preferred currency for a multi-currency
+  // category's combined "Overall left," so it always follows the plan's own
+  // main currency rather than an ad hoc per-category pick.
+  const mainCurrency = useMemo(() => {
+    const totalCurrencies = Object.entries(totalBudgetLimit).filter(([, amt]) => (amt ?? 0) > 0) as [Currency, number][]
+    return totalCurrencies.length > 0 ? totalCurrencies.reduce((best, cur) => (cur[1] > best[1] ? cur : best))[0] : undefined
+  }, [totalBudgetLimit])
+
   // Spending in a budgeted category, but paid in some other currency, isn't
   // truly "unbudgeted" — it's folded straight into that category's own row
   // (converted into whichever of its budgeted currencies is the plan's main
@@ -220,9 +230,6 @@ export function BudgetStatusModal({ onClose }: Props) {
   // display (below) still keeps a currency that has its own total budget
   // fully separate/native there; this only affects the row-list numbers.
   const spilloverInfo = useMemo(() => {
-    const totalCurrencies = Object.entries(totalBudgetLimit).filter(([, amt]) => (amt ?? 0) > 0) as [Currency, number][]
-    const mainCurrency = totalCurrencies.length > 0 ? totalCurrencies.reduce((best, cur) => (cur[1] > best[1] ? cur : best))[0] : undefined
-
     const rowKeyByCategory = new Map<number, string>()
     budgetByKey.forEach((v, key) => {
       const existingKey = rowKeyByCategory.get(v.categoryId)
@@ -242,7 +249,7 @@ export function BudgetStatusModal({ onClose }: Props) {
     })
 
     return { spilloverByRowKey }
-  }, [totalBudgetLimit, budgetByKey, actualByKey])
+  }, [mainCurrency, budgetByKey, actualByKey])
 
   const { budgetedRows, otherRows } = useMemo(() => {
     const budgetedCategoryIds = new Set(Array.from(budgetByKey.values()).map((v) => v.categoryId))
@@ -282,10 +289,16 @@ export function BudgetStatusModal({ onClose }: Props) {
 
         // Genuinely budgeted in 2+ currencies: also compare the combined
         // (converted) totals — being over budget in one currency alone
-        // doesn't mean the category as a whole is over budget.
+        // doesn't mean the category as a whole is over budget. Shown in
+        // whichever of this category's own currencies actually had the
+        // larger planned amount once converted (not raw digits, and not
+        // the plan's overall main currency — this is specific to the
+        // category's own two budget lines).
         let overall: { currency: Currency; left: number; over: boolean } | null = null
         if (currencies.length > 1 && fx) {
-          const refCurrency = currencies.reduce((best, cur) => (cur.budget > best.budget ? cur : best)).currency
+          const refCurrency = currencies.reduce((best, cur) =>
+            convertFiat(cur.budget, cur.currency, 'USD', fx) > convertFiat(best.budget, best.currency, 'USD', fx) ? cur : best,
+          ).currency
           const totalBudget = currencies.reduce(
             (sum, c) => sum + (c.currency === refCurrency ? c.budget : convertFiat(c.budget, c.currency, refCurrency, fx)),
             0,

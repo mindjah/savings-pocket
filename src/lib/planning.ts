@@ -128,7 +128,7 @@ export function computeBudgetStatus(
   budgetByCategoryCurrency.forEach((byCurrency, categoryId) => {
     const actualByCurrency = actualByCategoryCurrency.get(categoryId)
     const currencies = Array.from(byCurrency.keys())
-    if (currencies.length === 1 || !fx) {
+    if (currencies.length === 1) {
       let over = false
       byCurrency.forEach((budgetAmount, currency) => {
         const actual = actualByCurrency?.get(currency) ?? 0
@@ -137,7 +137,16 @@ export function computeBudgetStatus(
       if (over) overBudgetCategoryCount++
       return
     }
-    const refCurrency = currencies.reduce((best, cur) => ((byCurrency.get(cur) ?? 0) > (byCurrency.get(best) ?? 0) ? cur : best))
+    // Genuinely budgeted in multiple currencies but exchange rates haven't
+    // loaded yet — can't compare fairly yet, so don't flag it rather than
+    // falling back to judging each currency independently (that's exactly
+    // the false positive this whole check exists to avoid).
+    if (!fx) return
+    // Whichever of this category's own currencies actually had the larger
+    // planned amount once converted (not raw digits).
+    const refCurrency = currencies.reduce((best, cur) =>
+      convertFiat(byCurrency.get(cur) ?? 0, cur, 'USD', fx) > convertFiat(byCurrency.get(best) ?? 0, best, 'USD', fx) ? cur : best,
+    )
     let totalBudget = 0
     let totalActual = 0
     byCurrency.forEach((budgetAmount, currency) => {
