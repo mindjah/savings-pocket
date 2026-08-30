@@ -58,6 +58,14 @@ function AppShell() {
     materializePendingAutoDebits()
   }, [])
 
+  // Only installed/standalone PWAs are allowed to lock orientation — and only on
+  // browsers that support the Screen Orientation API (notably not iOS Safari, where
+  // the CSS landscape-block overlay is the only available fallback).
+  useEffect(() => {
+    const orientation = screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> }
+    orientation?.lock?.('portrait').catch(() => {})
+  }, [])
+
   useAutoBackup()
   useDriveStartupCheck(!locked)
 
@@ -82,16 +90,19 @@ function AppShell() {
   }, [faceIdEnabled])
 
   const [savingsResetKey, setSavingsResetKey] = useState(0)
+  const [cryptoResetKey, setCryptoResetKey] = useState(0)
+  const [spendingResetKey, setSpendingResetKey] = useState(0)
+  const [settingsResetKey, setSettingsResetKey] = useState(0)
 
   function handleChange(next: Tab) {
     if (next === tab) {
-      // Re-tapping the already-active Savings tab jumps back to its first
-      // sub-tab and scrolls up — the same "tap to go home" pattern as most
-      // apps' bottom nav bars.
-      if (next === 'savings') {
-        setSavingsResetKey((k) => k + 1)
-        window.scrollTo({ top: 0, behavior: 'smooth' })
-      }
+      // Re-tapping the already-active tab jumps back to its main screen and
+      // scrolls up — the same "tap to go home" pattern as most apps' bottom nav bars.
+      if (next === 'savings') setSavingsResetKey((k) => k + 1)
+      if (next === 'crypto') setCryptoResetKey((k) => k + 1)
+      if (next === 'spending') setSpendingResetKey((k) => k + 1)
+      if (next === 'settings') setSettingsResetKey((k) => k + 1)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
       return
     }
     setTab(next)
@@ -111,9 +122,9 @@ function AppShell() {
       <NavBar active={tab} onChange={handleChange} />
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         {tab === 'savings' && <SavingsView resetKey={savingsResetKey} />}
-        {tab === 'crypto' && <CryptoView />}
-        {tab === 'spending' && <SpendingView />}
-        {tab === 'settings' && <SettingsView />}
+        {tab === 'crypto' && <CryptoView resetKey={cryptoResetKey} />}
+        {tab === 'spending' && <SpendingView resetKey={spendingResetKey} />}
+        {tab === 'settings' && <SettingsView resetKey={settingsResetKey} />}
       </main>
     </div>
   )

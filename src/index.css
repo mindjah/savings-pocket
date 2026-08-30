@@ -1187,3 +1187,25 @@ h1, h2, h3, p {
   background: var(--border);
   border-radius: 999px;
 }
+
+/* Phones ignore rotation to landscape entirely — the layout stays rendered as
+   portrait, rotated back into place with a CSS transform. Scoped by max-height
+   (the short axis, always small on a phone regardless of orientation) rather
+   than max-width, since a landscape phone's long axis can exceed 900px. */
+@media screen and (orientation: landscape) and (max-height: 600px) {
+  html,
+  body {
+    overflow: hidden;
+  }
+  #root {
+    position: fixed;
+    top: 100%;
+    left: 0;
+    width: 100vh;
+    height: 100vw;
+    transform: rotate(-90deg);
+    transform-origin: left top;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+}

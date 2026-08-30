@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import type { Currency } from '../../db/types'
@@ -35,7 +35,11 @@ function mondayIndex(year: number, month: number, day: number) {
   return (jsDay + 6) % 7
 }
 
-export function SpendingView() {
+interface Props {
+  resetKey: number
+}
+
+export function SpendingView({ resetKey }: Props) {
   const { t, lang } = useTranslation()
   const today = new Date()
   const [year, setYear] = useState(today.getFullYear())
@@ -50,6 +54,30 @@ export function SpendingView() {
   const [managingBudget, setManagingBudget] = useState(false)
   const [showBudgetStatus, setShowBudgetStatus] = useState(false)
   const [categoryModalFor, setCategoryModalFor] = useState<{ categoryId: number; currency: Currency } | null>(null)
+
+  // resetKey bumps when the user re-taps the already-active Spending nav tab —
+  // jump back to the current month and close any open popup, skipping the
+  // very first render (that's not a re-tap).
+  const isFirstResetRef = useRef(true)
+  useEffect(() => {
+    if (isFirstResetRef.current) {
+      isFirstResetRef.current = false
+      return
+    }
+    const now = new Date()
+    setYear(now.getFullYear())
+    setMonth(now.getMonth())
+    setOpenDay(null)
+    setQuickAddOpen(false)
+    setManageMenuOpen(false)
+    setManagingCategories(false)
+    setManagingRecurring(false)
+    setShowAnalytics(false)
+    setShowPlanning(false)
+    setManagingBudget(false)
+    setShowBudgetStatus(false)
+    setCategoryModalFor(null)
+  }, [resetKey])
   const [spendingCurrencies] = useMetaSetting<Currency[]>('enabledSpendingCurrencies', DEFAULT_SPENDING_CURRENCIES)
   const [budgetEnabled] = useMetaSetting<boolean>('budgetEnabled', false)
 

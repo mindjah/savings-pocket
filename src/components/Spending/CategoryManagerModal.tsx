@@ -96,7 +96,8 @@ export function CategoryManagerModal({ onClose }: Props) {
     if (!trimmed) return
     await db.categories.add({ name: trimmed, color, archived: false, createdAt: new Date().toISOString() })
     toast(t('Category added'))
-    onClose()
+    setName('')
+    setColor(CATEGORY_COLORS[0])
   }
 
   async function toggleArchive(cat: Category) {

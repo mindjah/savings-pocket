@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import type { CryptoEntry, Currency } from '../../db/types'
@@ -14,13 +14,30 @@ import { NoteViewModal } from '../common/NoteViewModal'
 import { useTranslation } from '../../hooks/useTranslation'
 import { PinIcon } from '../common/PinIcon'
 
-export function CryptoView() {
+interface Props {
+  resetKey: number
+}
+
+export function CryptoView({ resetKey }: Props) {
   const { t } = useTranslation()
   const entries = useLiveQuery(() => db.cryptoEntries.toArray(), [])
   const [editing, setEditing] = useState<CryptoEntry | null | 'new'>(null)
   const [historyFor, setHistoryFor] = useState<CryptoEntry | null>(null)
   const [viewingNote, setViewingNote] = useState<string | null>(null)
   const [cryptoCurrencies] = useMetaSetting<Currency[]>('enabledCryptoCurrencies', DEFAULT_CRYPTO_CURRENCIES)
+
+  // resetKey bumps when the user re-taps the already-active Crypto nav tab —
+  // close any open popup, skipping the very first render (that's not a re-tap).
+  const isFirstResetRef = useRef(true)
+  useEffect(() => {
+    if (isFirstResetRef.current) {
+      isFirstResetRef.current = false
+      return
+    }
+    setEditing(null)
+    setHistoryFor(null)
+    setViewingNote(null)
+  }, [resetKey])
 
   const coinIds = useMemo(() => Array.from(new Set((entries ?? []).map((e) => e.coinId))), [entries])
   const { prices, loading, stale, error, refresh, fetchedAt } = useCryptoRates(coinIds)

@@ -118,6 +118,7 @@ export const RU: Record<string, string> = {
 
   // Exchange rates / net worth
   'Currency exchange rates': 'Курсы обмена валют',
+  'Currency converter': 'Конвертер валют',
   'Refreshing…': 'Обновление…',
   '↻ Refresh': '↻ Обновить',
   'Loading…': 'Загрузка…',
@@ -296,9 +297,11 @@ export const RU: Record<string, string> = {
   'Budget status': 'Статус бюджета',
   'No budget set yet. Set one up in Manage budget.': 'Бюджет ещё не задан. Настройте его в разделе «Управление бюджетом».',
   'Categories not in budget': 'Категории вне бюджета',
+  'This spending is not budgeted.': 'Эти расходы не включены в бюджет.',
   Budget: 'Бюджет',
   'Remove budget': 'Удалить бюджет',
   Spent: 'Потрачено',
+  Left: 'Осталось',
   of: 'из',
   'Spending according to budget': 'Расходы в рамках бюджета',
   'Spending close to budget': 'Расходы близки к бюджету',

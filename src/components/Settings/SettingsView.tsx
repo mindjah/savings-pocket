@@ -22,7 +22,11 @@ import { ManualSyncIcon } from '../common/ManualSyncIcon'
 
 const BACKUP_FRESH_DAYS = 7
 
-export function SettingsView() {
+interface Props {
+  resetKey: number
+}
+
+export function SettingsView({ resetKey }: Props) {
   const { t, lang } = useTranslation()
   const [language, setLanguage] = useMetaSetting<Language>('language', 'en')
 
@@ -103,6 +107,19 @@ export function SettingsView() {
   const [showPasscodeSetup, setShowPasscodeSetup] = useState(false)
   const passcodeRec = useLiveQuery(() => db.meta.get('faceIdPasscodeHash'), [])
   const passcodeSet = typeof passcodeRec?.value === 'string' && passcodeRec.value.length > 0
+
+  // resetKey bumps when the user re-taps the already-active Settings nav tab —
+  // close any open popup/hint, skipping the very first render (that's not a re-tap).
+  const isFirstResetRef = useRef(true)
+  useEffect(() => {
+    if (isFirstResetRef.current) {
+      isFirstResetRef.current = false
+      return
+    }
+    setModeInfoOpen(false)
+    setDriveInfoOpen(false)
+    setShowPasscodeSetup(false)
+  }, [resetKey])
 
   useEffect(() => {
     isFaceIdAvailable().then(setFaceIdAvailable)
