@@ -602,6 +602,13 @@ h1, h2, h3, p {
   color: var(--text-muted);
 }
 
+.section-subheader {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
 .form-group-header {
   display: flex;
   align-items: center;
@@ -809,6 +816,15 @@ h1, h2, h3, p {
   padding: 10px 12px;
 }
 
+.category-row.as-button {
+  width: 100%;
+  background: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
 .list-frame {
   display: flex;
   flex-direction: column;
@@ -826,6 +842,21 @@ h1, h2, h3, p {
 }
 
 .list-frame-row:not(:last-child) {
+  border-bottom: 1px solid var(--border);
+}
+
+.list-frame-row.as-button {
+  width: 100%;
+  background: none;
+  border: none;
+  border-radius: 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.list-frame-row.as-button:not(:last-child) {
   border-bottom: 1px solid var(--border);
 }
 

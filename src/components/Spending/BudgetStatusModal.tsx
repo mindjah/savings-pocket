@@ -1,10 +1,12 @@
 import { useMemo } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
+import type { Currency } from '../../db/types'
 import { formatMoney, pad2 } from '../../lib/format'
 import { categoryPaceLevel } from '../../lib/planning'
 import type { BudgetStatusLevel } from '../../lib/planning'
 import { Modal } from '../common/Modal'
+import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { useTranslation } from '../../hooks/useTranslation'
 
 interface Props {
@@ -17,11 +19,79 @@ const LEVEL_COLOR: Record<BudgetStatusLevel, string> = {
   red: 'var(--danger-strong)',
 }
 
+interface DonutSegment {
+  categoryId: number
+  amount: number
+  color: string
+}
+
+function BudgetDonut({ currency, budget, spent, segments }: { currency: Currency; budget: number; spent: number; segments: DonutSegment[] }) {
+  const { t } = useTranslation()
+  const size = 200
+  const strokeWidth = 26
+  const radius = (size - strokeWidth) / 2
+  const circumference = 2 * Math.PI * radius
+  const scaleBase = Math.max(budget, spent)
+
+  const arcs = segments
+    .filter((s) => s.amount > 0)
+    .reduce<(DonutSegment & { len: number; offset: number })[]>((acc, s) => {
+      const len = scaleBase > 0 ? (s.amount / scaleBase) * circumference : 0
+      const cumulative = acc.reduce((sum, a) => sum + a.len, 0)
+      acc.push({ ...s, len, offset: -cumulative })
+      return acc
+    }, [])
+
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0 20px' }}>
+      <div style={{ position: 'relative', width: size, height: size }}>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
+          <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="var(--border)" strokeWidth={strokeWidth} />
+          {arcs.map((a) => (
+            <circle
+              key={a.categoryId}
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              fill="none"
+              stroke={a.color}
+              strokeWidth={strokeWidth}
+              strokeDasharray={`${a.len} ${circumference - a.len}`}
+              strokeDashoffset={a.offset}
+            />
+          ))}
+        </svg>
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            padding: '0 12px',
+          }}
+        >
+          <div className="muted" style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+            {t('Spent')}
+          </div>
+          <div style={{ fontSize: '1.2rem', fontWeight: 800, lineHeight: 1.25 }}>{formatMoney(spent, currency)}</div>
+          <div className="muted" style={{ fontSize: '0.75rem' }}>
+            {t('of')} {formatMoney(budget, currency)}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function BudgetStatusModal({ onClose }: Props) {
   const { t } = useTranslation()
   const budgets = useLiveQuery(() => db.categoryBudgets.toArray(), []) ?? []
   const categories = useLiveQuery(() => db.categories.toArray(), []) ?? []
   const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories])
+  const [totalBudgetLimit] = useMetaSetting<Partial<Record<Currency, number>>>('totalBudgetLimit', {})
 
   const now = new Date()
   const monthPrefix = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`
@@ -29,6 +99,25 @@ export function BudgetStatusModal({ onClose }: Props) {
   const elapsedFraction = now.getDate() / daysInMonth
   const spendingThisMonth =
     useLiveQuery(() => db.spendingEntries.where('date').startsWith(monthPrefix).toArray(), [monthPrefix]) ?? []
+
+  const donuts = useMemo(() => {
+    const spentByCurrency = new Map<Currency, number>()
+    const segmentsByCurrency = new Map<Currency, Map<number, number>>()
+    spendingThisMonth.forEach((e) => {
+      spentByCurrency.set(e.currency, (spentByCurrency.get(e.currency) ?? 0) + e.amount)
+      const segMap = segmentsByCurrency.get(e.currency) ?? new Map<number, number>()
+      segMap.set(e.categoryId, (segMap.get(e.categoryId) ?? 0) + e.amount)
+      segmentsByCurrency.set(e.currency, segMap)
+    })
+    const currencyBudgets = Object.entries(totalBudgetLimit).filter(([, amt]) => (amt ?? 0) > 0) as [Currency, number][]
+    return currencyBudgets.map(([currency, budget]) => {
+      const segMap = segmentsByCurrency.get(currency) ?? new Map<number, number>()
+      const segments = Array.from(segMap.entries())
+        .map(([categoryId, amount]) => ({ categoryId, amount, color: categoryMap.get(categoryId)?.color ?? '#888' }))
+        .sort((a, b) => b.amount - a.amount)
+      return { currency, budget, spent: spentByCurrency.get(currency) ?? 0, segments }
+    })
+  }, [spendingThisMonth, totalBudgetLimit, categoryMap])
 
   const { budgetedRows, otherRows } = useMemo(() => {
     const actualByKey = new Map<string, number>()
@@ -38,7 +127,7 @@ export function BudgetStatusModal({ onClose }: Props) {
     })
     // Multiple budget entries can exist per category (e.g. several line items
     // making up its budget) — sum them so each category shows as one row.
-    const budgetByKey = new Map<string, { categoryId: number; currency: (typeof budgets)[number]['currency']; budget: number }>()
+    const budgetByKey = new Map<string, { categoryId: number; currency: Currency; budget: number }>()
     budgets.forEach((b) => {
       const key = `${b.categoryId}:${b.currency}`
       const existing = budgetByKey.get(key)
@@ -63,7 +152,7 @@ export function BudgetStatusModal({ onClose }: Props) {
       .filter(([key]) => !budgetByKey.has(key))
       .map(([key, actual]) => {
         const [categoryId, currency] = key.split(':')
-        return { categoryId: Number(categoryId), currency: currency as (typeof budgets)[number]['currency'], actual }
+        return { categoryId: Number(categoryId), currency: currency as Currency, actual }
       })
       .sort((a, b) => b.actual - a.actual)
 
@@ -74,6 +163,10 @@ export function BudgetStatusModal({ onClose }: Props) {
 
   return (
     <Modal title={t('Budget status')} onClose={onClose}>
+      {donuts.map((d) => (
+        <BudgetDonut key={d.currency} currency={d.currency} budget={d.budget} spent={d.spent} segments={d.segments} />
+      ))}
+
       {!hasAnything ? (
         <div className="empty-state">
           <span className="icon">📊</span>
@@ -90,7 +183,7 @@ export function BudgetStatusModal({ onClose }: Props) {
                   <div className="list-frame-row" key={`${r.categoryId}:${r.currency}`}>
                     <span className="swatch" style={{ background: cat?.color ?? '#888' }} />
                     <div style={{ flex: 1 }}>
-                      <div style={{ color: LEVEL_COLOR[r.level], fontWeight: 700 }}>{cat?.name ?? t('Unknown')}</div>
+                      <div>{cat?.name ?? t('Unknown')}</div>
                       <div className="muted" style={{ fontSize: '0.82rem' }}>
                         {t('Budget')}: {formatMoney(r.budget, r.currency)} · {t('Spent')}: {formatMoney(r.actual, r.currency)}
                       </div>
@@ -105,7 +198,7 @@ export function BudgetStatusModal({ onClose }: Props) {
           {otherRows.length > 0 && (
             <>
               <div className="section-title" style={{ marginTop: budgetedRows.length > 0 ? 16 : 0 }}>
-                <h2>{t('Other categories')}</h2>
+                <h2>{t('Categories not in budget')}</h2>
               </div>
               <div className="list-frame">
                 {otherRows.map((r) => {

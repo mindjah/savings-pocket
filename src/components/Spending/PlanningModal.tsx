@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
+import { pad2 } from '../../lib/format'
 import { Modal } from '../common/Modal'
 import { useToast } from '../../hooks/useToast'
 import { useTranslation } from '../../hooks/useTranslation'
@@ -8,10 +9,9 @@ import { PlanEditorModal } from './PlanEditorModal'
 
 interface Props {
   onClose: () => void
-  onManageRecurring: () => void
 }
 
-export function PlanningModal({ onClose, onManageRecurring }: Props) {
+export function PlanningModal({ onClose }: Props) {
   const { t } = useTranslation()
   const toast = useToast()
   const plans = useLiveQuery(() => db.plans.toArray(), []) ?? []
@@ -23,8 +23,10 @@ export function PlanningModal({ onClose, onManageRecurring }: Props) {
   async function createPlan() {
     const trimmed = newName.trim()
     if (!trimmed) return
-    const now = new Date().toISOString()
-    const id = await db.plans.add({ name: trimmed, createdAt: now, updatedAt: now })
+    const now = new Date()
+    const nowIso = now.toISOString()
+    const appliesMonth = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`
+    const id = await db.plans.add({ name: trimmed, createdAt: nowIso, updatedAt: nowIso, appliesMonth })
     setNewName('')
     toast(t('Plan created'))
     setOpenPlanId(id)
@@ -39,6 +41,7 @@ export function PlanningModal({ onClose, onManageRecurring }: Props) {
           )}
         </p>
 
+        <label className="section-subheader">{t('Existing plans')}</label>
         {sortedPlans.length === 0 ? (
           <div className="empty-state">
             <span className="icon">🗂️</span>
@@ -70,9 +73,7 @@ export function PlanningModal({ onClose, onManageRecurring }: Props) {
         </button>
       </Modal>
 
-      {openPlanId != null && (
-        <PlanEditorModal planId={openPlanId} onClose={() => setOpenPlanId(null)} onManageRecurring={onManageRecurring} />
-      )}
+      {openPlanId != null && <PlanEditorModal planId={openPlanId} onClose={() => setOpenPlanId(null)} />}
     </>
   )
 }

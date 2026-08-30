@@ -16,6 +16,9 @@ import { BudgetModal } from './BudgetModal'
 import { BudgetStatusModal } from './BudgetStatusModal'
 import { HeaderPortal } from '../common/HeaderPortal'
 import { ManageIcon } from '../common/ManageIcon'
+import { CheckIcon } from '../common/CheckIcon'
+import { WarningIcon } from '../common/WarningIcon'
+import { XMarkIcon } from '../common/XMarkIcon'
 import { useTranslation } from '../../hooks/useTranslation'
 import { EntryBadges } from '../common/EntryBadges'
 import { recurringPreviewDates } from '../../lib/recurring'
@@ -216,34 +219,54 @@ export function SpendingView() {
       </div>
 
       {budgetStatus && (
-        <button
-          className="btn-ghost budget-status-text"
-          style={{
-            background: 'none',
-            border: 'none',
-            padding: 0,
-            display: 'block',
-            width: 'fit-content',
-            fontSize: '0.82rem',
-            fontWeight: 700,
-            cursor: 'pointer',
-            color:
-              budgetStatus.level === 'green'
-                ? 'var(--accent)'
-                : budgetStatus.level === 'yellow'
-                  ? 'var(--warning)'
-                  : 'var(--danger-strong)',
-          }}
-          onClick={() => setShowBudgetStatus(true)}
-          type="button"
-        >
-          {budgetStatus.level === 'green'
-            ? t('Spending according to budget')
-            : budgetStatus.level === 'yellow'
-              ? t('Spending close to budget')
-              : t('Spending over the budget')}
-          {budgetStatus.level !== 'red' && budgetStatus.someCategoryOverBudget && t(', but some limits are exceeded')}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button
+            className="btn-ghost budget-status-text"
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              width: 'fit-content',
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              color:
+                budgetStatus.level === 'green'
+                  ? 'var(--accent)'
+                  : budgetStatus.level === 'yellow'
+                    ? 'var(--warning)'
+                    : 'var(--danger-strong)',
+            }}
+            onClick={() => setShowBudgetStatus(true)}
+            type="button"
+          >
+            {budgetStatus.level === 'green' ? (
+              <CheckIcon size={13} />
+            ) : budgetStatus.level === 'yellow' ? (
+              <WarningIcon size={13} />
+            ) : (
+              <XMarkIcon size={13} />
+            )}
+            {budgetStatus.level === 'green'
+              ? t('Spending according to budget')
+              : budgetStatus.level === 'yellow'
+                ? t('Spending close to budget')
+                : t('Spending over the budget')}
+            {budgetStatus.level !== 'red' && budgetStatus.someCategoryOverBudget && t(', but some limits are exceeded')}
+          </button>
+          <button
+            className="btn btn-ghost btn-icon"
+            onClick={() => setShowBudgetStatus(true)}
+            aria-label={t('Budget status')}
+            type="button"
+            style={{ padding: 2, fontSize: '0.9rem', flexShrink: 0 }}
+          >
+            ⓘ
+          </button>
+        </div>
       )}
 
       <div className="card">
@@ -396,15 +419,7 @@ export function SpendingView() {
 
       {showAnalytics && <AnalyticsModal onClose={() => setShowAnalytics(false)} />}
 
-      {showPlanning && (
-        <PlanningModal
-          onClose={() => setShowPlanning(false)}
-          onManageRecurring={() => {
-            setShowPlanning(false)
-            setManagingRecurring(true)
-          }}
-        />
-      )}
+      {showPlanning && <PlanningModal onClose={() => setShowPlanning(false)} />}
 
       {managingBudget && <BudgetModal onClose={() => setManagingBudget(false)} />}
 

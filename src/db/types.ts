@@ -118,6 +118,11 @@ export interface Plan {
   name: string
   createdAt: string
   updatedAt: string
+  // yyyy-mm — which real calendar month this plan's fixed expenses and
+  // "actual so far" figures are compared against. Optional since plans
+  // created before this field existed don't have it; treat missing as
+  // defaulting to the current real month.
+  appliesMonth?: string
 }
 
 export interface PlannedIncome {

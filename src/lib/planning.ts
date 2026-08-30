@@ -1,10 +1,25 @@
 import type { CategoryBudget, Currency, PlannedExpense, RecurringExpense, SpendingEntry } from '../db/types'
 
-// Active recurring expenses whose next occurrence falls within the given
-// month (yyyy-mm prefix) — the "fixed expenses" for that month. Computed on
-// the fly, never duplicated into their own table.
-export function fixedExpensesForMonth(recurring: RecurringExpense[], monthPrefix: string): RecurringExpense[] {
-  return recurring.filter((r) => r.active && r.nextDate.startsWith(monthPrefix))
+// Active recurring expenses that belong to the given month (yyyy-mm prefix)
+// — the "fixed expenses" for that month. Computed on the fly, never
+// duplicated into their own table.
+//
+// A recurring expense's `nextDate` only ever points at its next NOT-YET-fired
+// occurrence — once that date arrives, materializeRecurringExpenses() creates
+// the real spending entry and advances `nextDate` straight past this month.
+// So relying on `nextDate` alone would drop any recurring expense that has
+// already fired this month. `spendingThisMonth` (this month's real spending
+// entries) recovers those: any entry with a `recurringExpenseId` marks that
+// recurring expense as already accounted for this month too.
+export function fixedExpensesForMonth(
+  recurring: RecurringExpense[],
+  monthPrefix: string,
+  spendingThisMonth: SpendingEntry[] = [],
+): RecurringExpense[] {
+  const materializedIds = new Set(
+    spendingThisMonth.filter((e) => e.recurringExpenseId != null).map((e) => e.recurringExpenseId as number),
+  )
+  return recurring.filter((r) => r.active && (r.nextDate.startsWith(monthPrefix) || materializedIds.has(r.id!)))
 }
 
 export interface CategoryAmount {
