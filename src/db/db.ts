@@ -14,6 +14,7 @@ import type {
   SavingsEntry,
   SavingsHistory,
   SpendingEntry,
+  TotalBudget,
 } from './types'
 
 class AppDB extends Dexie {
@@ -30,6 +31,7 @@ class AppDB extends Dexie {
   plannedIncome!: Table<PlannedIncome, number>
   plannedExpenses!: Table<PlannedExpense, number>
   categoryBudgets!: Table<CategoryBudget, number>
+  totalBudgets!: Table<TotalBudget, number>
   meta!: Table<MetaRecord, string>
 
   constructor() {
@@ -106,6 +108,33 @@ class AppDB extends Dexie {
       plannedExpenses: '++id, planId, categoryId',
       categoryBudgets: '++id, categoryId',
     })
+
+    this.version(7)
+      .stores({
+        categoryBudgets: '++id, categoryId, month',
+        totalBudgets: '++id, month, currency',
+      })
+      .upgrade(async (tx) => {
+        // Budgets predate month-scoping — they applied to "the current
+        // calendar month" implicitly, so backfill them as this real month's.
+        const now = new Date()
+        const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+        const nowIso = now.toISOString()
+        await tx
+          .table('categoryBudgets')
+          .toCollection()
+          .modify((b) => {
+            if (!b.month) b.month = monthPrefix
+          })
+        const totalBudgetLimitRec = await tx.table('meta').get('totalBudgetLimit')
+        const totalBudgetLimit = (totalBudgetLimitRec?.value ?? {}) as Partial<Record<string, number>>
+        for (const [currency, amount] of Object.entries(totalBudgetLimit)) {
+          if (amount) {
+            await tx.table('totalBudgets').add({ month: monthPrefix, currency, amount, createdAt: nowIso, updatedAt: nowIso })
+          }
+        }
+        await tx.table('meta').delete('totalBudgetLimit')
+      })
   }
 }
 
@@ -125,5 +154,6 @@ export const BACKUP_TABLES = [
   'plannedIncome',
   'plannedExpenses',
   'categoryBudgets',
+  'totalBudgets',
   'meta',
 ] as const

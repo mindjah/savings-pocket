@@ -144,18 +144,31 @@ export interface PlannedExpense {
   createdAt: string
 }
 
-// A standing monthly spending target per category — always compared against
-// "the current calendar month," same as recurring expenses' fixed amounts.
-// Multiple entries per category are allowed (e.g. a couple of line items
-// that together make up that category's budget) — same shape as planned
-// expenses. Purely a tracking/comparison layer: never written to
-// spendingEntries, savingsEntries, or the calendar.
+// A standing monthly spending target per category, scoped to one specific
+// calendar month (so past months' budgets stay around for comparison —
+// e.g. future analytics — rather than being overwritten). Multiple entries
+// per category are allowed (e.g. a couple of line items that together make
+// up that category's budget) — same shape as planned expenses. Purely a
+// tracking/comparison layer: never written to spendingEntries,
+// savingsEntries, or the calendar.
 export interface CategoryBudget {
   id?: number
   categoryId: number
   amount: number
   currency: Currency
   note: string
+  month: string // yyyy-mm
+  createdAt: string
+  updatedAt: string
+}
+
+// One total-budget cap per currency, scoped to one specific calendar month —
+// the month-scoped counterpart of CategoryBudget above.
+export interface TotalBudget {
+  id?: number
+  month: string // yyyy-mm
+  currency: Currency
+  amount: number
   createdAt: string
   updatedAt: string
 }

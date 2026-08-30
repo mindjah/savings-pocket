@@ -291,6 +291,7 @@ export const RU: Record<string, string> = {
   'Save budget': 'Сохранить бюджет',
   'Budget saved': 'Бюджет сохранён',
   'You have unsaved changes. Close without saving?': 'Есть несохранённые изменения. Закрыть без сохранения?',
+  'You have unsaved changes. Switch month without saving?': 'Есть несохранённые изменения. Переключить месяц без сохранения?',
   'Budget expenses exceed the total budget. Reduce them or raise the total before saving.':
     'Бюджетные расходы превышают общий бюджет. Уменьшите их или увеличьте общий бюджет перед сохранением.',
   'From plan:': 'Из плана:',

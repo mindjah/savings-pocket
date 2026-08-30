@@ -146,10 +146,19 @@ export function SpendingView({ resetKey }: Props) {
   const visibleCurrencies = CURRENCIES.filter((c) => spendingCurrencies.includes(c.code))
 
   // Budget status always reflects the real current month, never whatever
-  // month is being browsed elsewhere on this screen.
-  const categoryBudgets = useLiveQuery(() => db.categoryBudgets.toArray(), []) ?? []
-  const [totalBudgetLimit] = useMetaSetting<Partial<Record<Currency, number>>>('totalBudgetLimit', {})
+  // month is being browsed elsewhere on this screen — budgets are scoped by
+  // exact calendar month (see BudgetModal), so look up that same real month.
   const realMonthPrefix = `${today.getFullYear()}-${pad2(today.getMonth() + 1)}`
+  const categoryBudgets = useLiveQuery(() => db.categoryBudgets.where('month').equals(realMonthPrefix).toArray(), [realMonthPrefix]) ?? []
+  const totalBudgetRows =
+    useLiveQuery(() => db.totalBudgets.where('month').equals(realMonthPrefix).toArray(), [realMonthPrefix]) ?? []
+  const totalBudgetLimit = useMemo(() => {
+    const result: Partial<Record<Currency, number>> = {}
+    totalBudgetRows.forEach((r) => {
+      result[r.currency] = r.amount
+    })
+    return result
+  }, [totalBudgetRows])
   const realMonthEntriesRaw =
     useLiveQuery(() => db.spendingEntries.where('date').startsWith(realMonthPrefix).toArray(), [realMonthPrefix]) ?? []
   // A future-dated entry hasn't actually happened yet — it shouldn't count

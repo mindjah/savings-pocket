@@ -8,7 +8,6 @@ import type { BudgetStatusLevel } from '../../lib/planning'
 import { convertFiat } from '../../lib/fxRates'
 import { useFiatRates } from '../../hooks/useFiatRates'
 import { Modal } from '../common/Modal'
-import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { useTranslation } from '../../hooks/useTranslation'
 import { tSpentConvertedFrom } from '../../i18n/translations'
 import { BudgetIcon } from '../common/BudgetIcon'
@@ -165,17 +164,26 @@ function BudgetDonut({
 
 export function BudgetStatusModal({ onClose }: Props) {
   const { t, lang } = useTranslation()
-  const budgets = useLiveQuery(() => db.categoryBudgets.toArray(), []) ?? []
   const categories = useLiveQuery(() => db.categories.toArray(), []) ?? []
   const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories])
-  const [totalBudgetLimit] = useMetaSetting<Partial<Record<Currency, number>>>('totalBudgetLimit', {})
   const { rates: fx } = useFiatRates()
   const [unbudgetedInfoOpen, setUnbudgetedInfoOpen] = useState(false)
 
+  // Budget status always reflects the budget saved for the real current
+  // month — budgets are scoped by exact calendar month (see BudgetModal).
   const now = new Date()
   const monthPrefix = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
   const elapsedFraction = now.getDate() / daysInMonth
+  const budgets = useLiveQuery(() => db.categoryBudgets.where('month').equals(monthPrefix).toArray(), [monthPrefix]) ?? []
+  const totalBudgetRows = useLiveQuery(() => db.totalBudgets.where('month').equals(monthPrefix).toArray(), [monthPrefix]) ?? []
+  const totalBudgetLimit = useMemo(() => {
+    const result: Partial<Record<Currency, number>> = {}
+    totalBudgetRows.forEach((r) => {
+      result[r.currency] = r.amount
+    })
+    return result
+  }, [totalBudgetRows])
   const spendingThisMonthRaw =
     useLiveQuery(() => db.spendingEntries.where('date').startsWith(monthPrefix).toArray(), [monthPrefix]) ?? []
   // A future-dated entry hasn't actually happened yet — it shouldn't count

@@ -15,8 +15,6 @@ interface Props {
   onClose: () => void
 }
 
-type TotalBudget = Partial<Record<Currency, number>>
-
 interface AddTotalBudgetModalProps {
   currencyOptions: { code: Currency; symbol: string }[]
   onAdd: (currency: Currency, amount: number) => void
@@ -284,39 +282,54 @@ export function BudgetModal({ onClose }: Props) {
   const toast = useToast()
   const currencyOptions = CURRENCIES
   const [budgetEnabled, setBudgetEnabled] = useMetaSetting<boolean>('budgetEnabled', false)
-  const [, setTotalBudgetMeta] = useMetaSetting<TotalBudget>('totalBudgetLimit', {})
 
   const tempIdRef = useRef(-1)
   const nextTempId = () => tempIdRef.current--
 
-  // --- draft state: loaded once from the DB, edited only locally, and only
-  // written back when "Save budget" is pressed. One total-budget input per
-  // currency, so a plan mixing e.g. USD and EUR income sets both. ---
+  // Budgets are scoped by exact calendar month — switching this picker loads
+  // a completely separate set of totals/expenses, so past (and future)
+  // months' budgets stay around for comparison instead of being overwritten.
+  const [budgetMonth, setBudgetMonth] = useState(() => {
+    const now = new Date()
+    return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`
+  })
+
+  // --- draft state: (re)loaded from the DB whenever budgetMonth changes,
+  // edited only locally, and only written back when "Save budget" is
+  // pressed. One total-budget input per currency, so a plan mixing e.g. USD
+  // and EUR income sets both. ---
   const [draftTotalInputs, setDraftTotalInputs] = useState<Partial<Record<Currency, string>>>({})
   const [draftBudgets, setDraftBudgets] = useState<CategoryBudget[]>([])
   const [draftLoaded, setDraftLoaded] = useState(false)
   // Tracks whether the draft has diverged from what's actually saved, so
-  // closing the modal can warn instead of silently discarding it.
+  // closing the modal (or switching month) can warn instead of silently
+  // discarding it.
   const [dirty, setDirty] = useState(false)
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([db.meta.get('totalBudgetLimit'), db.categoryBudgets.toArray()]).then(([rec, rows]) => {
+    setDraftLoaded(false)
+    Promise.all([
+      db.totalBudgets.where('month').equals(budgetMonth).toArray(),
+      db.categoryBudgets.where('month').equals(budgetMonth).toArray(),
+    ]).then(([totalRows, rows]) => {
       if (cancelled) return
-      const val = (rec?.value as TotalBudget | undefined) ?? {}
       const inputs: Partial<Record<Currency, string>> = {}
-      for (const [currency, amount] of Object.entries(val) as [Currency, number][]) {
-        if (amount) inputs[currency] = String(amount)
-      }
+      for (const row of totalRows) inputs[row.currency] = String(row.amount)
       setDraftTotalInputs(inputs)
       setDraftBudgets(rows)
       setDraftLoaded(true)
+      setDirty(false)
     })
     return () => {
       cancelled = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [budgetMonth])
+
+  function changeMonth(next: string) {
+    if (dirty && !confirm(t('You have unsaved changes. Switch month without saving?'))) return
+    setBudgetMonth(next)
+  }
 
   const categories = useLiveQuery(() => db.categories.toArray(), []) ?? []
   const activeCategories = categories.filter((c) => !c.archived)
@@ -387,7 +400,7 @@ export function BudgetModal({ onClose }: Props) {
     const now = new Date().toISOString()
     setDraftBudgets((prev) => [
       ...prev,
-      { id: nextTempId(), categoryId, amount, currency, note, createdAt: now, updatedAt: now },
+      { id: nextTempId(), categoryId, amount, currency, note, month: budgetMonth, createdAt: now, updatedAt: now },
     ])
     setDirty(true)
   }
@@ -409,17 +422,15 @@ export function BudgetModal({ onClose }: Props) {
     if (selectedPlanId === '') return
     if (!confirm(t('This will replace your current (unsaved) budget with this plan. Continue?'))) return
     const plan = plans.find((p) => p.id === selectedPlanId)
-    const now = new Date()
-    const monthPrefix = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`
     const [planExpenses, planIncome, allRecurring, spendingThisMonth] = await Promise.all([
       db.plannedExpenses.where('planId').equals(selectedPlanId).toArray(),
       db.plannedIncome.where('planId').equals(selectedPlanId).toArray(),
       db.recurringExpenses.toArray(),
-      db.spendingEntries.where('date').startsWith(monthPrefix).toArray(),
+      db.spendingEntries.where('date').startsWith(budgetMonth).toArray(),
     ])
-    const fixed = fixedExpensesForMonth(allRecurring, monthPrefix, spendingThisMonth)
+    const fixed = fixedExpensesForMonth(allRecurring, budgetMonth, spendingThisMonth)
     const totals = planCategoryTotals(planExpenses, fixed)
-    const nowIso = now.toISOString()
+    const nowIso = new Date().toISOString()
     const note = plan ? `${t('From plan:')} ${plan.name}` : ''
     setDraftBudgets(
       totals.map((total) => ({
@@ -428,6 +439,7 @@ export function BudgetModal({ onClose }: Props) {
         amount: total.amount,
         currency: total.currency,
         note,
+        month: budgetMonth,
         createdAt: nowIso,
         updatedAt: nowIso,
       })),
@@ -456,22 +468,24 @@ export function BudgetModal({ onClose }: Props) {
       return
     }
     const nowIso = new Date().toISOString()
-    await db.transaction('rw', db.categoryBudgets, async () => {
-      await db.categoryBudgets.clear()
+    await db.transaction('rw', db.categoryBudgets, db.totalBudgets, async () => {
+      await db.categoryBudgets.where('month').equals(budgetMonth).delete()
       for (const b of draftBudgets) {
         await db.categoryBudgets.add({
           categoryId: b.categoryId,
           amount: b.amount,
           currency: b.currency,
           note: b.note,
+          month: budgetMonth,
           createdAt: b.createdAt,
           updatedAt: nowIso,
         })
       }
+      await db.totalBudgets.where('month').equals(budgetMonth).delete()
+      for (const { currency, amount } of totalsByCurrency) {
+        await db.totalBudgets.add({ month: budgetMonth, currency, amount, createdAt: nowIso, updatedAt: nowIso })
+      }
     })
-    const totalMeta: TotalBudget = {}
-    for (const { currency, amount } of totalsByCurrency) totalMeta[currency] = amount
-    await setTotalBudgetMeta(totalMeta)
     toast(t('Budget saved'))
     onClose()
   }
@@ -486,6 +500,11 @@ export function BudgetModal({ onClose }: Props) {
   return (
     <>
       <Modal title={t('Manage budget')} onClose={handleClose}>
+        <div className="form-group">
+          <label htmlFor="budgetMonth">{t('Applies to month')}</label>
+          <input id="budgetMonth" type="month" value={budgetMonth} onChange={(e) => changeMonth(e.target.value)} />
+        </div>
+
         <div className="settings-row">
           <div style={{ flex: 1, minWidth: 0 }}>
             <div>{t('Enable budget tracking')}</div>
