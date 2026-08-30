@@ -500,11 +500,6 @@ export function BudgetModal({ onClose }: Props) {
   return (
     <>
       <Modal title={t('Manage budget')} onClose={handleClose}>
-        <div className="form-group">
-          <label htmlFor="budgetMonth">{t('Applies to month')}</label>
-          <input id="budgetMonth" type="month" value={budgetMonth} onChange={(e) => changeMonth(e.target.value)} />
-        </div>
-
         <div className="settings-row">
           <div style={{ flex: 1, minWidth: 0 }}>
             <div>{t('Enable budget tracking')}</div>
@@ -548,6 +543,10 @@ export function BudgetModal({ onClose }: Props) {
           <h2>{t('Total budget')}</h2>
         </div>
         <div className="card settings-list">
+          <div className="form-group">
+            <label htmlFor="budgetMonth">{t('Applies to month')}</label>
+            <input id="budgetMonth" type="month" value={budgetMonth} onChange={(e) => changeMonth(e.target.value)} />
+          </div>
           {totalsByCurrency.length === 0 ? (
             <div className="muted">{t('No total budget set yet.')}</div>
           ) : (
