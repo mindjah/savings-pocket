@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import type { Category, Currency, PlannedExpense, PlannedIncome } from '../../db/types'
 import { CURRENCIES } from '../../lib/constants'
-import { formatMoney, pad2, parseAmount, roundFiat } from '../../lib/format'
+import { formatMoney, pad2, parseAmount, roundFiat, todayIso } from '../../lib/format'
 import { fixedExpensesForMonth, planCategoryTotals } from '../../lib/planning'
 import { Modal } from '../common/Modal'
 import { DeleteConfirmModal } from '../Savings/DeleteConfirmModal'
@@ -48,7 +48,6 @@ function AddIncomeModal({ currencyOptions, onAdd, onClose }: AddIncomeModalProps
         <label htmlFor="newIncomeSource">{t('Source')}</label>
         <input
           id="newIncomeSource"
-          autoFocus
           value={source}
           onChange={(e) => setSource(e.target.value)}
           placeholder={t('e.g. Salary')}
@@ -117,7 +116,7 @@ function EditIncomeModal({ entry, currencyOptions, onSave, onDelete, onClose }: 
     <Modal title={t('Planned income')} onClose={onClose}>
       <div className="form-group">
         <label htmlFor="editIncomeSource">{t('Source')}</label>
-        <input id="editIncomeSource" autoFocus value={source} onChange={(e) => setSource(e.target.value)} placeholder={t('e.g. Salary')} />
+        <input id="editIncomeSource" value={source} onChange={(e) => setSource(e.target.value)} placeholder={t('e.g. Salary')} />
       </div>
       <div className="form-row">
         <div className="form-group">
@@ -195,7 +194,6 @@ function AddExpenseModal({ categories, currencyOptions, onAdd, onClose }: AddExp
             id="newExpenseAmount"
             type="text"
             inputMode="decimal"
-            autoFocus
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"
@@ -278,7 +276,6 @@ function EditExpenseModal({ entry, categories, currencyOptions, onSave, onDelete
             id="editExpenseAmount"
             type="text"
             inputMode="decimal"
-            autoFocus
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"
@@ -329,8 +326,15 @@ export function PlanEditorModal({ planId, onClose }: Props) {
   const categories = useLiveQuery(() => db.categories.toArray(), []) ?? []
   const activeCategories = categories.filter((c) => !c.archived)
   const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories])
-  const spendingThisMonth =
+  const spendingThisMonthRaw =
     useLiveQuery(() => db.spendingEntries.where('date').startsWith(appliesMonth).toArray(), [appliesMonth]) ?? []
+  // A future-dated entry hasn't actually happened yet — it shouldn't count
+  // as "already spent" any more than a recurring expense that hasn't
+  // materialized yet does.
+  const spendingThisMonth = useMemo(
+    () => spendingThisMonthRaw.filter((e) => e.date <= todayIso()),
+    [spendingThisMonthRaw],
+  )
 
   const fixedExpenses = useMemo(
     () => fixedExpensesForMonth(recurringExpenses, appliesMonth, spendingThisMonth),

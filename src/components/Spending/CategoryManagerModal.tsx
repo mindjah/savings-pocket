@@ -48,7 +48,6 @@ function EditCategoryModal({ category, onSave, onToggleArchive, onDelete, onClos
         <label htmlFor="editCatName">{t('Name')}</label>
         <input
           id="editCatName"
-          autoFocus
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && submit()}

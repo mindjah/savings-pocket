@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import type { Currency } from '../../db/types'
-import { formatMoney, pad2 } from '../../lib/format'
+import { formatMoney, pad2, todayIso } from '../../lib/format'
 import { categoryPaceLevel } from '../../lib/planning'
 import type { BudgetStatusLevel } from '../../lib/planning'
 import { Modal } from '../common/Modal'
@@ -97,8 +97,15 @@ export function BudgetStatusModal({ onClose }: Props) {
   const monthPrefix = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
   const elapsedFraction = now.getDate() / daysInMonth
-  const spendingThisMonth =
+  const spendingThisMonthRaw =
     useLiveQuery(() => db.spendingEntries.where('date').startsWith(monthPrefix).toArray(), [monthPrefix]) ?? []
+  // A future-dated entry hasn't actually happened yet — it shouldn't count
+  // as "already spent" any more than a recurring expense that hasn't
+  // materialized yet does.
+  const spendingThisMonth = useMemo(
+    () => spendingThisMonthRaw.filter((e) => e.date <= todayIso()),
+    [spendingThisMonthRaw],
+  )
 
   const donuts = useMemo(() => {
     const spentByCurrency = new Map<Currency, number>()

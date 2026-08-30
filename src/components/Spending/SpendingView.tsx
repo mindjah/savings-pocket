@@ -121,8 +121,15 @@ export function SpendingView() {
   const categoryBudgets = useLiveQuery(() => db.categoryBudgets.toArray(), []) ?? []
   const [totalBudgetLimit] = useMetaSetting<Partial<Record<Currency, number>>>('totalBudgetLimit', {})
   const realMonthPrefix = `${today.getFullYear()}-${pad2(today.getMonth() + 1)}`
-  const realMonthEntries =
+  const realMonthEntriesRaw =
     useLiveQuery(() => db.spendingEntries.where('date').startsWith(realMonthPrefix).toArray(), [realMonthPrefix]) ?? []
+  // A future-dated entry hasn't actually happened yet — it shouldn't count
+  // as "already spent" any more than a recurring expense that hasn't
+  // materialized yet does.
+  const realMonthEntries = useMemo(
+    () => realMonthEntriesRaw.filter((e) => e.date <= todayIso()),
+    [realMonthEntriesRaw],
+  )
   const budgetStatus = useMemo(
     () =>
       budgetEnabled

@@ -77,15 +77,16 @@ textarea {
   min-width: 0;
 }
 
-/* Mobile browsers give the native date field's internal shadow parts a
+/* Mobile browsers give the native date/month field's internal shadow parts a
    baked-in min-width that ignores the width:100% above, overflowing
    narrow modals — box-sizing alone doesn't stop it, so clamp explicitly. */
-input[type='date'] {
+input[type='date'],
+input[type='month'] {
   max-width: 100%;
   box-sizing: border-box;
-  /* iOS Safari's native date control ignores width:100% on its internal
-     layout unless appearance is overridden — without this it renders
-     wider than its box and pushes the bottom sheet off-screen. */
+  /* iOS Safari's native date/month control ignores width:100% on its
+     internal layout unless appearance is overridden — without this it
+     renders wider than its box and pushes the bottom sheet off-screen. */
   -webkit-appearance: none;
   appearance: none;
 }

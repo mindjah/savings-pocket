@@ -44,7 +44,6 @@ function AddTotalBudgetModal({ currencyOptions, onAdd, onClose }: AddTotalBudget
             id="newTotalBudgetAmount"
             type="text"
             inputMode="decimal"
-            autoFocus
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && submit()}
@@ -112,7 +111,6 @@ function AddBudgetExpenseModal({ categories, currencyOptions, onAdd, onClose }: 
             id="newBudgetAmount"
             type="text"
             inputMode="decimal"
-            autoFocus
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"
@@ -180,7 +178,6 @@ function EditTotalBudgetModal({ currency, amount, onSave, onDelete, onClose }: E
           id="editTotalBudgetAmount"
           type="text"
           inputMode="decimal"
-          autoFocus
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && submit()}
@@ -245,7 +242,6 @@ function EditBudgetExpenseModal({ entry, categories, currencyOptions, onSave, on
             id="editBudgetAmount"
             type="text"
             inputMode="decimal"
-            autoFocus
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"
