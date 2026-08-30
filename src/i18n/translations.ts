@@ -456,6 +456,10 @@ export function tLimitsExceededInCategories(lang: Language, n: number): string {
   return `Limits exceeded in ${n} categor${n === 1 ? 'y' : 'ies'}`
 }
 
+export function tSpentConvertedFrom(lang: Language, amountText: string): string {
+  return lang === 'ru' ? `Потрачено (конвертировано) из ${amountText}` : `Spent converted from ${amountText}`
+}
+
 export function tCategoryArchiveHint(lang: Language, name: string, count: number): string {
   if (lang === 'ru') {
     return `«${name}» содержит записей расходов: ${count}. Заархивируйте вместо удаления, чтобы сохранить историю.`

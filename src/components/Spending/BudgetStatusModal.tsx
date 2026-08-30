@@ -10,6 +10,7 @@ import { useFiatRates } from '../../hooks/useFiatRates'
 import { Modal } from '../common/Modal'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { useTranslation } from '../../hooks/useTranslation'
+import { tSpentConvertedFrom } from '../../i18n/translations'
 
 interface Props {
   onClose: () => void
@@ -162,7 +163,7 @@ function BudgetDonut({
 }
 
 export function BudgetStatusModal({ onClose }: Props) {
-  const { t } = useTranslation()
+  const { t, lang } = useTranslation()
   const budgets = useLiveQuery(() => db.categoryBudgets.toArray(), []) ?? []
   const categories = useLiveQuery(() => db.categories.toArray(), []) ?? []
   const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories])
@@ -202,9 +203,56 @@ export function BudgetStatusModal({ onClose }: Props) {
     return { budgetByKey, actualByKey }
   }, [budgets, spendingThisMonth])
 
+  // Only when the whole plan has a single total-budget currency: spending in a
+  // budgeted category, but paid in some other currency, isn't truly
+  // "unbudgeted" — it's folded straight into that category's own row
+  // (converted into whichever of its budgeted currencies is the plan's main
+  // one, or its only one) instead of appearing as a separate unbudgeted line.
+  // With more than one total-budget currency the categories stay fully
+  // separated per currency, same as before.
+  const spilloverInfo = useMemo(() => {
+    const totalCurrencies = Object.entries(totalBudgetLimit).filter(([, amt]) => (amt ?? 0) > 0) as [Currency, number][]
+    if (totalCurrencies.length !== 1) return null
+    const mainCurrency = totalCurrencies[0][0]
+
+    const rowKeyByCategory = new Map<number, string>()
+    budgetByKey.forEach((v, key) => {
+      const existingKey = rowKeyByCategory.get(v.categoryId)
+      if (!existingKey || v.currency === mainCurrency) rowKeyByCategory.set(v.categoryId, key)
+    })
+
+    const spilloverByRowKey = new Map<string, Map<Currency, number>>()
+    actualByKey.forEach((amount, key) => {
+      if (budgetByKey.has(key)) return
+      const [categoryIdStr, currencyStr] = key.split(':')
+      const rowKey = rowKeyByCategory.get(Number(categoryIdStr))
+      if (!rowKey) return
+      const currency = currencyStr as Currency
+      const perCurrency = spilloverByRowKey.get(rowKey) ?? new Map<Currency, number>()
+      perCurrency.set(currency, (perCurrency.get(currency) ?? 0) + amount)
+      spilloverByRowKey.set(rowKey, perCurrency)
+    })
+
+    return { spilloverByRowKey }
+  }, [totalBudgetLimit, budgetByKey, actualByKey])
+
   const { budgetedRows, otherRows } = useMemo(() => {
+    const budgetedCategoryIds = new Set(Array.from(budgetByKey.values()).map((v) => v.categoryId))
+
     const budgetedRows = Array.from(budgetByKey.entries())
-      .map(([key, v]) => ({ ...v, actual: actualByKey.get(key) ?? 0, level: categoryPaceLevel(actualByKey.get(key) ?? 0, v.budget, elapsedFraction) }))
+      .map(([key, v]) => {
+        const nativeActual = actualByKey.get(key) ?? 0
+        const spilloverByCurrency = spilloverInfo?.spilloverByRowKey.get(key)
+        const spilloverLines = spilloverByCurrency
+          ? Array.from(spilloverByCurrency.entries()).map(([currency, amount]) => ({ currency, amount }))
+          : []
+        const spilloverConverted =
+          fx && spilloverByCurrency
+            ? Array.from(spilloverByCurrency.entries()).reduce((sum, [cur, amt]) => sum + convertFiat(amt, cur, v.currency, fx), 0)
+            : 0
+        const actual = nativeActual + spilloverConverted
+        return { ...v, actual, spilloverLines, level: categoryPaceLevel(actual, v.budget, elapsedFraction) }
+      })
       // Worst first (red, then yellow, then green), most-over as a tiebreak.
       .sort((a, b) => {
         const order: Record<BudgetStatusLevel, number> = { red: 0, yellow: 1, green: 2 }
@@ -214,8 +262,18 @@ export function BudgetStatusModal({ onClose }: Props) {
 
     // Spending in categories that have no budget of their own — still real
     // money spent, so shown below the budgeted rows rather than hidden.
+    // (When spilloverInfo is active, a budgeted category's cross-currency
+    // spend was already folded into its budgetedRows entry above, so it's
+    // excluded here rather than double-counted.)
     const otherRows = Array.from(actualByKey.entries())
-      .filter(([key]) => !budgetByKey.has(key))
+      .filter(([key]) => {
+        if (budgetByKey.has(key)) return false
+        if (spilloverInfo) {
+          const [categoryIdStr] = key.split(':')
+          if (budgetedCategoryIds.has(Number(categoryIdStr))) return false
+        }
+        return true
+      })
       .map(([key, actual]) => {
         const [categoryId, currency] = key.split(':')
         return { categoryId: Number(categoryId), currency: currency as Currency, actual }
@@ -223,7 +281,7 @@ export function BudgetStatusModal({ onClose }: Props) {
       .sort((a, b) => b.actual - a.actual)
 
     return { budgetedRows, otherRows }
-  }, [budgetByKey, actualByKey, elapsedFraction])
+  }, [budgetByKey, actualByKey, elapsedFraction, spilloverInfo, fx])
 
   // One donut per currency that has a total budget — each one's own ring,
   // sized down and laid out two-per-row once there's more than one.
@@ -356,6 +414,11 @@ export function BudgetStatusModal({ onClose }: Props) {
                       <div className="muted" style={{ fontSize: '0.82rem' }}>
                         {t('Budget')}: {formatMoney(r.budget, r.currency)} · {t('Spent')}: {formatMoney(r.actual, r.currency)}
                       </div>
+                      {r.spilloverLines.map((line) => (
+                        <div className="muted" style={{ fontSize: '0.78rem' }} key={line.currency}>
+                          {tSpentConvertedFrom(lang, `${formatMoney(line.amount, line.currency)} ${line.currency}`)}
+                        </div>
+                      ))}
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div className="muted" style={{ fontSize: '0.68rem' }}>
