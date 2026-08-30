@@ -280,6 +280,9 @@ export const RU: Record<string, string> = {
     'Это заменит ваш текущий (несохранённый) бюджет этим планом. Продолжить?',
   Apply: 'Применить',
   'Budget filled from plan': 'Бюджет заполнен из плана',
+  'This applies the plan created in Planning sandbox.': 'Это применяет план, созданный в Песочнице планирования.',
+  'Copy from previous month': 'Скопировать с предыдущего месяца',
+  'Budget copied from previous month': 'Бюджет скопирован с предыдущего месяца',
   'Total budget': 'Общий бюджет',
   'No total budget set yet.': 'Общий бюджет ещё не задан.',
   'Add total budget': 'Добавить общий бюджет',
@@ -461,6 +464,12 @@ export function tLimitsExceededInCategories(lang: Language, n: number): string {
 
 export function tSpentConvertedFrom(lang: Language, amountText: string): string {
   return lang === 'ru' ? `Потрачено (конвертировано) из ${amountText}` : `Spent converted from ${amountText}`
+}
+
+export function tCopyBudgetConfirm(lang: Language, monthLabel: string): string {
+  return lang === 'ru'
+    ? `Это заменит ваш текущий (несохранённый) бюджет бюджетом за ${monthLabel}. Продолжить?`
+    : `This will replace your current (unsaved) budget with ${monthLabel}'s. Continue?`
 }
 
 export function tOverspentButOverallFine(lang: Language, currency: string): string {

@@ -610,8 +610,8 @@ export function PlanEditorModal({ planId, onClose }: Props) {
                   <div className="list-frame-row" key={r.id}>
                     <span className="swatch" style={{ background: cat?.color ?? '#888' }} />
                     <div style={{ flex: 1 }}>
-                      <div>{cat?.name ?? t('Unknown')}</div>
-                      {r.note && <div className="muted" style={{ fontSize: '0.82rem' }}>{r.note}</div>}
+                      <div>{r.note || cat?.name || t('Unknown')}</div>
+                      {r.note && <div className="muted" style={{ fontSize: '0.82rem' }}>{cat?.name ?? t('Unknown')}</div>}
                     </div>
                     <strong>{formatMoney(r.amount, r.currency)}</strong>
                   </div>
@@ -635,8 +635,8 @@ export function PlanEditorModal({ planId, onClose }: Props) {
                   <button className="list-frame-row as-button" key={e.id} onClick={() => setEditingExpenseId(e.id!)} type="button">
                     <span className="swatch" style={{ background: cat?.color ?? '#888' }} />
                     <div style={{ flex: 1 }}>
-                      <div>{cat?.name ?? t('Unknown')}</div>
-                      {e.note && <div className="muted" style={{ fontSize: '0.82rem' }}>{e.note}</div>}
+                      <div>{e.note || cat?.name || t('Unknown')}</div>
+                      {e.note && <div className="muted" style={{ fontSize: '0.82rem' }}>{cat?.name ?? t('Unknown')}</div>}
                     </div>
                     <strong>{formatMoney(e.amount, e.currency)}</strong>
                   </button>

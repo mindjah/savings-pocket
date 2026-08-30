@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import type { Category, CategoryBudget, Currency } from '../../db/types'
-import { CURRENCIES } from '../../lib/constants'
+import { CURRENCIES, MONTH_NAMES } from '../../lib/constants'
 import { formatMoney, pad2, parseAmount, roundFiat } from '../../lib/format'
 import { fixedExpensesForMonth, planCategoryTotals } from '../../lib/planning'
 import { Modal } from '../common/Modal'
@@ -10,6 +10,7 @@ import { useToast } from '../../hooks/useToast'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { useTranslation } from '../../hooks/useTranslation'
 import { BudgetIcon } from '../common/BudgetIcon'
+import { tCopyBudgetConfirm } from '../../i18n/translations'
 
 interface Props {
   onClose: () => void
@@ -292,7 +293,7 @@ function EditBudgetExpenseModal({ entry, categories, currencyOptions, existingPa
 }
 
 export function BudgetModal({ onClose }: Props) {
-  const { t } = useTranslation()
+  const { t, lang } = useTranslation()
   const toast = useToast()
   const currencyOptions = CURRENCIES
   const [budgetEnabled, setBudgetEnabled] = useMetaSetting<boolean>('budgetEnabled', false)
@@ -413,6 +414,19 @@ export function BudgetModal({ onClose }: Props) {
   }
 
   const [selectedPlanId, setSelectedPlanId] = useState<number | ''>('')
+  const [planInfoOpen, setPlanInfoOpen] = useState(false)
+
+  // Most recent month (before the one being edited) that has any budget data
+  // at all — drives the "Copy from previous month" button below.
+  const previousMonth = useLiveQuery(async () => {
+    const [totalRow, budgetRow] = await Promise.all([
+      db.totalBudgets.where('month').below(budgetMonth).last(),
+      db.categoryBudgets.where('month').below(budgetMonth).last(),
+    ])
+    const candidates = [totalRow?.month, budgetRow?.month].filter((m): m is string => !!m)
+    if (candidates.length === 0) return null
+    return candidates.reduce((best, cur) => (cur > best ? cur : best))
+  }, [budgetMonth])
 
   function addEntry(categoryId: number, amount: number, currency: Currency, note: string) {
     const now = new Date().toISOString()
@@ -476,6 +490,37 @@ export function BudgetModal({ onClose }: Props) {
     toast(t('Budget filled from plan'))
   }
 
+  async function copyFromPreviousMonth() {
+    if (!previousMonth) return
+    const [y, m] = previousMonth.split('-').map(Number)
+    const monthLabel = `${t(MONTH_NAMES[m - 1])} ${y}`
+    if (!confirm(tCopyBudgetConfirm(lang, monthLabel))) return
+    const [totalRows, budgetRows] = await Promise.all([
+      db.totalBudgets.where('month').equals(previousMonth).toArray(),
+      db.categoryBudgets.where('month').equals(previousMonth).toArray(),
+    ])
+    const nowIso = new Date().toISOString()
+    const inputs: Partial<Record<Currency, string>> = {}
+    totalRows.forEach((r) => {
+      inputs[r.currency] = String(r.amount)
+    })
+    setDraftTotalInputs(inputs)
+    setDraftBudgets(
+      budgetRows.map((b) => ({
+        id: nextTempId(),
+        categoryId: b.categoryId,
+        amount: b.amount,
+        currency: b.currency,
+        note: b.note,
+        month: budgetMonth,
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      })),
+    )
+    setDirty(true)
+    toast(t('Budget copied from previous month'))
+  }
+
   async function saveBudget() {
     if (!hasTotalBudget) {
       toast(t('Enter a total budget amount before saving.'))
@@ -537,8 +582,24 @@ export function BudgetModal({ onClose }: Props) {
         </div>
 
         <div className="section-title">
-          <h2>{t('Fill from a saved plan')}</h2>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+            <h2>{t('Fill from a saved plan')}</h2>
+            <button
+              className="btn btn-ghost btn-icon"
+              onClick={() => setPlanInfoOpen((o) => !o)}
+              aria-label={t('This applies the plan created in Planning sandbox.')}
+              type="button"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              ⓘ
+            </button>
+          </span>
         </div>
+        {planInfoOpen && (
+          <p className="muted" style={{ fontSize: '0.8rem', marginTop: -8 }}>
+            {t('This applies the plan created in Planning sandbox.')}
+          </p>
+        )}
         <div className="card settings-list">
           <div className="form-row" style={{ margin: 0 }}>
             <div className="form-group" style={{ flex: 1 }}>
@@ -565,6 +626,15 @@ export function BudgetModal({ onClose }: Props) {
             <label htmlFor="budgetMonth">{t('Applies to month')}</label>
             <input id="budgetMonth" type="month" value={budgetMonth} onChange={(e) => changeMonth(e.target.value)} />
           </div>
+          <button
+            className="btn btn-block"
+            onClick={copyFromPreviousMonth}
+            disabled={!previousMonth}
+            type="button"
+            style={{ marginBottom: 20 }}
+          >
+            {t('Copy from previous month')}
+          </button>
           {totalsByCurrency.length === 0 ? (
             <div className="muted">{t('No total budget set yet.')}</div>
           ) : (
