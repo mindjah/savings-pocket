@@ -46,7 +46,7 @@ export function PocketHistoryModal({ entryId, currency, onClose }: Props) {
           {rows.map((h) => {
             const delta = h.newAmount - h.previousAmount
             return (
-              <div className="history-item" key={h.id}>
+              <div className={`history-item${h.reversed ? ' history-item-reversed' : ''}`} key={h.id}>
                 <div className="entry-top">
                   <span>{formatDateTime(h.date, lang)}</span>
                   <span className={delta >= 0 ? 'delta-pos' : 'delta-neg'}>
@@ -58,6 +58,9 @@ export function PocketHistoryModal({ entryId, currency, onClose }: Props) {
                   {formatMoney(h.previousAmount, currency)} → {formatMoney(h.newAmount, currency)}
                 </div>
                 {h.comment && <div className="entry-note">{h.comment}</div>}
+                {h.reversed && (
+                  <div className="muted history-item-reversed-label">{t('Deleted — this spending no longer counts')}</div>
+                )}
               </div>
             )
           })}

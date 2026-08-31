@@ -223,7 +223,7 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
     if (!id) return
     if (!confirm(t('Delete this spending entry?'))) return
     await db.transaction('rw', db.spendingEntries, db.savingsEntries, db.savingsHistory, async () => {
-      await reverseAutoDebit(id)
+      await reverseAutoDebit(id, { deleted: true })
       await db.spendingEntries.delete(id)
     })
     if (editingId === id) handleCancel()

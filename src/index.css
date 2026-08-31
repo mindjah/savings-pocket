@@ -709,6 +709,21 @@ h1, h2, h3, p {
 .history-item .delta-pos { color: var(--accent); font-weight: 700; }
 .history-item .delta-neg { color: var(--danger-strong); font-weight: 700; }
 
+.history-item-reversed {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.history-item-reversed-label {
+  /* display:inline-block starts a new decorating box, which is what
+     actually stops the ancestor's line-through from painting across this
+     text — text-decoration: none alone doesn't, since the ancestor's line
+     is drawn through descendants regardless of their own value. */
+  display: inline-block;
+  text-decoration: none;
+  font-style: italic;
+}
+
 .calendar-header {
   display: flex;
   align-items: center;

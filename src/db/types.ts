@@ -27,6 +27,11 @@ export interface SavingsHistory {
   comment: string
   source: 'manual' | 'spending'
   spendingEntryId?: number
+  // Set once the spending entry that caused this debit gets deleted — the
+  // pocket balance is corrected (see reverseAutoDebit), but the record stays
+  // so the history keeps a full trail rather than making the deletion
+  // invisible. Shown struck through rather than removed from the list.
+  reversed?: boolean
 }
 
 export interface CryptoEntry {
