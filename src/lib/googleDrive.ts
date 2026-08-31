@@ -3,6 +3,7 @@ import {
   buildBackupPayload,
   getDriveSyncState,
   hasEverConnectedToDrive,
+  hasUnsyncedLocalChanges,
   parseBackupFile,
   recordBackup,
   recordDriveConnected,
@@ -190,10 +191,20 @@ export async function attemptSilentAutoBackup(onConflict: (remoteModifiedAt: str
   }
 }
 
-export async function restoreFromGoogleDrive(): Promise<{ imported: Record<string, number> }> {
+// onConfirm is asked (and must return true to proceed) only after a token has
+// already been obtained — requesting the token FIRST, before any awaited
+// pre-check or confirm() dialog, is what lets Google's popup succeed as a
+// lightweight account picker instead of being silently blocked: an await (or
+// a dialog) ahead of it breaks the chain back to the tap that triggered this,
+// and the browser then treats the token request as gesture-less.
+export async function restoreFromGoogleDrive(
+  onConfirm: (hasLocalChanges: boolean) => boolean,
+): Promise<{ imported: Record<string, number> }> {
   const token = await requestAccessToken()
   const existing = await findBackupFile(token)
   if (!existing) throw new Error('No backup found in Google Drive yet.')
+  const hasLocalChanges = await hasUnsyncedLocalChanges()
+  if (!onConfirm(hasLocalChanges)) throw new DriveBackupCancelled()
   const res = await fetch(`https://www.googleapis.com/drive/v3/files/${existing.id}?alt=media`, {
     headers: { Authorization: `Bearer ${token}` },
   })
@@ -234,4 +245,36 @@ export async function checkDriveForNewerBackup(): Promise<DriveStartupCheckResul
   const syncState = await getDriveSyncState()
   const remoteNewer = !syncState || new Date(existing.modifiedTime).getTime() > new Date(syncState.at).getTime()
   return remoteNewer ? { remoteModifiedAt: existing.modifiedTime } : null
+}
+
+// How long to stay quiet after asking (whether accepted or declined) before
+// offering to reconnect again — keeps a long-lived background session from
+// being nagged every time it resumes.
+const RECONNECT_COOLDOWN_MS = 60 * 60 * 1000
+let lastReconnectPromptAt = 0
+
+// Auto-backup only ever uses an already-cached token (see
+// attemptSilentAutoBackup) — it never prompts on its own. That token dies
+// after under an hour, and a purely automatic request to refresh it (fired
+// from app-open or foreground-resume, with no tap behind it) is liable to be
+// silently blocked by the browser, same as checkDriveForNewerBackup's own
+// best-effort attempt above. This is the interactive fallback: only offered
+// when auto-backup is actually turned on, this device has connected to
+// Drive before, there's currently no valid token, and it's been at least an
+// hour since the last time this was offered. Accepting shows just the
+// lightweight account picker (same as a manual Backup/Restore tap), not a
+// full re-login, since Google already has this device's prior consent.
+export async function maybeReconnectDriveForAutoBackup(autoBackupEnabled: boolean, confirmReconnect: () => boolean): Promise<void> {
+  if (!autoBackupEnabled) return
+  if (!isGoogleDriveConfigured()) return
+  if (getCachedToken()) return
+  if (!(await hasEverConnectedToDrive())) return
+  if (Date.now() - lastReconnectPromptAt < RECONNECT_COOLDOWN_MS) return
+  lastReconnectPromptAt = Date.now()
+  if (!confirmReconnect()) return
+  try {
+    await requestAccessToken()
+  } catch {
+    // Best-effort only — silently try again next time the cooldown clears.
+  }
 }

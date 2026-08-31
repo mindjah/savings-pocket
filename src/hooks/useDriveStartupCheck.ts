@@ -28,7 +28,10 @@ export function useDriveStartupCheck(enabled: boolean) {
       const message = tStartupDriveOffer(lang, formatDateTime(result.remoteModifiedAt, lang), hasLocalChanges)
       if (!confirm(message)) return
       try {
-        const { imported } = await restoreFromGoogleDrive()
+        // Already confirmed above (with the same hasLocalChanges info) —
+        // restoreFromGoogleDrive's own confirm step is only there to keep
+        // the token request first for a fresh caller, so just approve it.
+        const { imported } = await restoreFromGoogleDrive(() => true)
         const total = Object.values(imported).reduce((a, b) => a + b, 0)
         toast(tImportComplete(lang, total))
       } catch (err) {

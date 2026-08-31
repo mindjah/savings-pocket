@@ -4,7 +4,7 @@ import { db } from '../../db/db'
 import { CURRENCIES, DEFAULT_CRYPTO_CURRENCIES, DEFAULT_SAVINGS_CURRENCIES, DEFAULT_SPENDING_CURRENCIES } from '../../lib/constants'
 import { formatDateOrTime, formatDateTime, formatMoney } from '../../lib/format'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
-import { exportBackup, hasUnsyncedLocalChanges, importBackup, type LastBackup } from '../../lib/backup'
+import { exportBackup, importBackup, type LastBackup } from '../../lib/backup'
 import { backupToGoogleDrive, DriveBackupCancelled, isGoogleDriveConfigured, restoreFromGoogleDrive } from '../../lib/googleDrive'
 import { useToast } from '../../hooks/useToast'
 import type { Currency, Language, SavingsTrackingMode } from '../../db/types'
@@ -198,17 +198,18 @@ export function SettingsView({ resetKey }: Props) {
   }
 
   async function handleDriveRestore() {
-    const unsynced = await hasUnsyncedLocalChanges()
-    const confirmMessage = unsynced
-      ? t("You have local changes that haven't been backed up to Google Drive yet — restoring now will replace them with your Google Drive backup and they'll be permanently lost. Continue?")
-      : t('Restoring will replace ALL current data (savings, crypto, spending, categories) with your Google Drive backup. Continue?')
-    if (!confirm(confirmMessage)) return
     setBusy(true)
     try {
-      const { imported } = await restoreFromGoogleDrive()
+      const { imported } = await restoreFromGoogleDrive((hasLocalChanges) => {
+        const confirmMessage = hasLocalChanges
+          ? t("You have local changes that haven't been backed up to Google Drive yet — restoring now will replace them with your Google Drive backup and they'll be permanently lost. Continue?")
+          : t('Restoring will replace ALL current data (savings, crypto, spending, categories) with your Google Drive backup. Continue?')
+        return confirm(confirmMessage)
+      })
       const total = Object.values(imported).reduce((a, b) => a + b, 0)
       toast(tImportComplete(language, total))
     } catch (err) {
+      if (err instanceof DriveBackupCancelled) return
       alert(err instanceof Error ? err.message : t('Failed to restore from Google Drive'))
     } finally {
       setBusy(false)

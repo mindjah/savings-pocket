@@ -13,6 +13,7 @@ import { useMetaSetting } from './hooks/useMetaSetting'
 import { useTranslation } from './hooks/useTranslation'
 import { useAutoBackup } from './hooks/useAutoBackup'
 import { useDriveStartupCheck } from './hooks/useDriveStartupCheck'
+import { maybeReconnectDriveForAutoBackup } from './lib/googleDrive'
 
 const TITLES: Record<Tab, string> = {
   savings: 'Savings',
@@ -52,10 +53,22 @@ function AppShell() {
   const [faceIdEnabled] = useMetaSetting<boolean>('faceIdEnabled', false)
   const [unlocked, setUnlocked] = useState(false)
   const locked = faceIdEnabled && !unlocked
+  const [autoBackupEnabled] = useMetaSetting<boolean>('autoBackupToGoogleDrive', false)
 
   useEffect(() => {
     materializeRecurringExpenses()
     materializePendingAutoDebits()
+  }, [])
+
+  // Give useDriveStartupCheck's own silent token attempt (below) a head
+  // start before falling back to this interactive prompt, so the two don't
+  // race into two competing Google popups on the same fresh open.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      maybeReconnectDriveForAutoBackup(autoBackupEnabled, () => confirm(t('Reconnect to Google Drive to keep backing up automatically?')))
+    }, 2000)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Only installed/standalone PWAs are allowed to lock orientation — and only on
@@ -70,24 +83,33 @@ function AppShell() {
   useDriveStartupCheck(!locked)
 
   // Re-lock only once the app has been backgrounded for a while — a brief
-  // switch to another app shouldn't demand another Face ID check.
+  // switch to another app shouldn't demand another Face ID check. Coming
+  // back to the foreground (with or without Face ID on) is also the only
+  // other moment — besides app open — where a long-lived background session
+  // gets a chance to catch up on recurring expenses and refresh its Drive
+  // connection, since neither runs on any kind of timer.
   const hiddenAtRef = useRef<number | null>(null)
   useEffect(() => {
     function onVisibility() {
-      if (!faceIdEnabled) return
       if (document.visibilityState === 'hidden') {
-        hiddenAtRef.current = Date.now()
+        if (faceIdEnabled) hiddenAtRef.current = Date.now()
         return
       }
-      const hiddenAt = hiddenAtRef.current
-      hiddenAtRef.current = null
-      if (hiddenAt != null && Date.now() - hiddenAt >= RELOCK_AFTER_MS) {
-        setUnlocked(false)
+      if (faceIdEnabled) {
+        const hiddenAt = hiddenAtRef.current
+        hiddenAtRef.current = null
+        if (hiddenAt != null && Date.now() - hiddenAt >= RELOCK_AFTER_MS) {
+          setUnlocked(false)
+          return // re-locked — skip background work until they authenticate again
+        }
       }
+      materializeRecurringExpenses()
+      materializePendingAutoDebits()
+      maybeReconnectDriveForAutoBackup(autoBackupEnabled, () => confirm(t('Reconnect to Google Drive to keep backing up automatically?')))
     }
     document.addEventListener('visibilitychange', onVisibility)
     return () => document.removeEventListener('visibilitychange', onVisibility)
-  }, [faceIdEnabled])
+  }, [faceIdEnabled, autoBackupEnabled, t])
 
   const [savingsResetKey, setSavingsResetKey] = useState(0)
   const [cryptoResetKey, setCryptoResetKey] = useState(0)
