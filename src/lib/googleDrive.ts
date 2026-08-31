@@ -258,20 +258,33 @@ let lastReconnectPromptAt = 0
 // after under an hour, and a purely automatic request to refresh it (fired
 // from app-open or foreground-resume, with no tap behind it) is liable to be
 // silently blocked by the browser, same as checkDriveForNewerBackup's own
-// best-effort attempt above. This is the interactive fallback: only offered
-// when auto-backup is actually turned on, this device has connected to
-// Drive before, there's currently no valid token, and it's been at least an
-// hour since the last time this was offered. Accepting shows just the
-// lightweight account picker (same as a manual Backup/Restore tap), not a
-// full re-login, since Google already has this device's prior consent.
-export async function maybeReconnectDriveForAutoBackup(autoBackupEnabled: boolean, confirmReconnect: () => boolean): Promise<void> {
-  if (!autoBackupEnabled) return
-  if (!isGoogleDriveConfigured()) return
-  if (getCachedToken()) return
-  if (!(await hasEverConnectedToDrive())) return
-  if (Date.now() - lastReconnectPromptAt < RECONNECT_COOLDOWN_MS) return
+// best-effort attempt above. This decides WHETHER to offer an interactive
+// reconnect prompt: only when auto-backup is actually turned on, this device
+// has connected to Drive before, there's currently no valid token, and it's
+// been at least an hour since the last time this was offered. Marks the
+// cooldown as soon as it returns true, regardless of whether the caller's
+// resulting prompt gets accepted — same "ask at most once an hour" either way.
+//
+// Deliberately does NOT itself call requestAccessToken() or use
+// window.confirm()/alert() to ask — neither is a real DOM-dispatched user
+// gesture, so a popup requested from inside either would still be silently
+// blocked, same as a fully automatic attempt. The caller must render an
+// actual clickable element and call connectDriveForAutoBackup() directly
+// from its onClick handler.
+export async function shouldOfferDriveReconnect(autoBackupEnabled: boolean): Promise<boolean> {
+  if (!autoBackupEnabled) return false
+  if (!isGoogleDriveConfigured()) return false
+  if (getCachedToken()) return false
+  if (!(await hasEverConnectedToDrive())) return false
+  if (Date.now() - lastReconnectPromptAt < RECONNECT_COOLDOWN_MS) return false
   lastReconnectPromptAt = Date.now()
-  if (!confirmReconnect()) return
+  return true
+}
+
+// Call this directly from a real onClick handler — that's what lets the
+// popup succeed as just the lightweight account picker (same as a manual
+// Backup/Restore tap) instead of being blocked.
+export async function connectDriveForAutoBackup(): Promise<void> {
   try {
     await requestAccessToken()
   } catch {

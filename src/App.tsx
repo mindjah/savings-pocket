@@ -13,7 +13,9 @@ import { useMetaSetting } from './hooks/useMetaSetting'
 import { useTranslation } from './hooks/useTranslation'
 import { useAutoBackup } from './hooks/useAutoBackup'
 import { useDriveStartupCheck } from './hooks/useDriveStartupCheck'
-import { maybeReconnectDriveForAutoBackup } from './lib/googleDrive'
+import { connectDriveForAutoBackup, shouldOfferDriveReconnect } from './lib/googleDrive'
+import { Modal } from './components/common/Modal'
+import { GoogleDriveIcon } from './components/common/GoogleDriveIcon'
 
 const TITLES: Record<Tab, string> = {
   savings: 'Savings',
@@ -54,6 +56,7 @@ function AppShell() {
   const [unlocked, setUnlocked] = useState(false)
   const locked = faceIdEnabled && !unlocked
   const [autoBackupEnabled] = useMetaSetting<boolean>('autoBackupToGoogleDrive', false)
+  const [showDriveReconnect, setShowDriveReconnect] = useState(false)
 
   useEffect(() => {
     materializeRecurringExpenses()
@@ -67,12 +70,18 @@ function AppShell() {
   // async IndexedDB read resolves a moment later — depending on it here (not
   // just []) means this re-schedules with the real value once that lands,
   // instead of permanently running with a stale false from the first render.
+  // Also skipped entirely while the Face ID lock screen is still showing —
+  // depending on `locked` means this reschedules to run again shortly after
+  // the user actually unlocks, instead of firing behind the lock screen.
   useEffect(() => {
+    if (locked) return
     const timer = setTimeout(() => {
-      maybeReconnectDriveForAutoBackup(autoBackupEnabled, () => confirm(t('Reconnect to Google Drive to keep backing up automatically?')))
+      shouldOfferDriveReconnect(autoBackupEnabled).then((should) => {
+        if (should) setShowDriveReconnect(true)
+      })
     }, 2000)
     return () => clearTimeout(timer)
-  }, [autoBackupEnabled, t])
+  }, [autoBackupEnabled, locked])
 
   // Only installed/standalone PWAs are allowed to lock orientation — and only on
   // browsers that support the Screen Orientation API (notably not iOS Safari, where
@@ -106,13 +115,16 @@ function AppShell() {
           return // re-locked — skip background work until they authenticate again
         }
       }
+      if (locked) return // still (or already) behind the lock screen — skip until unlocked
       materializeRecurringExpenses()
       materializePendingAutoDebits()
-      maybeReconnectDriveForAutoBackup(autoBackupEnabled, () => confirm(t('Reconnect to Google Drive to keep backing up automatically?')))
+      shouldOfferDriveReconnect(autoBackupEnabled).then((should) => {
+        if (should) setShowDriveReconnect(true)
+      })
     }
     document.addEventListener('visibilitychange', onVisibility)
     return () => document.removeEventListener('visibilitychange', onVisibility)
-  }, [faceIdEnabled, autoBackupEnabled, t])
+  }, [faceIdEnabled, autoBackupEnabled, locked])
 
   const [savingsResetKey, setSavingsResetKey] = useState(0)
   const [cryptoResetKey, setCryptoResetKey] = useState(0)
@@ -151,6 +163,29 @@ function AppShell() {
         {tab === 'spending' && <SpendingView resetKey={spendingResetKey} />}
         {tab === 'settings' && <SettingsView resetKey={settingsResetKey} />}
       </main>
+
+      {showDriveReconnect && (
+        <Modal
+          title={
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <GoogleDriveIcon size={20} />
+              {t('Reconnect to Google Drive to keep backing up automatically?')}
+            </span>
+          }
+          onClose={() => setShowDriveReconnect(false)}
+        >
+          <button
+            className="btn btn-primary btn-block"
+            onClick={() => {
+              setShowDriveReconnect(false)
+              connectDriveForAutoBackup()
+            }}
+            type="button"
+          >
+            {t('Reconnect')}
+          </button>
+        </Modal>
+      )}
     </div>
   )
 }
