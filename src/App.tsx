@@ -63,13 +63,16 @@ function AppShell() {
   // Give useDriveStartupCheck's own silent token attempt (below) a head
   // start before falling back to this interactive prompt, so the two don't
   // race into two competing Google popups on the same fresh open.
+  // autoBackupEnabled starts out false (useMetaSetting's fallback) until its
+  // async IndexedDB read resolves a moment later — depending on it here (not
+  // just []) means this re-schedules with the real value once that lands,
+  // instead of permanently running with a stale false from the first render.
   useEffect(() => {
     const timer = setTimeout(() => {
       maybeReconnectDriveForAutoBackup(autoBackupEnabled, () => confirm(t('Reconnect to Google Drive to keep backing up automatically?')))
     }, 2000)
     return () => clearTimeout(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [autoBackupEnabled, t])
 
   // Only installed/standalone PWAs are allowed to lock orientation — and only on
   // browsers that support the Screen Orientation API (notably not iOS Safari, where
