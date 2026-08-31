@@ -401,8 +401,8 @@ export const RU: Record<string, string> = {
   "You have local changes that haven't been backed up to Google Drive yet — restoring now will replace them with your Google Drive backup and they'll be permanently lost. Continue?":
     'У вас есть локальные изменения, которые ещё не сохранены в Google Drive — восстановление сейчас заменит их резервной копией из Google Drive, и они будут потеряны навсегда. Продолжить?',
   'Failed to restore from Google Drive': 'Не удалось восстановить из Google Drive',
-  'Reconnect to Google Drive to keep backing up automatically?': 'Переподключиться к Google Drive, чтобы автоматическое резервное копирование продолжало работать?',
-  Reconnect: 'Переподключиться',
+  'Reconnect to Google Drive to keep backing up automatically?': 'Переподключиться к Google Drive для синхронизации?',
+  Connect: 'Подключить',
   'Auto-backup to Google Drive': 'Авто-бэкап в Google Drive',
   'Silently back up to Google Drive a few seconds after each change, using your last sign-in. Only works while the app is open.':
     'Автоматически сохранять резервную копию в Google Drive через несколько секунд после каждого изменения, используя последний вход. Работает только пока приложение открыто.',

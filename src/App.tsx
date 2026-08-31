@@ -14,7 +14,6 @@ import { useTranslation } from './hooks/useTranslation'
 import { useAutoBackup } from './hooks/useAutoBackup'
 import { useDriveStartupCheck } from './hooks/useDriveStartupCheck'
 import { connectDriveForAutoBackup, shouldOfferDriveReconnect } from './lib/googleDrive'
-import { Modal } from './components/common/Modal'
 import { GoogleDriveIcon } from './components/common/GoogleDriveIcon'
 
 const TITLES: Record<Tab, string> = {
@@ -165,26 +164,40 @@ function AppShell() {
       </main>
 
       {showDriveReconnect && (
-        <Modal
-          title={
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              <GoogleDriveIcon size={20} />
-              {t('Reconnect to Google Drive to keep backing up automatically?')}
-            </span>
-          }
-          onClose={() => setShowDriveReconnect(false)}
-        >
-          <button
-            className="btn btn-primary btn-block"
-            onClick={() => {
-              setShowDriveReconnect(false)
-              connectDriveForAutoBackup()
-            }}
-            type="button"
-          >
-            {t('Reconnect')}
-          </button>
-        </Modal>
+        <>
+          {/* Dims the rest of the app to signal an action is wanted, without
+              blocking it — pointer-events:none lets taps pass straight
+              through to whatever's underneath. */}
+          <div className="drive-reconnect-dim" />
+          <div className="drive-reconnect-banner" role="alert">
+            <div className="drive-reconnect-row">
+              <span style={{ flexShrink: 0 }}>
+                <GoogleDriveIcon size={32} />
+              </span>
+              <span className="drive-reconnect-text">{t('Reconnect to Google Drive to keep backing up automatically?')}</span>
+            </div>
+            <div className="drive-reconnect-actions">
+              <button
+                className="drive-reconnect-close"
+                onClick={() => setShowDriveReconnect(false)}
+                aria-label={t('Close')}
+                type="button"
+              >
+                ✕
+              </button>
+              <button
+                className="drive-reconnect-connect"
+                onClick={() => {
+                  setShowDriveReconnect(false)
+                  connectDriveForAutoBackup()
+                }}
+                type="button"
+              >
+                {t('Connect')}
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   )
