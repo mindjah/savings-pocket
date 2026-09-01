@@ -36,7 +36,7 @@
 
   /* ---------- TYPE (unchanged — this is shape, not color) ---------- */
   --font-display: "Nunito", system-ui, -apple-system, sans-serif;
-  --font-ui: "Lato", system-ui, -apple-system, sans-serif;
+  --font-ui: "Lato", "Nunito", system-ui, -apple-system, sans-serif;
 
   /* ---------- RADII / SHADOWS (unchanged) ---------- */
   --radius-xs: 8px;
@@ -495,7 +495,7 @@
   --brand-action: var(--accent-strong);
   --brand-accent: color-mix(in srgb, var(--accent) 18%, var(--surface));
   --font-display: "Nunito", system-ui, -apple-system, sans-serif;
-  --font-ui: "Lato", system-ui, -apple-system, sans-serif;
+  --font-ui: "Lato", "Nunito", system-ui, -apple-system, sans-serif;
 }
 
 .app-header {
