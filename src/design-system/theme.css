@@ -488,11 +488,14 @@
    ============================================================ */
 
 .app-header,
-.nav-bottom {
+.nav-bottom,
+.drive-reconnect-banner,
+.toast {
   --brand-primary: var(--accent-strong);
   --brand-action: var(--accent-strong);
   --brand-accent: color-mix(in srgb, var(--accent) 18%, var(--surface));
   --font-display: "Nunito", system-ui, -apple-system, sans-serif;
+  --font-ui: "Lato", system-ui, -apple-system, sans-serif;
 }
 
 .app-header {
@@ -536,6 +539,32 @@
 .nav-brand {
   font-family: var(--font-display);
   color: var(--brand-action);
+}
+
+/* Same shape/padding as .app-header by design (it visually replaces
+   the header while showing) — kept matching its taller padding here
+   so it doesn't leave a sliver of the header visible underneath. */
+.drive-reconnect-banner {
+  padding: calc(18px + env(safe-area-inset-top)) 16px 18px;
+}
+
+.drive-reconnect-text {
+  font-family: var(--font-display);
+}
+
+.drive-reconnect-close {
+  font-family: var(--font-ui);
+}
+
+.drive-reconnect-connect {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  color: var(--brand-primary);
+}
+
+.toast {
+  font-family: var(--font-display);
+  font-weight: 700;
 }
 
 @media (min-width: 860px) {
