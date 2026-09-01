@@ -113,7 +113,21 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
             {kind === 'credit' ? (
               <LoanCreditIcon size={30} />
             ) : (
-              <i className="fa-solid fa-piggy-bank" style={{ fontSize: 28, color: 'var(--brand-primary)' }} aria-hidden="true" />
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 36,
+                  height: 36,
+                  borderRadius: 12,
+                  background: 'var(--brand-primary)',
+                  flexShrink: 0,
+                }}
+                aria-hidden="true"
+              >
+                <i className="fa-solid fa-piggy-bank" style={{ fontSize: 18, color: '#fff' }} />
+              </span>
             )}
           </span>
         )
