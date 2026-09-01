@@ -167,6 +167,13 @@ export function SavingsView({ resetKey }: Props) {
 
       <NetWorthCard />
 
+      {(entries?.length ?? 0) + (credits?.length ?? 0) + (loans?.length ?? 0) > 0 && (
+        <button className="btn btn-transfer-hero" onClick={() => setShowTransfer(true)} type="button">
+          {t('Transfer')}
+          <TransferIcon size={20} />
+        </button>
+      )}
+
       <div className="segmented">
         <button type="button" className={subTab === 'mine' ? 'active' : ''} onClick={() => setSubTab('mine')}>
           {t('My money')}
@@ -190,14 +197,8 @@ export function SavingsView({ resetKey }: Props) {
 
       {subTab === 'mine' ? (
         <>
-          <div className="section-title section-title-bottom" style={{ marginTop: 8 }}>
+          <div className="section-title section-title-bottom">
             <h2>{t('My Pockets')}</h2>
-            {entries && entries.length > 0 && (
-              <button className="btn btn-transfer" onClick={() => setShowTransfer(true)} type="button">
-                {t('Transfer')}
-                <TransferIcon size={20} />
-              </button>
-            )}
           </div>
 
           {!entries || entries.length === 0 ? (
@@ -211,14 +212,8 @@ export function SavingsView({ resetKey }: Props) {
         </>
       ) : subTab === 'credits' ? (
         <>
-          <div className="section-title section-title-bottom" style={{ marginTop: 8 }}>
+          <div className="section-title section-title-bottom">
             <h2>{t('Credits')}</h2>
-            {credits && credits.length > 0 && (
-              <button className="btn btn-transfer" onClick={() => setShowTransfer(true)} type="button">
-                {t('Transfer')}
-                <TransferIcon size={20} />
-              </button>
-            )}
           </div>
 
           {!credits || credits.length === 0 ? (
@@ -234,12 +229,6 @@ export function SavingsView({ resetKey }: Props) {
         <>
           <div className="section-title section-title-bottom">
             <h2>{t('Lent out')}</h2>
-            {loans && loans.length > 0 && (
-              <button className="btn btn-transfer" onClick={() => setShowTransfer(true)} type="button">
-                {t('Transfer')}
-                <TransferIcon size={20} />
-              </button>
-            )}
           </div>
 
           {!loans || loans.length === 0 ? (

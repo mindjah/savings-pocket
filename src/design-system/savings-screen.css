@@ -82,34 +82,51 @@
   font-family: var(--font-display);
 }
 
-/* ---------- Net worth card (styled like Boucoup's AccountSummary) ---------- */
+/* ---------- Net worth card ----------
+   Boucoup's own home balance hero (ui_kits/boucoup-app/kit.css
+   .acct-card / AccountCard) is a navy gradient, centered, with a
+   large stacked number — not the flat, left-aligned label+amount
+   row the standalone AccountSummary component uses on its own.
+   This matches the real screen composition, not just the component. */
 
 .boucoup-scope .net-worth-card {
-  background: var(--brand-primary);
+  background: linear-gradient(180deg, #252974 0%, #34388e 100%);
   border: none;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
+  text-align: center;
+  padding: 24px;
 }
 
-.boucoup-scope .net-worth-card .section-title h2 {
-  font-weight: 400;
-  font-size: 0.85rem;
-  color: var(--brand-accent);
+.boucoup-scope .net-worth-label {
+  font-size: 13px;
+  line-height: 19px;
+  color: var(--lavender);
 }
 
-.boucoup-scope .net-worth-card .net-worth-amount {
-  font-weight: 800;
-  font-size: 1.6rem;
-  letter-spacing: 0.5px;
+.boucoup-scope .net-worth-amount {
+  font-weight: 700;
+  font-size: 2.25rem;
+  letter-spacing: 1px;
+  line-height: 1.15;
+  margin: 6px 0 2px;
   color: #fff;
 }
 
+.boucoup-scope .net-worth-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 14px;
+  text-align: left;
+}
+
 .boucoup-scope .net-worth-card .muted {
-  color: var(--brand-accent);
+  color: var(--lavender);
 }
 
 .boucoup-scope .net-worth-card .card-expand-toggle {
-  color: var(--brand-accent);
+  color: var(--lavender);
 }
 
 /* ---------- Entry cards (styled like Boucoup's AccountListItem) ---------- */
@@ -240,16 +257,31 @@
   color: var(--fg-1);
 }
 
-/* Real Boucoup screens put Transfer in a proper secondary pill button
-   (kit.css .btn-secondary), not a bare text link — and buttons use
-   Lato, not Nunito, per the source design system. */
-.boucoup-scope .btn-transfer {
+.boucoup-scope .section-title-bottom {
+  margin-top: 24px;
+}
+
+/* Real Boucoup screens put the primary action (their Request/Transfer
+   pair) as a full-width pill button-row directly under the balance
+   card (kit.css .btn-row/.btn-secondary), not a small text link
+   tucked into a list's section header. This app only has one
+   comparable action (Transfer, which already covers pockets, credits
+   AND loans at once) — rendered once, in that position, instead of
+   duplicated per sub-tab. Buttons use Lato, not Nunito, per source. */
+.boucoup-scope .btn-transfer-hero {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
   font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 1.125rem;
+  padding: 16px 24px;
+  border-radius: var(--radius-md);
+  border: none;
   background: var(--brand-accent);
   color: var(--brand-action);
-  border-radius: var(--radius-md);
-  padding: 8px 16px;
-  font-weight: 700;
 }
 
 .boucoup-scope .btn-accent-text {
