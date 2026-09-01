@@ -96,12 +96,19 @@ export function SavingsView({ resetKey }: Props) {
         ? enabledCurrencies.filter((c) => creditTotals[c.code] !== 0)
         : enabledCurrencies.filter((c) => loanTotals[c.code] > 0)
 
+  function pocketTint(entry: SavingsEntry): string {
+    if (entry.kind === 'credit') return 'tint-red'
+    if (entry.purpose === 'savings') return 'tint-green'
+    if (entry.purpose === 'spending') return 'tint-orange'
+    return 'tint-indigo'
+  }
+
   function renderPocketCard(entry: SavingsEntry) {
     return (
       <div className="entry-card" key={entry.id}>
         <div className="entry-top">
           <span className="entry-top-left">
-            <span className="pocket-type-icon" aria-hidden="true">
+            <span className={`pocket-type-icon ${pocketTint(entry)}`} aria-hidden="true">
               {entry.type === 'cash' ? <CashIcon size={24} /> : <CardIcon size={24} />}
             </span>
             <span className="entry-amount">{formatMoney(entry.amount, entry.currency)}</span>
