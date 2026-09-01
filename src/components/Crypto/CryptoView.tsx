@@ -13,6 +13,7 @@ import { BitcoinIcon } from '../common/BitcoinIcon'
 import { NoteViewModal } from '../common/NoteViewModal'
 import { useTranslation } from '../../hooks/useTranslation'
 import { PinIcon } from '../common/PinIcon'
+import { EntryActionMenu } from '../common/EntryActionMenu'
 
 interface Props {
   resetKey: number
@@ -128,7 +129,7 @@ export function CryptoView({ resetKey }: Props) {
                       : null
                   : null
               return (
-                <button className="entry-card" key={entry.id} onClick={() => setEditing(entry)}>
+                <div className="entry-card" key={entry.id}>
                   <div className="entry-top">
                     <span className="entry-amount">
                       {entry.amount} {entry.symbol}
@@ -145,7 +146,14 @@ export function CryptoView({ resetKey }: Props) {
                         </span>
                       )}
                     </span>
-                    <span className="badge">{entry.name}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span className="badge">{entry.name}</span>
+                      {entry.pinned && (
+                        <span style={{ color: 'var(--accent)', display: 'flex' }} aria-label={t('Pinned')} title={t('Pinned')}>
+                          <PinIcon size={14} />
+                        </span>
+                      )}
+                    </span>
                   </div>
                   <div className="entry-sub">
                     {price
@@ -154,54 +162,12 @@ export function CryptoView({ resetKey }: Props) {
                           .join(' · ')}`
                       : t('Price unavailable')}
                   </div>
-                  <div className="entry-footer">
-                    <div
-                      role="link"
-                      tabIndex={0}
-                      className="pocket-link-text"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setHistoryFor(entry)
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.stopPropagation()
-                          setHistoryFor(entry)
-                        }
-                      }}
-                    >
-                      {t('View history')}
-                    </div>
-                    {(entry.note || entry.pinned) && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {entry.note && (
-                          <span
-                            className="note-indicator-text"
-                            role="button"
-                            tabIndex={0}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setViewingNote(entry.note)
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.stopPropagation()
-                                setViewingNote(entry.note)
-                              }
-                            }}
-                          >
-                            {t('See note')}
-                          </span>
-                        )}
-                        {entry.pinned && (
-                          <span style={{ color: 'var(--accent)', display: 'flex' }} aria-label={t('Pinned')} title={t('Pinned')}>
-                            <PinIcon size={14} />
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </button>
+                  <EntryActionMenu
+                    onEdit={() => setEditing(entry)}
+                    onViewHistory={() => setHistoryFor(entry)}
+                    onSeeNote={entry.note ? () => setViewingNote(entry.note) : undefined}
+                  />
+                </div>
               )
             })}
         </div>

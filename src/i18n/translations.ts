@@ -35,6 +35,8 @@ export const RU: Record<string, string> = {
   Default: 'По умолчанию',
   'See note': 'Посмотреть заметку',
   'View history': 'Смотреть историю',
+  Edit: 'Изменить',
+  'More actions': 'Другие действия',
   "No loans tracked yet. Tap + to add money you've lent someone.":
     'Займы ещё не добавлены. Нажмите +, чтобы добавить одолженные деньги.',
 
@@ -126,6 +128,8 @@ export const RU: Record<string, string> = {
   'Using last known rates (offline)': 'Используются последние известные курсы (офлайн)',
   Updated: 'Обновлено',
   'Total net worth': 'Общий капитал',
+  'Show details': 'Показать детали',
+  'Hide details': 'Скрыть детали',
   'Calculating…': 'Расчёт…',
   'Using last known rates —': 'Используются последние известные курсы —',
   'Using last known exchange rates (offline).': 'Используются последние известные курсы обмена (офлайн).',

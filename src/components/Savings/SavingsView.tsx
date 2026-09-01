@@ -21,6 +21,7 @@ import { CardIcon } from '../common/CardIcon'
 import { CashIcon } from '../common/CashIcon'
 import { TransferIcon } from '../common/TransferIcon'
 import { TransferModal } from './TransferModal'
+import { EntryActionMenu } from '../common/EntryActionMenu'
 
 type SubTab = 'mine' | 'credits' | 'lent'
 
@@ -97,33 +98,23 @@ export function SavingsView({ resetKey }: Props) {
 
   function renderPocketCard(entry: SavingsEntry) {
     return (
-      <div
-        className="entry-card"
-        key={entry.id}
-        role="button"
-        tabIndex={0}
-        onClick={() => setEditingSavings(entry)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') setEditingSavings(entry)
-        }}
-      >
+      <div className="entry-card" key={entry.id}>
         <div className="entry-top">
           <span className="entry-top-left">
             <span className="pocket-type-icon" aria-hidden="true">
               {entry.type === 'cash' ? <CashIcon size={24} /> : <CardIcon size={24} />}
             </span>
             <span className="entry-amount">{formatMoney(entry.amount, entry.currency)}</span>
-            {trackingMode === 'auto' && entry.id != null && defaultPocketIds.has(entry.id) && (
-              <span className="badge badge-default">{t('Default')}</span>
+            {entry.kind === 'pocket' && entry.purpose && (
+              <span className={`badge badge-${entry.purpose}`}>
+                {t(entry.purpose === 'savings' ? 'Savings' : 'Spending')}
+              </span>
             )}
           </span>
           <button
             className="pocket-adjust-btn"
             aria-label="Adjust balance"
-            onClick={(e) => {
-              e.stopPropagation()
-              setAdjustingPocket(entry)
-            }}
+            onClick={() => setAdjustingPocket(entry)}
           >
             +
           </button>
@@ -132,50 +123,12 @@ export function SavingsView({ resetKey }: Props) {
           <div className="entry-sub pocket-name">
             📍 {entry.location} {t(entry.type === 'cash' ? 'Cash' : 'Card')}
           </div>
-          {entry.kind === 'pocket' && entry.purpose && (
-            <span className={`badge badge-${entry.purpose}`}>
-              {t(entry.purpose === 'savings' ? 'Savings' : 'Spending')}
-            </span>
-          )}
         </div>
-        <div className="entry-footer">
-          <div
-            role="link"
-            tabIndex={0}
-            className="pocket-link-text"
-            onClick={(e) => {
-              e.stopPropagation()
-              if (entry.id != null) setPocketHistoryFor({ id: entry.id, currency: entry.currency })
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && entry.id != null) {
-                e.stopPropagation()
-                setPocketHistoryFor({ id: entry.id, currency: entry.currency })
-              }
-            }}
-          >
-            {t('View history')}
-          </div>
-          {entry.note && (
-            <span
-              className="note-indicator-text"
-              role="button"
-              tabIndex={0}
-              onClick={(e) => {
-                e.stopPropagation()
-                setViewingNote(entry.note)
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.stopPropagation()
-                  setViewingNote(entry.note)
-                }
-              }}
-            >
-              {t('See note')}
-            </span>
-          )}
-        </div>
+        <EntryActionMenu
+          onEdit={() => setEditingSavings(entry)}
+          onViewHistory={() => entry.id != null && setPocketHistoryFor({ id: entry.id, currency: entry.currency })}
+          onSeeNote={entry.note ? () => setViewingNote(entry.note) : undefined}
+        />
       </div>
     )
   }
@@ -293,51 +246,17 @@ export function SavingsView({ resetKey }: Props) {
                 .slice()
                 .sort((a, b) => a.currency.localeCompare(b.currency) || b.amount - a.amount)
                 .map((loan) => (
-                  <button className="entry-card" key={loan.id} onClick={() => setEditingLoan(loan)}>
+                  <div className="entry-card" key={loan.id}>
                     <div className="entry-top">
                       <span className="entry-amount">{formatMoney(loan.amount, loan.currency)}</span>
                       <span className="badge">{loan.borrowerName}</span>
                     </div>
-                    {loan.note && (
-                      <span
-                        className="note-indicator"
-                        title={t('Has a note')}
-                        aria-label={t('Has a note')}
-                        role="button"
-                        tabIndex={0}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setViewingNote(loan.note)
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.stopPropagation()
-                            setViewingNote(loan.note)
-                          }
-                        }}
-                      >
-                        📝
-                      </span>
-                    )}
-                    <div
-                      role="link"
-                      tabIndex={0}
-                      className="muted"
-                      style={{ textDecoration: 'underline', width: 'fit-content', marginTop: 6 }}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        if (loan.id != null) setLoanHistoryFor({ id: loan.id, currency: loan.currency })
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && loan.id != null) {
-                          e.stopPropagation()
-                          setLoanHistoryFor({ id: loan.id, currency: loan.currency })
-                        }
-                      }}
-                    >
-                      {t('View history')}
-                    </div>
-                  </button>
+                    <EntryActionMenu
+                      onEdit={() => setEditingLoan(loan)}
+                      onViewHistory={() => loan.id != null && setLoanHistoryFor({ id: loan.id, currency: loan.currency })}
+                      onSeeNote={loan.note ? () => setViewingNote(loan.note) : undefined}
+                    />
+                  </div>
                 ))}
             </div>
           )}

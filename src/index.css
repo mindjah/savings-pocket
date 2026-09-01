@@ -280,6 +280,35 @@ h1, h2, h3, p {
   gap: 8px;
 }
 
+.net-worth-card {
+  position: relative;
+  padding-bottom: 18px;
+}
+
+.card-expand-toggle {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 1px 10px;
+}
+
+.card-expand-toggle svg {
+  transition: transform 0.15s ease;
+}
+
+.card-expand-toggle.open svg {
+  transform: rotate(180deg);
+}
+
 .section-title h2 {
   font-size: 1rem;
   font-weight: 700;
@@ -325,10 +354,37 @@ h1, h2, h3, p {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 14px 16px;
+  padding: 14px 16px 18px;
   text-align: left;
   width: 100%;
+}
+
+.entry-menu-options {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.entry-menu-option {
+  display: flex;
+  align-items: center;
+  padding: 8px 6px;
+  border-radius: 6px;
   cursor: pointer;
+  font-size: 0.88rem;
+  background: none;
+  border: none;
+  text-align: left;
+  color: var(--text);
+  width: 100%;
+  font: inherit;
+}
+
+.entry-menu-option:hover {
+  background: var(--surface-hover);
 }
 
 .note-indicator {
