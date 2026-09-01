@@ -195,7 +195,7 @@ export function SavingsView({ resetKey }: Props) {
             {entries && entries.length > 0 && (
               <button className="btn btn-transfer" onClick={() => setShowTransfer(true)} type="button">
                 {t('Transfer')}
-                <TransferIcon size={20} />
+                <TransferIcon size={14} />
               </button>
             )}
           </div>
@@ -216,7 +216,7 @@ export function SavingsView({ resetKey }: Props) {
             {credits && credits.length > 0 && (
               <button className="btn btn-transfer" onClick={() => setShowTransfer(true)} type="button">
                 {t('Transfer')}
-                <TransferIcon size={20} />
+                <TransferIcon size={14} />
               </button>
             )}
           </div>
@@ -237,7 +237,7 @@ export function SavingsView({ resetKey }: Props) {
             {loans && loans.length > 0 && (
               <button className="btn btn-transfer" onClick={() => setShowTransfer(true)} type="button">
                 {t('Transfer')}
-                <TransferIcon size={20} />
+                <TransferIcon size={14} />
               </button>
             )}
           </div>
