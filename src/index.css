@@ -173,6 +173,14 @@ h1, h2, h3, p {
   gap: 16px;
 }
 
+/* Screens with a FAB (fixed, floating 20px above the nav bar, 56px tall)
+   need extra bottom clearance or their last list item renders underneath
+   it — most confusing when that item has its own similarly-colored "+"
+   button, which then visually merges with the FAB. */
+.view:has(.fab) {
+  padding-bottom: calc(20px + 56px + 16px);
+}
+
 .nav-bottom {
   position: fixed;
   left: 0;
@@ -344,6 +352,16 @@ h1, h2, h3, p {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+/* Wraps each subtab's section-title + list/empty-state (SavingsView) so the
+   entrance animation has a real element to replay on — a plain block div,
+   so it needs its own gap to keep the spacing .view's flex column used to
+   give these when they were its direct children. */
+.subtab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .entry-card {
