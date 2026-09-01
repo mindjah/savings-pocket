@@ -98,8 +98,6 @@ export function SavingsView({ resetKey }: Props) {
 
   function pocketTint(entry: SavingsEntry): string {
     if (entry.kind === 'credit') return 'tint-red'
-    if (entry.purpose === 'savings') return 'tint-green'
-    if (entry.purpose === 'spending') return 'tint-orange'
     return 'tint-indigo'
   }
 
