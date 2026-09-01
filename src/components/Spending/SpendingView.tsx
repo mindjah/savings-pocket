@@ -385,7 +385,7 @@ export function SpendingView({ resetKey }: Props) {
         <h2>{t('By category')}</h2>
       </div>
 
-      {breakdown.length === 0 ? (
+      {entries === undefined ? null : breakdown.length === 0 ? (
         <div className="empty-state">
           <span className="icon">📅</span>
           {t('No spending logged this month yet. Tap any day to add an expense.')}
