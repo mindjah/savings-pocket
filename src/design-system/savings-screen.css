@@ -65,6 +65,8 @@
   --font-ui: "Lato", system-ui, -apple-system, sans-serif;
 
   /* ---------- RADII / SHADOWS ---------- */
+  --radius-xs: 8px;
+  --radius-sm: 12px;
   --radius-md: 16px;
   --radius-lg: 24px;
   --shadow-sm: 0px 4px 12px 0px rgba(16, 16, 16, 0.06);
@@ -157,10 +159,15 @@
 .boucoup-scope .tint-red { background: var(--red-100); color: var(--red-500); }
 .boucoup-scope .tint-indigo { background: var(--brand-accent); color: var(--brand-action); }
 
+/* Boucoup has no circular interactive buttons anywhere in the source
+   — every real button (kit.css .btn, all variants) is the same
+   rounded-square family as cards, just scaled down for a small icon
+   button. Circular is reserved for non-interactive things (icon
+   tints, avatars). */
 .boucoup-scope .pocket-adjust-btn {
   width: 28px;
   height: 28px;
-  border-radius: 50%;
+  border-radius: var(--radius-sm);
   background: var(--brand-accent-light);
   color: var(--brand-primary);
   font-size: 1.1rem;
@@ -284,7 +291,11 @@
 
 /* ---------- FAB ---------- */
 
+/* Not a circle — Boucoup has no circular buttons anywhere in the
+   source; every button is the same rounded-square family as its
+   cards (kit.css .btn, radius-md). */
 .boucoup-scope .fab {
+  border-radius: var(--radius-md);
   background: var(--brand-action);
   color: #fff;
   box-shadow: var(--shadow-lg);
@@ -307,8 +318,20 @@
   --brand-primary: #4451A2;
   --brand-accent: #DDE1FA;
   --brand-action: #252974;
+  --grey-200: #EBEBEB;
   --grey-500: #A1A0A0;
   --font-display: "Nunito", system-ui, -apple-system, sans-serif;
+}
+
+/* Boucoup is a light-first design with no dark chrome — the app's
+   own header defaults to --bg, which is dark in this app's default
+   theme, so without an explicit background here the "recolored" text
+   was landing on a plain black bar. Match .nav-bottom below: a fixed
+   white surface regardless of the app's own light/dark setting. */
+.app-header {
+  background: #fff;
+  border-bottom: 1px solid var(--grey-200);
+  backdrop-filter: none;
 }
 
 .app-header h1 {
