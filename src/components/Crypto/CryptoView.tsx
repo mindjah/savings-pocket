@@ -103,7 +103,7 @@ export function CryptoView({ resetKey }: Props) {
         </div>
       )}
 
-      {!entries || entries.length === 0 ? (
+      {!entries ? null : entries.length === 0 ? (
         <div className="empty-state">
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
             <BitcoinIcon size={32} />
