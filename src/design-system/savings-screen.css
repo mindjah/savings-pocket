@@ -1,0 +1,241 @@
+/* ============================================================
+   Boucoup redesign — applied to the Savings screen only.
+
+   Everything here is scoped under .boucoup-scope (added to
+   SavingsView's root <div className="view">). Most of the classes
+   being restyled below (.card, .entry-card, .segmented, .badge,
+   .fab, .muted, etc.) are shared with other screens (Crypto,
+   Spending, Settings) — scoping every rule under .boucoup-scope is
+   what keeps this redesign from bleeding into those screens.
+
+   Tokens are copied from design-system/colors_and_type.css (the
+   pulled Boucoup reference file) but re-homed onto .boucoup-scope
+   instead of :root — the app's own tokens already use some of the
+   same names (--radius-sm/md/lg) with different values, so defining
+   these on :root would silently change every other screen too.
+   ============================================================ */
+
+.boucoup-scope {
+  /* ---------- BRAND (indigo) ---------- */
+  --brand-primary: #4451A2;
+  --brand-hover: #23274B;
+  --brand-disable: #9AA0DB;
+  --brand-accent: #DDE1FA;
+  --brand-accent-light: #F0F2FF;
+  --brand-secondary: #5761B7;
+  --brand-light: #8594FF;
+  --brand-action: #252974;
+  --gradient-primary: linear-gradient(180deg, #4451A2 0%, #5761B7 100%);
+  --gradient-secondary: linear-gradient(180deg, #5761B7 0%, #8594FF 100%);
+
+  /* ---------- KID / PLAYFUL (purple) ---------- */
+  --purple-deep: #522C6C;
+  --purple-mark: #683089;
+  --purple-mark-2: #9668CB;
+  --lavender: #E5DDF4;
+  --gradient-goal: linear-gradient(180deg, #683089 0%, #9668CB 100%);
+
+  /* ---------- GREYS / NEUTRALS ---------- */
+  --grey-700: #4D4D4D;
+  --grey-600: #797676;
+  --grey-500: #A1A0A0;
+  --grey-400: #BFBEBE;
+  --grey-300: #D7D6D6;
+  --grey-200: #EBEBEB;
+  --grey-100: #F7F7F7;
+
+  /* ---------- GREEN (success / money) ---------- */
+  --green-500: #0A5C11;
+  --green-100: #E9FBEB;
+
+  /* ---------- SEMANTIC TOKENS ---------- */
+  --fg-1: #101010;
+  --fg-2: var(--grey-700);
+  --fg-3: var(--grey-600);
+  --border-hairline: var(--grey-200);
+
+  /* ---------- TYPE ---------- */
+  --font-display: "Nunito", system-ui, -apple-system, sans-serif;
+
+  /* ---------- RADII / SHADOWS ---------- */
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --shadow-sm: 0px 4px 12px 0px rgba(16, 16, 16, 0.06);
+  --shadow-md: 0px 6px 16px 0px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0px 12px 32px 0px rgba(16, 16, 16, 0.16);
+
+  background: var(--grey-100);
+  color: var(--fg-1);
+}
+
+.boucoup-scope,
+.boucoup-scope input,
+.boucoup-scope select,
+.boucoup-scope textarea {
+  font-family: var(--font-display);
+}
+
+/* ---------- Net worth card (styled like Boucoup's AccountSummary) ---------- */
+
+.boucoup-scope .net-worth-card {
+  background: var(--brand-primary);
+  border: none;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.boucoup-scope .net-worth-card .section-title h2 {
+  font-weight: 400;
+  font-size: 0.85rem;
+  color: var(--brand-accent);
+}
+
+.boucoup-scope .net-worth-card .net-worth-amount {
+  font-weight: 800;
+  font-size: 1.6rem;
+  letter-spacing: 0.5px;
+  color: #fff;
+}
+
+.boucoup-scope .net-worth-card .muted {
+  color: var(--brand-accent);
+}
+
+.boucoup-scope .net-worth-card .card-expand-toggle {
+  color: var(--brand-accent);
+}
+
+/* ---------- Entry cards (styled like Boucoup's AccountListItem) ---------- */
+
+.boucoup-scope .entry-card {
+  background: #fff;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.boucoup-scope .pocket-type-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--brand-accent);
+  color: var(--brand-primary);
+  justify-content: center;
+}
+
+.boucoup-scope .pocket-adjust-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--brand-accent-light);
+  color: var(--brand-primary);
+  font-size: 1.1rem;
+}
+
+.boucoup-scope .entry-amount {
+  font-weight: 700;
+  color: var(--fg-1);
+}
+
+.boucoup-scope .entry-sub {
+  color: var(--grey-600);
+}
+
+.boucoup-scope .entry-card .card-expand-toggle {
+  color: var(--grey-500);
+}
+
+.boucoup-scope .entry-menu-options {
+  border-top-color: var(--border-hairline);
+}
+
+.boucoup-scope .entry-menu-option {
+  color: var(--fg-1);
+}
+
+.boucoup-scope .entry-menu-option:hover {
+  background: var(--grey-100);
+}
+
+/* ---------- Badges ---------- */
+
+.boucoup-scope .badge {
+  background: var(--grey-100);
+  border-color: var(--border-hairline);
+  color: var(--fg-2);
+}
+
+.boucoup-scope .badge-savings {
+  background: var(--green-100);
+  color: var(--green-500);
+  border-color: transparent;
+}
+
+.boucoup-scope .badge-spending {
+  background: var(--brand-accent);
+  color: var(--brand-primary);
+  border-color: transparent;
+}
+
+/* ---------- Segmented tabs ---------- */
+
+.boucoup-scope .segmented {
+  background: var(--grey-100);
+  border-color: transparent;
+  border-radius: 999px;
+  padding: 4px;
+}
+
+.boucoup-scope .segmented button {
+  border-radius: 999px;
+  font-weight: 700;
+  color: var(--fg-2);
+}
+
+.boucoup-scope .segmented button.active {
+  background: var(--brand-primary);
+  color: #fff;
+}
+
+/* ---------- Currency total chips ---------- */
+
+.boucoup-scope .total-chip {
+  background: #fff;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.boucoup-scope .total-chip .muted {
+  color: var(--grey-600);
+}
+
+.boucoup-scope .total-chip .amount {
+  font-weight: 800;
+  color: var(--fg-1);
+}
+
+/* ---------- Section titles / buttons ---------- */
+
+.boucoup-scope .section-title h2 {
+  font-weight: 700;
+  color: var(--fg-1);
+}
+
+.boucoup-scope .btn-transfer,
+.boucoup-scope .btn-accent-text {
+  color: var(--brand-primary);
+  font-weight: 700;
+}
+
+.boucoup-scope .empty-state {
+  color: var(--grey-600);
+}
+
+/* ---------- FAB ---------- */
+
+.boucoup-scope .fab {
+  background: var(--brand-action);
+  color: #fff;
+  box-shadow: var(--shadow-lg);
+}

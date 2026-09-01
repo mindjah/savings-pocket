@@ -145,7 +145,7 @@ export function SavingsView({ resetKey }: Props) {
   }
 
   return (
-    <div className="view">
+    <div className="view boucoup-scope">
       <HeaderPortal>
         <button className="btn btn-accent-text" onClick={() => setShowRates(true)} type="button">
           {t('Exchange rates')}

@@ -18,9 +18,7 @@ export function NetWorthCard() {
       <div className="section-title">
         <h2>{t('Total net worth')}</h2>
         {breakdown && (
-          <span style={{ fontSize: '1.2rem', fontWeight: 800 }}>
-            {formatMoney(breakdown.grandTotal, displayCurrency)}
-          </span>
+          <span className="net-worth-amount">{formatMoney(breakdown.grandTotal, displayCurrency)}</span>
         )}
       </div>
 
