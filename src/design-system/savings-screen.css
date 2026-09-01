@@ -269,3 +269,73 @@
   color: #fff;
   box-shadow: var(--shadow-lg);
 }
+
+/* ============================================================
+   Global chrome — header + bottom nav.
+
+   Unlike everything above, these rules are NOT confined to
+   .boucoup-scope: .app-header and .nav-bottom are singleton
+   elements shared by every screen (Savings, Crypto, Spending,
+   Settings), so restyling them inherently reaches the whole app.
+   That's intentional here — a deliberate global reskin, not a
+   scoping mistake — while each screen's own content stays on its
+   own track until it gets its own redesign pass.
+   ============================================================ */
+
+.app-header,
+.nav-bottom {
+  --brand-primary: #4451A2;
+  --brand-accent: #DDE1FA;
+  --brand-action: #252974;
+  --grey-500: #A1A0A0;
+  --font-display: "Nunito", system-ui, -apple-system, sans-serif;
+}
+
+.app-header {
+  background: var(--brand-accent);
+  backdrop-filter: none;
+}
+
+.app-header h1 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  color: var(--brand-primary);
+}
+
+.app-header .btn-accent-text {
+  color: var(--brand-primary);
+  font-weight: 700;
+}
+
+.nav-bottom {
+  background: #fff;
+  border-top: none;
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0px -2px 20px 0px rgba(0, 0, 0, 0.16);
+}
+
+.nav-item {
+  color: var(--grey-500);
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.nav-item.active {
+  color: var(--brand-action);
+}
+
+.nav-brand {
+  font-family: var(--font-display);
+  color: var(--brand-action);
+}
+
+@media (min-width: 860px) {
+  .nav-bottom {
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .nav-item.active {
+    background: var(--brand-accent);
+  }
+}
