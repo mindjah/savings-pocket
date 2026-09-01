@@ -108,7 +108,7 @@
 
 .boucoup-scope .net-worth-amount {
   font-weight: 700;
-  font-size: 2.25rem;
+  font-size: 2.5rem;
   letter-spacing: 1px;
   line-height: 1.15;
   margin: 6px 0 2px;
@@ -140,10 +140,13 @@
   box-shadow: var(--shadow-sm);
 }
 
+/* Squircle, not a circle — matches the Background component (the
+   real source of these tinted icon glyphs): shape="rounded" is its
+   default, radius = size * 0.32. A 40px icon rounds to ~13px. */
 .boucoup-scope .pocket-type-icon {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: 13px;
   justify-content: center;
 }
 
@@ -332,11 +335,19 @@
   background: #fff;
   border-bottom: 1px solid var(--grey-200);
   backdrop-filter: none;
+  padding-top: calc(18px + env(safe-area-inset-top));
+  padding-bottom: 18px;
 }
 
+/* Real Boucoup headings run bigger than this app's own — matches
+   .home-head .hi (the closest real analog: a persistent page-level
+   greeting/title), not the smaller in-content .section-title. */
 .app-header h1 {
   font-family: var(--font-display);
   font-weight: 800;
+  font-size: 1.75rem;
+  line-height: 2.25rem;
+  letter-spacing: 0.5px;
   color: var(--brand-primary);
 }
 
