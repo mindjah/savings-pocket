@@ -1,20 +1,20 @@
 /* ============================================================
-   Boucoup redesign — SHAPE ONLY, this app's own colors.
+   App theme — Boucoup structure, this app's own colors.
 
-   Same structural/typographic system as the full Boucoup pass
+   Same structural/typographic system as a Boucoup-style redesign
    (layout, spacing, radii, shadows, Nunito/Lato) but every color
-   value now points at this app's own existing tokens (--accent,
+   value points at this app's own existing tokens (--accent,
    --surface, --bg, --text, --border, etc. from src/index.css)
-   instead of Boucoup's fixed indigo/grey palette — so this screen
-   stays fully theme-aware (dark/light) like the rest of the app,
-   using the accent green this app already has.
+   instead of a fixed external palette — so the app stays fully
+   theme-aware (dark/light), using the accent green it already had.
 
-   Everything here is scoped under .boucoup-scope (added to
-   SavingsView's root <div className="view">). Most of the classes
-   being restyled below (.card, .entry-card, .segmented, .badge,
-   .fab, .muted, etc.) are shared with other screens (Crypto,
-   Spending, Settings) — scoping every rule under .boucoup-scope is
-   what keeps this from bleeding into those screens.
+   Covers every screen, not just Savings (despite this file living
+   under design-system/ from when it started there) — Savings,
+   Crypto, Spending, and Settings each add .boucoup-scope to their
+   own root <div className="view">, which is what most of the rules
+   below key off of. The .app-header/.nav-bottom rules near the
+   bottom aren't scoped at all — that chrome is shared and styled
+   globally by design.
    ============================================================ */
 
 .boucoup-scope {
