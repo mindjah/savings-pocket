@@ -156,12 +156,14 @@ export function SavingsView({ resetKey }: Props) {
       <HeaderPortal>
         <button className="btn btn-accent-text" onClick={() => setShowRates(true)} type="button">
           {t('Exchange rates')}
+          <i className="fa-solid fa-money-bill-transfer" style={{ fontSize: 18 }} aria-hidden="true" />
         </button>
       </HeaderPortal>
 
       <div className="desktop-header-row">
         <button className="btn btn-accent-text" onClick={() => setShowRates(true)} type="button">
           {t('Exchange rates')}
+          <i className="fa-solid fa-money-bill-transfer" style={{ fontSize: 18 }} aria-hidden="true" />
         </button>
       </div>
 
