@@ -169,6 +169,21 @@
   color: var(--grey-600);
 }
 
+/* Manage menu / category / recurring list rows — same missed-in-the-
+   first-pass issue as .modal: no scoped override yet, so they were
+   still using the app's own dark --surface/--border. */
+.boucoup-scope .menu-row,
+.boucoup-scope .category-row {
+  background: #fff;
+  border-color: var(--border-hairline);
+  border-radius: var(--radius-sm);
+  color: var(--fg-1);
+}
+
+.boucoup-scope .menu-row:hover {
+  background: var(--grey-100);
+}
+
 /* ---------- Modals ----------
    Modal.tsx renders inline (no portal), so every modal opened from a
    .boucoup-scope screen sits in its DOM subtree already — it just
