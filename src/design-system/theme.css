@@ -59,28 +59,34 @@
 }
 
 /* ============================================================
-   Motion — screen switches, bottom sheets, popups, expanding
-   sections. fadeUp is Boucoup's own screen-transition keyframe
-   (ui_kits/boucoup-app/kit.css .fade), reused here for consistency.
-   Entrance-only (no exit animation): React unmounts these instantly,
-   so there's nothing to animate out without extra machinery — the
-   entrance is what actually reads as "smooth" day to day. Gated
-   behind prefers-reduced-motion so motion-sensitive users get none
-   of this.
+   Motion — bottom sheets, popups, expanding sections. Entrance-only
+   (no exit animation): React unmounts these instantly, so there's
+   nothing to animate out without extra machinery — the entrance is
+   what actually reads as "smooth" day to day. Gated behind
+   prefers-reduced-motion so motion-sensitive users get none of this.
+
+   Deliberately NOT animating .view.boucoup-scope itself (no
+   screen-switch fade) — it's the ancestor of both the FAB
+   (position: fixed) and every modal opened from that screen
+   (z-index: 30, meant to stack above .nav-bottom's z-index: 10).
+   Animating ANY property here — transform, opacity, whatever —
+   makes .view establish a new containing block / stacking context
+   for as long as the animation stays attached to it, which for a
+   plain CSS rule (vs. one added/removed by JS) is permanently: the
+   FAB stopped being fixed to the viewport (it became fixed to .view
+   instead), and separately the modal's z-index:30 started only
+   winning within .view's own new stacking context, no longer against
+   siblings like .nav-bottom outside .view — so the bottom of every
+   sheet rendered underneath the nav bar. Tried transform-only first
+   (fixed the FAB), then opacity-only (still broke the modal
+   z-ordering, since opacity creates a stacking context too) — every
+   animatable property that matters here has this problem, so the fix
+   is to not animate this particular element at all. Everything below
+   is safe because none of it is an ancestor of something that needs
+   to stack or position against a sibling outside itself.
    ============================================================ */
 
 @media (prefers-reduced-motion: no-preference) {
-  @keyframes fadeUp {
-    from {
-      opacity: 0;
-      transform: translateY(8px);
-    }
-    to {
-      opacity: 1;
-      transform: none;
-    }
-  }
-
   @keyframes overlayFadeIn {
     from {
       opacity: 0;
@@ -121,13 +127,6 @@
       opacity: 1;
       transform: none;
     }
-  }
-
-  /* Screen switches — each of the four views is a full mount/unmount
-     on tab change (App.tsx renders them behind && , not a persistent
-     tree), so this naturally replays on every switch. */
-  .view.boucoup-scope {
-    animation: fadeUp 0.28s ease both;
   }
 
   /* Bottom sheets */
