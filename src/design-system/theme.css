@@ -68,7 +68,7 @@
 
   /* ---------- TYPE ---------- */
   --font-display: "Nunito", system-ui, -apple-system, sans-serif;
-  --font-ui: "Lato", system-ui, -apple-system, sans-serif;
+  --font-ui: "Lato", "Nunito", system-ui, -apple-system, sans-serif;
 
   /* ---------- RADII / SHADOWS ---------- */
   --radius-xs: 8px;
