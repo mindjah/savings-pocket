@@ -79,7 +79,7 @@ export function CryptoView({ resetKey }: Props) {
   })
 
   return (
-    <div className="view">
+    <div className="view boucoup-scope">
       <div className="totals-row">
         {visibleCurrencies.map((c) => (
           <div className="total-chip" key={c.code}>
@@ -131,20 +131,25 @@ export function CryptoView({ resetKey }: Props) {
               return (
                 <div className="entry-card" key={entry.id}>
                   <div className="entry-top">
-                    <span className="entry-amount">
-                      {entry.amount} {entry.symbol}
-                      {trend === 'up' && (
-                        <span className="price-trend price-trend-up" aria-label={t('Worth up since last edit')}>
-                          {' '}
-                          ▲
-                        </span>
-                      )}
-                      {trend === 'down' && (
-                        <span className="price-trend price-trend-down" aria-label={t('Worth down since last edit')}>
-                          {' '}
-                          ▼
-                        </span>
-                      )}
+                    <span className="entry-top-left">
+                      <span className="pocket-type-icon tint-indigo" aria-hidden="true">
+                        <i className="fa-solid fa-coins" />
+                      </span>
+                      <span className="entry-amount">
+                        {entry.amount} {entry.symbol}
+                        {trend === 'up' && (
+                          <span className="price-trend price-trend-up" aria-label={t('Worth up since last edit')}>
+                            {' '}
+                            ▲
+                          </span>
+                        )}
+                        {trend === 'down' && (
+                          <span className="price-trend price-trend-down" aria-label={t('Worth down since last edit')}>
+                            {' '}
+                            ▼
+                          </span>
+                        )}
+                      </span>
                     </span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span className="badge">{entry.name}</span>

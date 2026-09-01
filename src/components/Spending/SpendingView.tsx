@@ -236,7 +236,7 @@ export function SpendingView({ resetKey }: Props) {
   const todayStr = todayIso()
 
   return (
-    <div className="view">
+    <div className="view boucoup-scope">
       <HeaderPortal>
         <button className="btn btn-accent-text manage-btn" onClick={() => setManageMenuOpen(true)} type="button">
           {t('Manage')}

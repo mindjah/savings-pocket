@@ -217,7 +217,7 @@ export function SettingsView({ resetKey }: Props) {
   }
 
   return (
-    <div className="view">
+    <div className="view boucoup-scope">
       <HeaderPortal>{backupStatusBadge}</HeaderPortal>
       <div className="desktop-header-row">{backupStatusBadge}</div>
 

@@ -84,6 +84,123 @@
   font-family: var(--font-display);
 }
 
+/* ============================================================
+   Generic elements — shared building blocks used by every screen
+   once .boucoup-scope is on its own root <div className="view">
+   (Crypto, Spending, Settings), not just Savings. Placed before the
+   more specific sections below so a tie in selector specificity
+   (e.g. plain .card vs .net-worth-card, both 2 classes deep) still
+   resolves in favor of the more specific section's intent, via
+   source order.
+   ============================================================ */
+
+.boucoup-scope .card {
+  background: #fff;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+.boucoup-scope .muted {
+  color: var(--grey-600);
+}
+
+.boucoup-scope input,
+.boucoup-scope select,
+.boucoup-scope textarea {
+  background: #fff;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  color: var(--fg-1);
+}
+
+.boucoup-scope input:focus,
+.boucoup-scope select:focus,
+.boucoup-scope textarea:focus {
+  outline-color: var(--brand-primary);
+}
+
+/* Currency multi/single-select — a custom button+panel dropdown, not
+   a native <select>, so it needs its own fix separate from the
+   input/select/textarea rule above. */
+.boucoup-scope .currency-dropdown-trigger {
+  background: #fff;
+  border: 1px solid var(--border-hairline);
+  color: var(--fg-1);
+}
+
+.boucoup-scope .currency-dropdown-panel {
+  background: #fff;
+  border: 1px solid var(--border-hairline);
+}
+
+.boucoup-scope .currency-dropdown-option:hover {
+  background: var(--grey-100);
+}
+
+/* Default/tertiary treatment (kit.css .btn-tertiary): white with a
+   grey border. .btn-primary/.btn-ghost below override it. */
+.boucoup-scope .btn {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  background: #fff;
+  border-color: var(--grey-300);
+  color: var(--brand-action);
+}
+
+.boucoup-scope .btn-primary {
+  background: var(--brand-action);
+  border-color: var(--brand-action);
+  color: #fff;
+}
+
+.boucoup-scope .btn-ghost {
+  background: none;
+  border-color: transparent;
+  color: var(--brand-primary);
+}
+
+.boucoup-scope .switch input:checked ~ .switch-track {
+  background: var(--brand-action);
+}
+
+/* ---------- Spending calendar ---------- */
+
+.boucoup-scope .calendar-header .month-label {
+  color: var(--fg-1);
+}
+
+.boucoup-scope .weekday-label {
+  color: var(--grey-600);
+}
+
+.boucoup-scope .calendar-cell {
+  background: #fff;
+  border-color: var(--border-hairline);
+  border-radius: var(--radius-xs);
+}
+
+.boucoup-scope .calendar-cell.today {
+  border-color: var(--brand-primary);
+}
+
+.boucoup-scope .calendar-cell.has-spend {
+  background: var(--brand-accent-light);
+}
+
+.boucoup-scope .calendar-cell .day-total {
+  color: var(--brand-primary);
+}
+
+.boucoup-scope .category-breakdown-row {
+  color: var(--fg-1);
+}
+
+.boucoup-scope .category-breakdown-row .bar-track {
+  background: var(--grey-100);
+}
+
 /* ---------- Net worth card ----------
    Boucoup's own home balance hero (ui_kits/boucoup-app/kit.css
    .acct-card / AccountCard) is a navy gradient, centered, with a
@@ -284,6 +401,8 @@
 
 .boucoup-scope .btn-accent-text {
   font-family: var(--font-ui);
+  background: none;
+  border-color: transparent;
   color: var(--brand-primary);
   font-weight: 700;
 }
