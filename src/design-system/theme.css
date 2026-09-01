@@ -1,15 +1,21 @@
 /* ============================================================
-   Boucoup redesign — applied to the Savings screen only.
+   App theme — Boucoup redesign, Boucoup's own indigo/lavender colors.
 
-   Everything here is scoped under .boucoup-scope (added to
-   SavingsView's root <div className="view">). Most of the classes
-   being restyled below (.card, .entry-card, .segmented, .badge,
-   .fab, .muted, etc.) are shared with other screens (Crypto,
-   Spending, Settings) — scoping every rule under .boucoup-scope is
-   what keeps this redesign from bleeding into those screens.
+   Covers every screen (Savings, Crypto, Spending, Settings), not
+   just Savings (despite this file living under design-system/ from
+   when it started there). Most of the classes being restyled below
+   (.card, .entry-card, .segmented, .badge, .fab, .muted, etc.) are
+   shared across those screens — scoping every rule under
+   .boucoup-scope (added to each screen's own root
+   <div className="view">) is what keeps this redesign from bleeding
+   into anything that hasn't opted in. The .app-header/.nav-bottom
+   rules near the bottom aren't scoped at all — that chrome is shared
+   and styled globally by design.
 
-   Tokens are copied from design-system/colors_and_type.css (the
-   pulled Boucoup reference file) but re-homed onto .boucoup-scope
+   Token values below were originally copied from Boucoup's own
+   colors_and_type.css (pulled via Claude Design, since removed from
+   this repo — it was a verbatim copy of their real design system and
+   never actually imported anywhere) but re-homed onto .boucoup-scope
    instead of :root — the app's own tokens already use some of the
    same names (--radius-sm/md/lg) with different values, so defining
    these on :root would silently change every other screen too.
