@@ -59,6 +59,107 @@
 }
 
 /* ============================================================
+   Motion — screen switches, bottom sheets, popups, expanding
+   sections. fadeUp is Boucoup's own screen-transition keyframe
+   (ui_kits/boucoup-app/kit.css .fade), reused here for consistency.
+   Entrance-only (no exit animation): React unmounts these instantly,
+   so there's nothing to animate out without extra machinery — the
+   entrance is what actually reads as "smooth" day to day. Gated
+   behind prefers-reduced-motion so motion-sensitive users get none
+   of this.
+   ============================================================ */
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes overlayFadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes sheetSlideUp {
+    from {
+      opacity: 0;
+      transform: translateY(28px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes panelFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-4px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes bannerSlideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-100%);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Screen switches — each of the four views is a full mount/unmount
+     on tab change (App.tsx renders them behind && , not a persistent
+     tree), so this naturally replays on every switch. */
+  .view.boucoup-scope {
+    animation: fadeUp 0.28s ease both;
+  }
+
+  /* Bottom sheets */
+  .boucoup-scope .modal-overlay {
+    animation: overlayFadeIn 0.2s ease both;
+  }
+
+  .boucoup-scope .modal {
+    animation: sheetSlideUp 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* Popups — currency dropdown, per-entry action menu */
+  .boucoup-scope .currency-dropdown-panel,
+  .boucoup-scope .entry-menu-options {
+    animation: panelFadeIn 0.16s ease both;
+  }
+
+  /* Expanding sections — net worth breakdown */
+  .boucoup-scope .net-worth-breakdown {
+    animation: panelFadeIn 0.2s ease both;
+  }
+
+  .drive-reconnect-banner {
+    animation: bannerSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .toast {
+    animation: panelFadeIn 0.2s ease both;
+  }
+}
+
+/* ============================================================
    Generic elements — shared building blocks used by every screen
    once .boucoup-scope is on its own root <div className="view">
    (Crypto, Spending, Settings), not just Savings. Placed before the
