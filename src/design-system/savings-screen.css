@@ -261,25 +261,13 @@
   margin-top: 24px;
 }
 
-/* Real Boucoup screens put the primary action (their Request/Transfer
-   pair) as a full-width pill button-row directly under the balance
-   card (kit.css .btn-row/.btn-secondary), not a small text link
-   tucked into a list's section header. This app only has one
-   comparable action (Transfer, which already covers pockets, credits
-   AND loans at once) — rendered once, in that position, instead of
-   duplicated per sub-tab. Buttons use Lato, not Nunito, per source. */
-.boucoup-scope .btn-transfer-hero {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
+/* Real Boucoup buttons (kit.css .btn-secondary) are a solid pill,
+   not a bare text link, and use Lato rather than Nunito. */
+.boucoup-scope .btn-transfer {
   font-family: var(--font-ui);
   font-weight: 700;
-  font-size: 1.125rem;
-  padding: 16px 24px;
+  padding: 8px 16px;
   border-radius: var(--radius-md);
-  border: none;
   background: var(--brand-accent);
   color: var(--brand-action);
 }
@@ -323,11 +311,6 @@
   --font-display: "Nunito", system-ui, -apple-system, sans-serif;
 }
 
-.app-header {
-  background: var(--brand-accent);
-  backdrop-filter: none;
-}
-
 .app-header h1 {
   font-family: var(--font-display);
   font-weight: 800;
@@ -342,7 +325,6 @@
 .nav-bottom {
   background: #fff;
   border-top: none;
-  border-radius: 24px 24px 0 0;
   box-shadow: 0px -2px 20px 0px rgba(0, 0, 0, 0.16);
 }
 
@@ -350,6 +332,10 @@
   color: var(--grey-500);
   font-family: var(--font-display);
   font-weight: 700;
+}
+
+.nav-item .nav-icon {
+  font-size: 1.35rem;
 }
 
 .nav-item.active {
@@ -363,7 +349,6 @@
 
 @media (min-width: 860px) {
   .nav-bottom {
-    border-radius: 0;
     box-shadow: none;
   }
 

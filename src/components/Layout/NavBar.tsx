@@ -1,17 +1,16 @@
 import type { ReactNode } from 'react'
-import { BitcoinIcon } from '../common/BitcoinIcon'
-import { SavingsNavIcon } from '../common/SavingsNavIcon'
-import { CalendarNavIcon } from '../common/CalendarNavIcon'
-import { SettingsNavIcon } from '../common/SettingsNavIcon'
 import { useTranslation } from '../../hooks/useTranslation'
 
 export type Tab = 'savings' | 'crypto' | 'spending' | 'settings'
 
+// Font Awesome 6 Free (Solid) — Boucoup's own icon system (see
+// src/design-system/ README: tab bar glyphs are real FA icons, never
+// emoji or hand-drawn substitutes).
 const TABS: { key: Tab; label: string; icon: ReactNode }[] = [
-  { key: 'savings', label: 'Savings', icon: <SavingsNavIcon size={20} /> },
-  { key: 'crypto', label: 'Crypto', icon: <BitcoinIcon size={20} /> },
-  { key: 'spending', label: 'Spending', icon: <CalendarNavIcon size={20} /> },
-  { key: 'settings', label: 'Settings', icon: <SettingsNavIcon size={20} /> },
+  { key: 'savings', label: 'Savings', icon: <i className="fa-solid fa-piggy-bank" aria-hidden="true" /> },
+  { key: 'crypto', label: 'Crypto', icon: <i className="fa-solid fa-coins" aria-hidden="true" /> },
+  { key: 'spending', label: 'Spending', icon: <i className="fa-solid fa-calendar-days" aria-hidden="true" /> },
+  { key: 'settings', label: 'Settings', icon: <i className="fa-solid fa-gear" aria-hidden="true" /> },
 ]
 
 interface Props {
