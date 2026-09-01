@@ -22,6 +22,7 @@ export function Modal({ title, onClose, children }: ModalProps) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+        <div className="modal-grabber" aria-hidden="true" />
         <div className="modal-header">
           <h2>{title}</h2>
           <button className="btn btn-ghost btn-icon" onClick={onClose} aria-label={t('Close')}>

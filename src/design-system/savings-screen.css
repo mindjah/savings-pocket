@@ -165,6 +165,48 @@
   background: var(--brand-action);
 }
 
+.boucoup-scope .form-group label {
+  color: var(--grey-600);
+}
+
+/* ---------- Modals ----------
+   Modal.tsx renders inline (no portal), so every modal opened from a
+   .boucoup-scope screen sits in its DOM subtree already — it just
+   wasn't styled yet. This app's .modal is already a real bottom
+   sheet (flex-end overlay, top-rounded corners), matching Boucoup's
+   own BottomSheet component almost exactly; added its signature
+   grabber handle to Modal.tsx to match fully. */
+.boucoup-scope .modal-overlay {
+  background: rgba(16, 16, 16, 0.5);
+}
+
+.boucoup-scope .modal {
+  background: #fff;
+  border: none;
+  box-shadow: 0px -2px 20px 0px rgba(0, 0, 0, 0.16);
+  color: var(--fg-1);
+}
+
+.boucoup-scope .modal-grabber {
+  width: 40px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--grey-300);
+  margin: 0 auto;
+}
+
+.boucoup-scope .modal-header h2 {
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: var(--fg-1);
+}
+
+@media (min-width: 640px) {
+  .boucoup-scope .modal-grabber {
+    display: none;
+  }
+}
+
 /* ---------- Spending calendar ---------- */
 
 .boucoup-scope .calendar-header .month-label {
