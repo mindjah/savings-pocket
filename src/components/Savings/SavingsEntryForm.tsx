@@ -9,7 +9,6 @@ import { ExpandableTextarea } from '../common/ExpandableTextarea'
 import { DeleteConfirmModal } from './DeleteConfirmModal'
 import { useToast } from '../../hooks/useToast'
 import { useTranslation } from '../../hooks/useTranslation'
-import { AddNewPocketIcon } from '../common/AddNewPocketIcon'
 import { LoanCreditIcon } from '../common/LoanCreditIcon'
 
 interface Props {
@@ -111,7 +110,11 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
         ) : (
           <span style={{ display: 'inline-flex', alignItems: 'flex-end', gap: 8 }}>
             {t(kind === 'credit' ? 'Add credit' : 'Add savings pocket')}
-            {kind === 'credit' ? <LoanCreditIcon size={30} /> : <AddNewPocketIcon size={30} />}
+            {kind === 'credit' ? (
+              <LoanCreditIcon size={30} />
+            ) : (
+              <i className="fa-solid fa-piggy-bank" style={{ fontSize: 28, color: 'var(--brand-primary)' }} aria-hidden="true" />
+            )}
           </span>
         )
       }

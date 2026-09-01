@@ -153,7 +153,7 @@ export function SettingsView({ resetKey }: Props) {
     lastBackup == null ? t('Never backed up') : `${t('Last backup')} ${formatDateOrTime(lastBackup.at, lang)}`
   const backupStatusBadge = (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: backupStatusColor, fontSize: '0.8rem', fontWeight: 600 }}>
-      {backupStatusText}
+      <span style={{ textAlign: 'right' }}>{backupStatusText}</span>
       {lastBackup?.method === 'manual' ? <ManualSyncIcon size={24} /> : <CloudSyncIcon size={24} />}
     </span>
   )
