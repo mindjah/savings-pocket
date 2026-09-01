@@ -201,7 +201,7 @@ export function SavingsView({ resetKey }: Props) {
             )}
           </div>
 
-          {!entries || entries.length === 0 ? (
+          {!entries ? null : entries.length === 0 ? (
             <div className="empty-state">
               <span className="icon">💰</span>
               {t('No savings tracked yet. Tap + to add your first entry.')}
@@ -222,7 +222,7 @@ export function SavingsView({ resetKey }: Props) {
             )}
           </div>
 
-          {!credits || credits.length === 0 ? (
+          {!credits ? null : credits.length === 0 ? (
             <div className="empty-state">
               <span className="icon">💳</span>
               {t('No credits tracked yet. Tap + to add money you owe.')}
@@ -243,7 +243,7 @@ export function SavingsView({ resetKey }: Props) {
             )}
           </div>
 
-          {!loans || loans.length === 0 ? (
+          {!loans ? null : loans.length === 0 ? (
             <div className="empty-state">
               <span className="icon">🤝</span>
               {t("No loans tracked yet. Tap + to add money you've lent someone.")}
