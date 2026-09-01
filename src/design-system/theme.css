@@ -474,6 +474,30 @@
   color: var(--grey-600);
 }
 
+/* ---------- Lock screen ----------
+   Renders as an early return in App.tsx, before .app-shell exists —
+   not nested under any of the four views, so it needs .boucoup-scope
+   added directly to its own root. The emoji lock icon is swapped for
+   a real glyph in a tinted squircle: Boucoup's source explicitly
+   never uses emoji as icons. */
+.boucoup-scope .lock-card .lock-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  background: var(--brand-accent);
+  color: var(--brand-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+}
+
+.boucoup-scope .lock-card h2 {
+  font-weight: 800;
+  font-size: 1.375rem;
+  color: var(--fg-1);
+}
+
 /* ---------- FAB ---------- */
 
 /* Not a circle — Boucoup has no circular buttons anywhere in the
@@ -499,13 +523,16 @@
    ============================================================ */
 
 .app-header,
-.nav-bottom {
+.nav-bottom,
+.drive-reconnect-banner,
+.toast {
   --brand-primary: #4451A2;
   --brand-accent: #DDE1FA;
   --brand-action: #252974;
   --grey-200: #EBEBEB;
   --grey-500: #A1A0A0;
   --font-display: "Nunito", system-ui, -apple-system, sans-serif;
+  --font-ui: "Lato", "Nunito", system-ui, -apple-system, sans-serif;
 }
 
 /* Boucoup is a light-first design with no dark chrome — the app's
@@ -560,6 +587,32 @@
 .nav-brand {
   font-family: var(--font-display);
   color: var(--brand-action);
+}
+
+/* Same shape/padding as .app-header by design (it visually replaces
+   the header while showing) — kept matching its taller padding here
+   so it doesn't leave a sliver of the header visible underneath. */
+.drive-reconnect-banner {
+  padding: calc(18px + env(safe-area-inset-top)) 16px 18px;
+}
+
+.drive-reconnect-text {
+  font-family: var(--font-display);
+}
+
+.drive-reconnect-close {
+  font-family: var(--font-ui);
+}
+
+.drive-reconnect-connect {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  color: var(--brand-primary);
+}
+
+.toast {
+  font-family: var(--font-display);
+  font-weight: 700;
 }
 
 @media (min-width: 860px) {

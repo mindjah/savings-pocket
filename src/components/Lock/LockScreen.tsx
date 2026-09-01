@@ -67,9 +67,11 @@ export function LockScreen({ onUnlock }: Props) {
   }
 
   return (
-    <div className="lock-screen">
+    <div className="lock-screen boucoup-scope">
       <div className="lock-card">
-        <span className="lock-icon">🔒</span>
+        <span className="lock-icon" aria-hidden="true">
+          <i className="fa-solid fa-lock" />
+        </span>
         <h2>{t('Savings Pocket is locked')}</h2>
         <p className="muted">{t('Unlock with Face ID to continue')}</p>
 
