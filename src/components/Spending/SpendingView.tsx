@@ -55,6 +55,7 @@ export function SpendingView({ resetKey }: Props) {
   const [managingBudget, setManagingBudget] = useState(false)
   const [showBudgetStatus, setShowBudgetStatus] = useState(false)
   const [categoryModalFor, setCategoryModalFor] = useState<{ categoryId: number; currency: Currency } | null>(null)
+  const [totalsMode, setTotalsMode] = useState<'spent' | 'scheduled'>('spent')
 
   // resetKey bumps when the user re-taps the already-active Spending nav tab —
   // jump back to the current month and close any open popup, skipping the
@@ -78,6 +79,7 @@ export function SpendingView({ resetKey }: Props) {
     setManagingBudget(false)
     setShowBudgetStatus(false)
     setCategoryModalFor(null)
+    setTotalsMode('spent')
   }, [resetKey])
   const [spendingCurrencies] = useMetaSetting<Currency[]>('enabledSpendingCurrencies', DEFAULT_SPENDING_CURRENCIES)
   const [budgetEnabled] = useMetaSetting<boolean>('budgetEnabled', false)
@@ -140,10 +142,28 @@ export function SpendingView({ resetKey }: Props) {
     return map
   }, [entries, recurringPreviews])
 
-  const monthTotals: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0, JPY: 0, CNY: 0 }
+  const todayStr = todayIso()
+
+  // "Total spent" only counts what's actually happened by today; "Total
+  // scheduled" also folds in recurring previews and any future-dated
+  // entries — reusing totalsByDay's day-by-day merge so it matches exactly
+  // what the calendar cells below already show, without double-counting a
+  // day that has both a preview and a real entry.
+  const spentTotals: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0, JPY: 0, CNY: 0 }
   entries?.forEach((e) => {
-    monthTotals[e.currency] += e.amount
+    if (e.date <= todayStr) spentTotals[e.currency] += e.amount
   })
+  const scheduledTotals: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0, JPY: 0, CNY: 0 }
+  totalsByDay.forEach((dayMap, date) => {
+    // totalsByDay also holds recurring previews many months beyond the one
+    // being browsed (they're just never read for cells outside it) — only
+    // count days that actually belong to this month.
+    if (!date.startsWith(monthPrefix)) return
+    dayMap.forEach((amount, currency) => {
+      scheduledTotals[currency] += amount
+    })
+  })
+  const monthTotals = totalsMode === 'spent' ? spentTotals : scheduledTotals
   const visibleCurrencies = CURRENCIES.filter((c) => spendingCurrencies.includes(c.code))
 
   // Budget status always reflects the real current month, never whatever
@@ -233,7 +253,6 @@ export function SpendingView({ resetKey }: Props) {
   }
 
   const isCurrentMonth = year === today.getFullYear() && month === today.getMonth()
-  const todayStr = todayIso()
 
   return (
     <div className="view boucoup-scope">
@@ -246,7 +265,7 @@ export function SpendingView({ resetKey }: Props) {
 
       <div className="section-title">
         <h2>
-          {t('Total spent')} — {t(MONTH_NAMES[month])} {year}
+          {t(MONTH_NAMES[month])} {year}
         </h2>
         <button
           className="btn btn-accent-text header-action-desktop manage-btn"
@@ -257,6 +276,16 @@ export function SpendingView({ resetKey }: Props) {
           <ManageIcon size={20} />
         </button>
       </div>
+
+      <div className="segmented">
+        <button type="button" className={totalsMode === 'spent' ? 'active' : ''} onClick={() => setTotalsMode('spent')}>
+          {t('Total spent')}
+        </button>
+        <button type="button" className={totalsMode === 'scheduled' ? 'active' : ''} onClick={() => setTotalsMode('scheduled')}>
+          {t('Total scheduled')}
+        </button>
+      </div>
+
       <div className="totals-row">
         {visibleCurrencies.map((c) => (
           <div className="total-chip" key={c.code}>
