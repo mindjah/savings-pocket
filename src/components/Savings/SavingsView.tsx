@@ -188,6 +188,7 @@ export function SavingsView({ resetKey }: Props) {
         ))}
       </div>
 
+      <div className="subtab-content" key={subTab}>
       {subTab === 'mine' ? (
         <>
           <div className="section-title section-title-bottom">
@@ -269,6 +270,7 @@ export function SavingsView({ resetKey }: Props) {
           )}
         </>
       )}
+      </div>
 
       <button
         className="fab"

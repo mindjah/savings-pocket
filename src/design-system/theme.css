@@ -119,6 +119,15 @@
    ============================================================ */
 
 @media (prefers-reduced-motion: no-preference) {
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
   @keyframes overlayFadeIn {
     from {
       opacity: 0;
@@ -179,6 +188,15 @@
   /* Expanding sections — net worth breakdown */
   .boucoup-scope .net-worth-breakdown {
     animation: panelFadeIn 0.2s ease both;
+  }
+
+  /* My money / Lent out / Credits sub-tabs — keyed by subTab in
+     SavingsView so React remounts this wrapper (not just its
+     children) on every switch, replaying the animation each time.
+     No FAB/modal lives inside it, so unlike .view this one is safe
+     to animate. */
+  .boucoup-scope .subtab-content {
+    animation: fadeIn 0.2s ease both;
   }
 
   .drive-reconnect-banner {

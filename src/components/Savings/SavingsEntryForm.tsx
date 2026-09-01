@@ -108,12 +108,12 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
         isEdit ? (
           t(kind === 'credit' ? 'Edit credit' : 'Edit savings pocket')
         ) : (
-          <span style={{ display: 'inline-flex', alignItems: 'flex-end', gap: 8 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
             {t(kind === 'credit' ? 'Add credit' : 'Add savings pocket')}
             {kind === 'credit' ? (
               <LoanCreditIcon size={30} />
             ) : (
-              <i className="fa-solid fa-piggy-bank" style={{ fontSize: 28, color: 'var(--brand-primary)' }} aria-hidden="true" />
+              <i className="fa-solid fa-piggy-bank" style={{ fontSize: 20, color: 'var(--brand-primary)' }} aria-hidden="true" />
             )}
           </span>
         )
