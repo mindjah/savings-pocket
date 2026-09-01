@@ -1,70 +1,44 @@
 /* ============================================================
-   Boucoup redesign — applied to the Savings screen only.
+   Boucoup redesign — SHAPE ONLY, this app's own colors.
+
+   Same structural/typographic system as the full Boucoup pass
+   (layout, spacing, radii, shadows, Nunito/Lato) but every color
+   value now points at this app's own existing tokens (--accent,
+   --surface, --bg, --text, --border, etc. from src/index.css)
+   instead of Boucoup's fixed indigo/grey palette — so this screen
+   stays fully theme-aware (dark/light) like the rest of the app,
+   using the accent green this app already has.
 
    Everything here is scoped under .boucoup-scope (added to
    SavingsView's root <div className="view">). Most of the classes
    being restyled below (.card, .entry-card, .segmented, .badge,
    .fab, .muted, etc.) are shared with other screens (Crypto,
    Spending, Settings) — scoping every rule under .boucoup-scope is
-   what keeps this redesign from bleeding into those screens.
-
-   Tokens are copied from design-system/colors_and_type.css (the
-   pulled Boucoup reference file) but re-homed onto .boucoup-scope
-   instead of :root — the app's own tokens already use some of the
-   same names (--radius-sm/md/lg) with different values, so defining
-   these on :root would silently change every other screen too.
+   what keeps this from bleeding into those screens.
    ============================================================ */
 
 .boucoup-scope {
-  /* ---------- BRAND (indigo) ---------- */
-  --brand-primary: #4451A2;
-  --brand-hover: #23274B;
-  --brand-disable: #9AA0DB;
-  --brand-accent: #DDE1FA;
-  --brand-accent-light: #F0F2FF;
-  --brand-secondary: #5761B7;
-  --brand-light: #8594FF;
-  --brand-action: #252974;
-  --gradient-primary: linear-gradient(180deg, #4451A2 0%, #5761B7 100%);
-  --gradient-secondary: linear-gradient(180deg, #5761B7 0%, #8594FF 100%);
+  /* ---------- Color aliases onto this app's own tokens ---------- */
+  --brand-primary: var(--accent-strong);
+  --brand-action: var(--accent-strong);
+  --brand-accent: color-mix(in srgb, var(--accent) 18%, var(--surface));
+  --brand-accent-light: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  --brand-contrast: var(--accent-contrast);
 
-  /* ---------- KID / PLAYFUL (purple) ---------- */
-  --purple-deep: #522C6C;
-  --purple-mark: #683089;
-  --purple-mark-2: #9668CB;
-  --lavender: #E5DDF4;
-  --gradient-goal: linear-gradient(180deg, #683089 0%, #9668CB 100%);
+  --tint-savings-bg: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  --tint-savings-fg: var(--accent-strong);
+  --tint-spending-bg: color-mix(in srgb, var(--warning) 18%, var(--surface));
+  --tint-spending-fg: var(--warning-strong);
+  --tint-credit-bg: color-mix(in srgb, var(--danger) 16%, var(--surface));
+  --tint-credit-fg: var(--danger-strong);
+  --tint-neutral-bg: var(--surface-hover);
+  --tint-neutral-fg: var(--text-muted);
 
-  /* ---------- GREYS / NEUTRALS ---------- */
-  --grey-700: #4D4D4D;
-  --grey-600: #797676;
-  --grey-500: #A1A0A0;
-  --grey-400: #BFBEBE;
-  --grey-300: #D7D6D6;
-  --grey-200: #EBEBEB;
-  --grey-100: #F7F7F7;
-
-  /* ---------- GREEN (success / money) ---------- */
-  --green-500: #0A5C11;
-  --green-100: #E9FBEB;
-
-  /* ---------- ORANGE / RED (category tints) ---------- */
-  --orange-500: #7A4006;
-  --orange-100: #FFEEDB;
-  --red-500: #910F08;
-  --red-100: #FFE7E5;
-
-  /* ---------- SEMANTIC TOKENS ---------- */
-  --fg-1: #101010;
-  --fg-2: var(--grey-700);
-  --fg-3: var(--grey-600);
-  --border-hairline: var(--grey-200);
-
-  /* ---------- TYPE ---------- */
+  /* ---------- TYPE (unchanged — this is shape, not color) ---------- */
   --font-display: "Nunito", system-ui, -apple-system, sans-serif;
   --font-ui: "Lato", system-ui, -apple-system, sans-serif;
 
-  /* ---------- RADII / SHADOWS ---------- */
+  /* ---------- RADII / SHADOWS (unchanged) ---------- */
   --radius-xs: 8px;
   --radius-sm: 12px;
   --radius-md: 16px;
@@ -73,8 +47,8 @@
   --shadow-md: 0px 6px 16px 0px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0px 12px 32px 0px rgba(16, 16, 16, 0.16);
 
-  background: var(--grey-100);
-  color: var(--fg-1);
+  background: var(--bg);
+  color: var(--text);
 }
 
 .boucoup-scope,
@@ -95,23 +69,23 @@
    ============================================================ */
 
 .boucoup-scope .card {
-  background: #fff;
-  border: 1px solid var(--border-hairline);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
 }
 
 .boucoup-scope .muted {
-  color: var(--grey-600);
+  color: var(--text-muted);
 }
 
 .boucoup-scope input,
 .boucoup-scope select,
 .boucoup-scope textarea {
-  background: #fff;
-  border: 1px solid var(--border-hairline);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  color: var(--fg-1);
+  color: var(--text);
 }
 
 .boucoup-scope input:focus,
@@ -124,35 +98,35 @@
    a native <select>, so it needs its own fix separate from the
    input/select/textarea rule above. */
 .boucoup-scope .currency-dropdown-trigger {
-  background: #fff;
-  border: 1px solid var(--border-hairline);
-  color: var(--fg-1);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
 }
 
 .boucoup-scope .currency-dropdown-panel {
-  background: #fff;
-  border: 1px solid var(--border-hairline);
+  background: var(--surface);
+  border: 1px solid var(--border);
 }
 
 .boucoup-scope .currency-dropdown-option:hover {
-  background: var(--grey-100);
+  background: var(--surface-hover);
 }
 
-/* Default/tertiary treatment (kit.css .btn-tertiary): white with a
-   grey border. .btn-primary/.btn-ghost below override it. */
+/* Default/tertiary treatment (kit.css .btn-tertiary): surface color
+   with a border. .btn-primary/.btn-ghost below override it. */
 .boucoup-scope .btn {
   font-family: var(--font-ui);
   font-weight: 700;
   border-radius: var(--radius-md);
-  background: #fff;
-  border-color: var(--grey-300);
+  background: var(--surface);
+  border-color: var(--border);
   color: var(--brand-action);
 }
 
 .boucoup-scope .btn-primary {
   background: var(--brand-action);
   border-color: var(--brand-action);
-  color: #fff;
+  color: var(--brand-contrast);
 }
 
 .boucoup-scope .btn-ghost {
@@ -166,54 +140,51 @@
 }
 
 .boucoup-scope .form-group label {
-  color: var(--grey-600);
+  color: var(--text-muted);
 }
 
-/* Manage menu / category / recurring list rows — same missed-in-the-
-   first-pass issue as .modal: no scoped override yet, so they were
-   still using the app's own dark --surface/--border. */
+/* Manage menu / category / recurring list rows. */
 .boucoup-scope .menu-row,
 .boucoup-scope .category-row {
-  background: #fff;
-  border-color: var(--border-hairline);
+  background: var(--surface);
+  border-color: var(--border);
   border-radius: var(--radius-sm);
-  color: var(--fg-1);
+  color: var(--text);
 }
 
 .boucoup-scope .menu-row:hover {
-  background: var(--grey-100);
+  background: var(--surface-hover);
 }
 
 /* ---------- Modals ----------
    Modal.tsx renders inline (no portal), so every modal opened from a
-   .boucoup-scope screen sits in its DOM subtree already — it just
-   wasn't styled yet. This app's .modal is already a real bottom
-   sheet (flex-end overlay, top-rounded corners), matching Boucoup's
-   own BottomSheet component almost exactly; added its signature
-   grabber handle to Modal.tsx to match fully. */
+   .boucoup-scope screen sits in its DOM subtree already. This app's
+   .modal is already a real bottom sheet (flex-end overlay, top-
+   rounded corners), matching Boucoup's own BottomSheet component
+   almost exactly — including its signature grabber handle. */
 .boucoup-scope .modal-overlay {
   background: rgba(16, 16, 16, 0.5);
 }
 
 .boucoup-scope .modal {
-  background: #fff;
+  background: var(--surface);
   border: none;
   box-shadow: 0px -2px 20px 0px rgba(0, 0, 0, 0.16);
-  color: var(--fg-1);
+  color: var(--text);
 }
 
 .boucoup-scope .modal-grabber {
   width: 40px;
   height: 5px;
   border-radius: 999px;
-  background: var(--grey-300);
+  background: var(--border);
   margin: 0 auto;
 }
 
 .boucoup-scope .modal-header h2 {
   font-weight: 800;
   font-size: 1.25rem;
-  color: var(--fg-1);
+  color: var(--text);
 }
 
 @media (min-width: 640px) {
@@ -225,16 +196,16 @@
 /* ---------- Spending calendar ---------- */
 
 .boucoup-scope .calendar-header .month-label {
-  color: var(--fg-1);
+  color: var(--text);
 }
 
 .boucoup-scope .weekday-label {
-  color: var(--grey-600);
+  color: var(--text-muted);
 }
 
 .boucoup-scope .calendar-cell {
-  background: #fff;
-  border-color: var(--border-hairline);
+  background: var(--surface);
+  border-color: var(--border);
   border-radius: var(--radius-xs);
 }
 
@@ -251,22 +222,21 @@
 }
 
 .boucoup-scope .category-breakdown-row {
-  color: var(--fg-1);
+  color: var(--text);
 }
 
 .boucoup-scope .category-breakdown-row .bar-track {
-  background: var(--grey-100);
+  background: var(--surface-hover);
 }
 
 /* ---------- Net worth card ----------
    Boucoup's own home balance hero (ui_kits/boucoup-app/kit.css
-   .acct-card / AccountCard) is a navy gradient, centered, with a
-   large stacked number — not the flat, left-aligned label+amount
-   row the standalone AccountSummary component uses on its own.
-   This matches the real screen composition, not just the component. */
+   .acct-card / AccountCard) is a gradient, centered, with a large
+   stacked number — kept that composition, swapped the fixed navy
+   gradient for this app's own two accent shades. */
 
 .boucoup-scope .net-worth-card {
-  background: linear-gradient(180deg, #252974 0%, #34388e 100%);
+  background: linear-gradient(180deg, var(--accent-strong) 0%, var(--accent) 100%);
   border: none;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
@@ -277,7 +247,7 @@
 .boucoup-scope .net-worth-label {
   font-size: 13px;
   line-height: 19px;
-  color: var(--lavender);
+  color: rgba(255, 255, 255, 0.78);
 }
 
 .boucoup-scope .net-worth-amount {
@@ -298,18 +268,18 @@
 }
 
 .boucoup-scope .net-worth-card .muted {
-  color: var(--lavender);
+  color: rgba(255, 255, 255, 0.78);
 }
 
 .boucoup-scope .net-worth-card .card-expand-toggle {
-  color: var(--lavender);
+  color: rgba(255, 255, 255, 0.78);
 }
 
 /* ---------- Entry cards (styled like Boucoup's AccountListItem) ---------- */
 
 .boucoup-scope .entry-card {
-  background: #fff;
-  border: 1px solid var(--border-hairline);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
 }
@@ -324,17 +294,16 @@
   justify-content: center;
 }
 
-/* Category icon tints — mirrors Boucoup's real row-item tint system
-   (tint-green/purple/indigo/orange in ui_kits/boucoup-app/kit.css),
-   mapped onto pocket purpose/kind since this app doesn't have
-   Boucoup's transaction-category concept: savings reads as positive
-   (green, same as their allowance/income rows), everyday spending as
-   orange (same as their food/dining rows), credit balances (money
-   owed) as red, loans (money lent out) as neutral indigo. */
-.boucoup-scope .tint-green { background: var(--green-100); color: var(--green-500); }
-.boucoup-scope .tint-orange { background: var(--orange-100); color: var(--orange-500); }
-.boucoup-scope .tint-red { background: var(--red-100); color: var(--red-500); }
-.boucoup-scope .tint-indigo { background: var(--brand-accent); color: var(--brand-action); }
+/* Category icon tints — same idea as Boucoup's real row-item tint
+   system (kit.css tint-green/orange/red/indigo), reusing this app's
+   own semantic colors instead of Boucoup's fixed hues: savings reads
+   as positive (this app's accent — already green), everyday spending
+   as warning-tinted, credit balances (money owed) as danger-tinted,
+   loans (money lent out) as a neutral surface tint. */
+.boucoup-scope .tint-green { background: var(--tint-savings-bg); color: var(--tint-savings-fg); }
+.boucoup-scope .tint-orange { background: var(--tint-spending-bg); color: var(--tint-spending-fg); }
+.boucoup-scope .tint-red { background: var(--tint-credit-bg); color: var(--tint-credit-fg); }
+.boucoup-scope .tint-indigo { background: var(--tint-neutral-bg); color: var(--tint-neutral-fg); }
 
 /* Boucoup has no circular interactive buttons anywhere in the source
    — every real button (kit.css .btn, all variants) is the same
@@ -352,53 +321,53 @@
 
 .boucoup-scope .entry-amount {
   font-weight: 700;
-  color: var(--fg-1);
+  color: var(--text);
 }
 
 .boucoup-scope .entry-sub {
-  color: var(--grey-600);
+  color: var(--text-muted);
 }
 
 .boucoup-scope .entry-card .card-expand-toggle {
-  color: var(--grey-500);
+  color: var(--text-muted);
 }
 
 .boucoup-scope .entry-menu-options {
-  border-top-color: var(--border-hairline);
+  border-top-color: var(--border);
 }
 
 .boucoup-scope .entry-menu-option {
-  color: var(--fg-1);
+  color: var(--text);
 }
 
 .boucoup-scope .entry-menu-option:hover {
-  background: var(--grey-100);
+  background: var(--surface-hover);
 }
 
 /* ---------- Badges ---------- */
 
 .boucoup-scope .badge {
-  background: var(--grey-100);
-  border-color: var(--border-hairline);
-  color: var(--fg-2);
+  background: var(--surface-hover);
+  border-color: var(--border);
+  color: var(--text-muted);
 }
 
 .boucoup-scope .badge-savings {
-  background: var(--green-100);
-  color: var(--green-500);
+  background: var(--tint-savings-bg);
+  color: var(--tint-savings-fg);
   border-color: transparent;
 }
 
 .boucoup-scope .badge-spending {
-  background: var(--brand-accent);
-  color: var(--brand-primary);
+  background: var(--tint-spending-bg);
+  color: var(--tint-spending-fg);
   border-color: transparent;
 }
 
 /* ---------- Segmented tabs ---------- */
 
 .boucoup-scope .segmented {
-  background: var(--grey-100);
+  background: var(--surface-hover);
   border-color: transparent;
   border-radius: 999px;
   padding: 4px;
@@ -407,30 +376,30 @@
 .boucoup-scope .segmented button {
   border-radius: 999px;
   font-weight: 700;
-  color: var(--fg-2);
+  color: var(--text-muted);
 }
 
 .boucoup-scope .segmented button.active {
   background: var(--brand-primary);
-  color: #fff;
+  color: var(--brand-contrast);
 }
 
 /* ---------- Currency total chips ---------- */
 
 .boucoup-scope .total-chip {
-  background: #fff;
-  border: 1px solid var(--border-hairline);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
 }
 
 .boucoup-scope .total-chip .muted {
-  color: var(--grey-600);
+  color: var(--text-muted);
 }
 
 .boucoup-scope .total-chip .amount {
   font-weight: 800;
-  color: var(--fg-1);
+  color: var(--text);
 }
 
 /* ---------- Section titles / buttons ---------- */
@@ -438,7 +407,7 @@
 .boucoup-scope .section-title h2 {
   font-weight: 700;
   font-size: 1.25rem;
-  color: var(--fg-1);
+  color: var(--text);
 }
 
 .boucoup-scope .section-title-bottom {
@@ -465,7 +434,7 @@
 }
 
 .boucoup-scope .empty-state {
-  color: var(--grey-600);
+  color: var(--text-muted);
 }
 
 /* ---------- FAB ---------- */
@@ -476,7 +445,7 @@
 .boucoup-scope .fab {
   border-radius: var(--radius-md);
   background: var(--brand-action);
-  color: #fff;
+  color: var(--brand-contrast);
   box-shadow: var(--shadow-lg);
 }
 
@@ -485,32 +454,24 @@
 
    Unlike everything above, these rules are NOT confined to
    .boucoup-scope: .app-header and .nav-bottom are singleton
-   elements shared by every screen (Savings, Crypto, Spending,
-   Settings), so restyling them inherently reaches the whole app.
-   That's intentional here — a deliberate global reskin, not a
-   scoping mistake — while each screen's own content stays on its
-   own track until it gets its own redesign pass.
+   elements shared by every screen. Since this variant uses the
+   app's own theme-aware colors throughout, the header/nav no longer
+   need to be forced to a fixed white surface (that was only needed
+   to counteract Boucoup's light-only palette clashing with this
+   app's dark-by-default theme) — they keep their own existing
+   background, just with the bigger Nunito title and Boucoup's icon
+   sizing/shadow touches layered on top.
    ============================================================ */
 
 .app-header,
 .nav-bottom {
-  --brand-primary: #4451A2;
-  --brand-accent: #DDE1FA;
-  --brand-action: #252974;
-  --grey-200: #EBEBEB;
-  --grey-500: #A1A0A0;
+  --brand-primary: var(--accent-strong);
+  --brand-action: var(--accent-strong);
+  --brand-accent: color-mix(in srgb, var(--accent) 18%, var(--surface));
   --font-display: "Nunito", system-ui, -apple-system, sans-serif;
 }
 
-/* Boucoup is a light-first design with no dark chrome — the app's
-   own header defaults to --bg, which is dark in this app's default
-   theme, so without an explicit background here the "recolored" text
-   was landing on a plain black bar. Match .nav-bottom below: a fixed
-   white surface regardless of the app's own light/dark setting. */
 .app-header {
-  background: #fff;
-  border-bottom: 1px solid var(--grey-200);
-  backdrop-filter: none;
   padding-top: calc(18px + env(safe-area-inset-top));
   padding-bottom: 18px;
 }
@@ -532,13 +493,10 @@
 }
 
 .nav-bottom {
-  background: #fff;
-  border-top: none;
   box-shadow: 0px -2px 20px 0px rgba(0, 0, 0, 0.16);
 }
 
 .nav-item {
-  color: var(--grey-500);
   font-family: var(--font-display);
   font-weight: 700;
 }
