@@ -1,6 +1,0 @@
-/* ============================================================
-   BOUCOUP — Design System · root stylesheet
-   Consumers link THIS one file; it pulls in the foundations.
-   ============================================================ */
-@import "./colors_and_type.css";
-@import "./components/fig-assets.css";
