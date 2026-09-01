@@ -503,6 +503,14 @@
   padding-bottom: 18px;
 }
 
+/* Sensible default for anything HeaderPortal renders into this slot
+   (e.g. Settings' plain backup-status text, which has no class of
+   its own to hang a font-family off) — .btn-accent-text below is
+   more specific and overrides it for buttons specifically. */
+.app-header-actions {
+  font-family: var(--font-display);
+}
+
 /* Real Boucoup headings run bigger than this app's own — matches
    .home-head .hi (the closest real analog: a persistent page-level
    greeting/title), not the smaller in-content .section-title. */
@@ -515,6 +523,7 @@
 }
 
 .app-header .btn-accent-text {
+  font-family: var(--font-ui);
   color: var(--brand-primary);
   font-weight: 700;
 }
