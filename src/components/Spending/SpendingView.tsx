@@ -166,13 +166,14 @@ export function SpendingView({ resetKey }: Props) {
   const monthTotals = totalsMode === 'spent' ? spentTotals : scheduledTotals
   const visibleCurrencies = CURRENCIES.filter((c) => spendingCurrencies.includes(c.code))
 
-  // Budget status always reflects the real current month, never whatever
-  // month is being browsed elsewhere on this screen — budgets are scoped by
-  // exact calendar month (see BudgetModal), so look up that same real month.
+  // Budget status follows whichever month is currently browsed — budgets
+  // are scoped by exact calendar month (see BudgetModal), so switching
+  // months here should show that month's own budget, not always the real
+  // current one.
   const realMonthPrefix = `${today.getFullYear()}-${pad2(today.getMonth() + 1)}`
-  const categoryBudgets = useLiveQuery(() => db.categoryBudgets.where('month').equals(realMonthPrefix).toArray(), [realMonthPrefix]) ?? []
+  const categoryBudgets = useLiveQuery(() => db.categoryBudgets.where('month').equals(monthPrefix).toArray(), [monthPrefix]) ?? []
   const totalBudgetRows =
-    useLiveQuery(() => db.totalBudgets.where('month').equals(realMonthPrefix).toArray(), [realMonthPrefix]) ?? []
+    useLiveQuery(() => db.totalBudgets.where('month').equals(monthPrefix).toArray(), [monthPrefix]) ?? []
   const totalBudgetLimit = useMemo(() => {
     const result: Partial<Record<Currency, number>> = {}
     totalBudgetRows.forEach((r) => {
@@ -180,30 +181,36 @@ export function SpendingView({ resetKey }: Props) {
     })
     return result
   }, [totalBudgetRows])
-  const realMonthEntriesRaw =
-    useLiveQuery(() => db.spendingEntries.where('date').startsWith(realMonthPrefix).toArray(), [realMonthPrefix]) ?? []
+  const budgetMonthEntriesRaw =
+    useLiveQuery(() => db.spendingEntries.where('date').startsWith(monthPrefix).toArray(), [monthPrefix]) ?? []
   // A future-dated entry hasn't actually happened yet — it shouldn't count
   // as "already spent" any more than a recurring expense that hasn't
   // materialized yet does.
-  const realMonthEntries = useMemo(
-    () => realMonthEntriesRaw.filter((e) => e.date <= todayIso()),
-    [realMonthEntriesRaw],
+  const budgetMonthEntries = useMemo(
+    () => budgetMonthEntriesRaw.filter((e) => e.date <= todayIso()),
+    [budgetMonthEntriesRaw],
   )
   const { rates: fx } = useFiatRates()
+  // Pace (spent-so-far vs. calendar-elapsed-so-far) only means anything for
+  // the month actually in progress — a fully past browsed month is simply
+  // over or under budget (elapsed 1, no partial-pace yellow), and a
+  // not-yet-started future one hasn't spent anything against it yet
+  // (elapsed 0, via dayOfMonth 0).
+  const budgetDayOfMonth = monthPrefix < realMonthPrefix ? daysInMonth(year, month) : monthPrefix > realMonthPrefix ? 0 : today.getDate()
   const budgetStatus = useMemo(
     () =>
       budgetEnabled
         ? computeBudgetStatus(
             categoryBudgets,
             totalBudgetLimit,
-            realMonthEntries,
-            today.getDate(),
-            daysInMonth(today.getFullYear(), today.getMonth()),
+            budgetMonthEntries,
+            budgetDayOfMonth,
+            daysInMonth(year, month),
             fx,
           )
         : null,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [budgetEnabled, categoryBudgets, totalBudgetLimit, realMonthEntries, fx],
+    [budgetEnabled, categoryBudgets, totalBudgetLimit, budgetMonthEntries, budgetDayOfMonth, fx],
   )
 
   // (categoryId, currency) breakdown, bar width normalized per-currency so amounts
@@ -526,7 +533,7 @@ export function SpendingView({ resetKey }: Props) {
 
       {managingBudget && <BudgetModal onClose={() => setManagingBudget(false)} />}
 
-      {showBudgetStatus && <BudgetStatusModal onClose={() => setShowBudgetStatus(false)} />}
+      {showBudgetStatus && <BudgetStatusModal monthPrefix={monthPrefix} onClose={() => setShowBudgetStatus(false)} />}
 
       {categoryModalFor && (
         <CategoryExpensesModal
