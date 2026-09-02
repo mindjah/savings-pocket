@@ -39,6 +39,10 @@ export function CategoryExpensesModal({
 }: Props) {
   const { t, lang } = useTranslation()
   const monthPrefixes = Array.isArray(monthPrefix) ? monthPrefix : [monthPrefix]
+  // Analytics (readOnly) totals only ever count spend that's already
+  // happened (see AnalyticsModal's own entries filter) — this drill-down
+  // has to exclude the same not-yet-happened recurring/future entries, or
+  // its total silently disagrees with the figure that led here.
   const entries = useLiveQuery(
     async () =>
       (await db.spendingEntries.toArray())
@@ -46,10 +50,11 @@ export function CategoryExpensesModal({
           (e) =>
             e.categoryId === categoryId &&
             (!currency || e.currency === currency) &&
-            monthPrefixes.some((m) => e.date.startsWith(m)),
+            monthPrefixes.some((m) => e.date.startsWith(m)) &&
+            (!readOnly || e.date <= todayIso()),
         )
         .sort((a, b) => b.date.localeCompare(a.date)),
-    [categoryId, currency, monthPrefixes.join(',')],
+    [categoryId, currency, monthPrefixes.join(','), readOnly],
   )
   const toast = useToast()
 

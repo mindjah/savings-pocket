@@ -285,5 +285,14 @@ export function categoryRanking(entriesByMonth: Map<string, SpendingEntry[]>, fx
   const merged = mergeCategoryCurrencies(totals, fx)
   return merged
     .map((row) => ({ categoryId: row.categoryId, currency: row.currency, avgMonthly: row.amount / entriesByMonth.size }))
-    .sort((a, b) => b.avgMonthly - a.avgMonthly)
+    .sort((a, b) => {
+      // Different rows can land on different ref currencies (each merged
+      // independently to whichever currency it was spent most in) — compare
+      // by real USD value, not raw amount, or a big RUB figure can rank
+      // below a small EUR one. Falls back to raw amount if fx isn't loaded
+      // yet (still wrong across currencies, but no worse than before).
+      const bVal = fx ? convertFiat(b.avgMonthly, b.currency, 'USD', fx) : b.avgMonthly
+      const aVal = fx ? convertFiat(a.avgMonthly, a.currency, 'USD', fx) : a.avgMonthly
+      return bVal - aVal
+    })
 }
