@@ -330,7 +330,18 @@ function EditExpenseModal({ entry, categories, currencyOptions, onSave, onDelete
   )
 }
 
-export function PlanEditorModal({ planId, onClose }: Props) {
+// Shared by both entry points below — a bottom sheet on mobile and (on
+// desktop, opened from Planning sandbox's own full-page list — see
+// PlanningModal's PlanningScreen) a full page in its own right, replacing
+// the plan list rather than layering over it. Same state and content
+// either way; only the surrounding chrome (Modal vs. an inline back-button
+// header) differs.
+function PlanEditorInner({
+  planId,
+  onClose,
+  asScreen,
+  onDirtyChange,
+}: Props & { asScreen?: boolean; onDirtyChange?: (dirty: boolean) => void }) {
   const { t } = useTranslation()
   const toast = useToast()
   const currencyOptions = CURRENCIES
@@ -375,6 +386,12 @@ export function PlanEditorModal({ planId, onClose }: Props) {
   // closing the modal can warn instead of silently discarding it.
   const [dirty, setDirty] = useState(false)
   const [recurringInfoOpen, setRecurringInfoOpen] = useState(false)
+
+  useEffect(() => {
+    onDirtyChange?.(dirty)
+    return () => onDirtyChange?.(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirty])
 
   useEffect(() => {
     let cancelled = false
@@ -540,35 +557,30 @@ export function PlanEditorModal({ planId, onClose }: Props) {
 
   if (!plan || !draftLoaded) return null
 
-  return (
+  const titleContent = renaming ? (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+      <input
+        autoFocus
+        value={nameDraft}
+        onChange={(e) => setNameDraft(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && saveRename()}
+        style={{ fontSize: '1rem' }}
+      />
+      <button className="btn btn-primary" onClick={saveRename} type="button">
+        {t('Save')}
+      </button>
+    </span>
+  ) : (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+      {plan.name}
+      <button className="btn btn-ghost btn-icon" onClick={startRename} type="button">
+        <EditIcon />
+      </button>
+    </span>
+  )
+
+  const body = (
     <>
-      <Modal
-        wide
-        title={
-          renaming ? (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              <input
-                autoFocus
-                value={nameDraft}
-                onChange={(e) => setNameDraft(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && saveRename()}
-                style={{ fontSize: '1rem' }}
-              />
-              <button className="btn btn-primary" onClick={saveRename} type="button">
-                {t('Save')}
-              </button>
-            </span>
-          ) : (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              {plan.name}
-              <button className="btn btn-ghost btn-icon" onClick={startRename} type="button">
-                <EditIcon />
-              </button>
-            </span>
-          )
-        }
-        onClose={handleClose}
-      >
         <div className="form-group">
           <label htmlFor="planAppliesMonth">{t('Applies to month')}</label>
           <input
@@ -750,7 +762,26 @@ export function PlanEditorModal({ planId, onClose }: Props) {
             {t('Delete this plan')}
           </button>
         </div>
-      </Modal>
+    </>
+  )
+
+  return (
+    <>
+      {asScreen ? (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+            <button className="btn btn-ghost btn-icon" onClick={handleClose} type="button" aria-label={t('Back to Planning sandbox')}>
+              <i className="fa-solid fa-arrow-left" aria-hidden="true" />
+            </button>
+            <h2 style={{ margin: 0 }}>{titleContent}</h2>
+          </div>
+          {body}
+        </>
+      ) : (
+        <Modal wide title={titleContent} onClose={handleClose}>
+          {body}
+        </Modal>
+      )}
 
       {confirmingDelete && (
         <DeleteConfirmModal itemLabel={t('this plan')} onConfirmed={deletePlan} onClose={() => setConfirmingDelete(false)} />
@@ -806,4 +837,19 @@ export function PlanEditorModal({ planId, onClose }: Props) {
         })()}
     </>
   )
+}
+
+export function PlanEditorModal({ planId, onClose }: Props) {
+  return <PlanEditorInner planId={planId} onClose={onClose} />
+}
+
+// Desktop-only (see NavBar/PlanningModal's PlanningScreen) — replaces the
+// plan list within the same page instead of opening as a bottom sheet, with
+// a back button standing in for the Modal's own title-bar close button.
+export function PlanEditorScreen({
+  planId,
+  onClose,
+  onDirtyChange,
+}: Props & { onDirtyChange?: (dirty: boolean) => void }) {
+  return <PlanEditorInner planId={planId} onClose={onClose} asScreen onDirtyChange={onDirtyChange} />
 }
