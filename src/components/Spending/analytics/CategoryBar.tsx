@@ -7,12 +7,16 @@ interface SingleProps {
   amount: number
   maxAmount: number
   onClick?: () => void
+  // Overrides the plain formatMoney(amount, currency) text — used by the
+  // habits ranking to spell out "Avg .../mo", since that amount is a
+  // 6-month average, not the total you see once you tap into the category.
+  displayAmount?: string
 }
 
 // One category's total this period — same visual language (and, via
 // onClick, the same tap-to-see-expenses behavior) as SpendingView's own
 // "By category" row, reused here for the year tab's full-year breakdown.
-export function CategoryBar({ category, currency, amount, maxAmount, onClick }: SingleProps) {
+export function CategoryBar({ category, currency, amount, maxAmount, onClick, displayAmount }: SingleProps) {
   const pct = maxAmount > 0 ? (amount / maxAmount) * 100 : 0
   return (
     <button className="category-breakdown-row" type="button" onClick={onClick}>
@@ -21,7 +25,7 @@ export function CategoryBar({ category, currency, amount, maxAmount, onClick }: 
       <div className="bar-track">
         <div className="bar-fill" style={{ width: `${pct}%`, background: category?.color ?? '#888' }} />
       </div>
-      <strong>{formatMoney(amount, currency)}</strong>
+      <strong>{displayAmount ?? formatMoney(amount, currency)}</strong>
     </button>
   )
 }
