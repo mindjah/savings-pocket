@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
-import type { Category, Currency, SpendingEntry, TotalBudget } from '../../../db/types'
+import type { Category, CategoryBudget, Currency, SpendingEntry, TotalBudget } from '../../../db/types'
 import { MONTH_NAMES } from '../../../lib/constants'
-import { formatDate, formatMoneyCompact, todayIso } from '../../../lib/format'
-import { categoryTotals, currencyTotals, mergeCategoryCurrencies, monthlyTotalsForYear } from '../../../lib/analytics'
+import { formatDate, formatMoneyCompact, pad2, todayIso } from '../../../lib/format'
+import { categoryTotals, mergeCategoryCurrencies, monthlyTotalsForYear } from '../../../lib/analytics'
+import { budgetCardLevel, computeBudgetStatus, monthProgress, type BudgetCardLevel } from '../../../lib/planning'
 import { useFiatRates } from '../../../hooks/useFiatRates'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { CategoryBar } from './CategoryBar'
@@ -11,15 +12,18 @@ import { tDataAsOf, tTotalInYear } from '../../../i18n/translations'
 
 interface Props {
   entriesByMonth: Map<string, SpendingEntry[]>
+  categoryBudgetsByMonth: Map<string, CategoryBudget[]>
   totalBudgetsByMonth: Map<string, TotalBudget[]>
   categories: Category[]
 }
 
-export function YearTab({ entriesByMonth, totalBudgetsByMonth, categories }: Props) {
+export function YearTab({ entriesByMonth, categoryBudgetsByMonth, totalBudgetsByMonth, categories }: Props) {
   const { t, lang } = useTranslation()
   const [year, setYear] = useState(new Date().getFullYear())
   const [categoryModalFor, setCategoryModalFor] = useState<{ categoryId: number } | null>(null)
   const { rates: fx } = useFiatRates()
+  const now = new Date()
+  const realMonthPrefix = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`
 
   const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories])
 
@@ -47,21 +51,30 @@ export function YearTab({ entriesByMonth, totalBudgetsByMonth, categories }: Pro
     return map
   }, [yearCategoryTotals])
 
+  // Exact same computeBudgetStatus + budgetCardLevel the Compare tab's
+  // budget cards use — not a separate over/under heuristic that can (and
+  // did) disagree with them for the same month.
   const adherence = useMemo(() => {
-    const result: ('over' | 'under' | 'none')[] = []
+    const result: (BudgetCardLevel | 'none')[] = []
     for (let m = 1; m <= 12; m++) {
       const key = `${year}-${String(m).padStart(2, '0')}`
-      const budgets = totalBudgetsByMonth.get(key) ?? []
-      if (budgets.length === 0) {
+      const totalBudgetRows = totalBudgetsByMonth.get(key) ?? []
+      const categoryBudgetRows = categoryBudgetsByMonth.get(key) ?? []
+      if (totalBudgetRows.length === 0 && categoryBudgetRows.length === 0) {
         result.push('none')
         continue
       }
-      const actual = currencyTotals(entriesByMonth.get(key) ?? [])
-      const over = budgets.some((b) => (actual[b.currency] ?? 0) > b.amount)
-      result.push(over ? 'over' : 'under')
+      const totalBudgetLimit: Partial<Record<Currency, number>> = {}
+      totalBudgetRows.forEach((b) => {
+        totalBudgetLimit[b.currency] = (totalBudgetLimit[b.currency] ?? 0) + b.amount
+      })
+      const { dayOfMonth, daysInMonth } = monthProgress(key, realMonthPrefix, now)
+      const status = computeBudgetStatus(categoryBudgetRows, totalBudgetLimit, entriesByMonth.get(key) ?? [], dayOfMonth, daysInMonth, fx)
+      result.push(status ? budgetCardLevel(status) : 'none')
     }
     return result
-  }, [entriesByMonth, totalBudgetsByMonth, year])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entriesByMonth, categoryBudgetsByMonth, totalBudgetsByMonth, year, fx])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
