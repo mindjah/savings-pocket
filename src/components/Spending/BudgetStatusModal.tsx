@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import type { Currency } from '../../db/types'
 import { formatMoney, pad2, todayIso } from '../../lib/format'
+import { MONTH_NAMES } from '../../lib/constants'
 import { categoryPaceLevel } from '../../lib/planning'
 import type { BudgetStatusLevel } from '../../lib/planning'
 import { convertFiat } from '../../lib/fxRates'
@@ -14,6 +15,10 @@ import { BudgetIcon } from '../common/BudgetIcon'
 
 interface Props {
   onClose: () => void
+  // Defaults to the real current month (the live Spending screen's own
+  // usage) — Analytics passes a specific browsed month instead, to show
+  // this same view for a month that isn't necessarily the current one.
+  monthPrefix?: string
 }
 
 const LEVEL_COLOR: Record<BudgetStatusLevel, string> = {
@@ -170,19 +175,27 @@ function BudgetDonut({
   )
 }
 
-export function BudgetStatusModal({ onClose }: Props) {
+export function BudgetStatusModal({ onClose, monthPrefix: monthPrefixProp }: Props) {
   const { t, lang } = useTranslation()
   const categories = useLiveQuery(() => db.categories.toArray(), []) ?? []
   const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories])
   const { rates: fx } = useFiatRates()
   const [unbudgetedInfoOpen, setUnbudgetedInfoOpen] = useState(false)
 
-  // Budget status always reflects the budget saved for the real current
-  // month — budgets are scoped by exact calendar month (see BudgetModal).
+  // Budgets are scoped by exact calendar month (see BudgetModal) — defaults
+  // to the real current month, but Analytics passes a specific browsed one.
   const now = new Date()
-  const monthPrefix = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
-  const elapsedFraction = now.getDate() / daysInMonth
+  const realCurrentMonthPrefix = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`
+  const monthPrefix = monthPrefixProp ?? realCurrentMonthPrefix
+  const [monthYear, monthNum] = monthPrefix.split('-').map(Number)
+  const daysInMonth = new Date(monthYear, monthNum, 0).getDate()
+  // Pace (how much of the budget "should" be used by now) only means
+  // anything for the month actually in progress — a fully past month is
+  // simply over or under its budget (elapsed 1, no partial-pace yellow), and
+  // a not-yet-started future month hasn't spent anything against it yet
+  // (elapsed 0).
+  const elapsedFraction =
+    monthPrefix < realCurrentMonthPrefix ? 1 : monthPrefix > realCurrentMonthPrefix ? 0 : now.getDate() / daysInMonth
   const budgets = useLiveQuery(() => db.categoryBudgets.where('month').equals(monthPrefix).toArray(), [monthPrefix]) ?? []
   const totalBudgetRows = useLiveQuery(() => db.totalBudgets.where('month').equals(monthPrefix).toArray(), [monthPrefix]) ?? []
   const totalBudgetLimit = useMemo(() => {
@@ -496,6 +509,11 @@ export function BudgetStatusModal({ onClose }: Props) {
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
           <BudgetIcon size={20} />
           {t('Budget status')}
+          {monthPrefixProp && (
+            <span className="muted" style={{ fontWeight: 400, fontSize: '0.85rem' }}>
+              — {t(MONTH_NAMES[monthNum - 1])} {monthYear}
+            </span>
+          )}
         </span>
       }
       onClose={onClose}

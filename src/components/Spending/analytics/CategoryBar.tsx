@@ -6,22 +6,23 @@ interface SingleProps {
   currency: Currency
   amount: number
   maxAmount: number
+  onClick?: () => void
 }
 
-// One category's total this period — same visual language as SpendingView's
-// own "By category" row (swatch + name + bar + amount), reused here for the
-// year tab's full-year breakdown.
-export function CategoryBar({ category, currency, amount, maxAmount }: SingleProps) {
+// One category's total this period — same visual language (and, via
+// onClick, the same tap-to-see-expenses behavior) as SpendingView's own
+// "By category" row, reused here for the year tab's full-year breakdown.
+export function CategoryBar({ category, currency, amount, maxAmount, onClick }: SingleProps) {
   const pct = maxAmount > 0 ? (amount / maxAmount) * 100 : 0
   return (
-    <div className="category-breakdown-row">
+    <button className="category-breakdown-row" type="button" onClick={onClick}>
       <span className="swatch" style={{ background: category?.color ?? '#888' }} />
       <span style={{ width: 96, flexShrink: 0 }}>{category?.name ?? '—'}</span>
       <div className="bar-track">
         <div className="bar-fill" style={{ width: `${pct}%`, background: category?.color ?? '#888' }} />
       </div>
       <strong>{formatMoney(amount, currency)}</strong>
-    </div>
+    </button>
   )
 }
 
@@ -33,12 +34,16 @@ interface CompareProps {
   maxAmount: number
   labelA: string
   labelB: string
+  onClickA?: () => void
+  onClickB?: () => void
 }
 
 // Same category, two periods — one bar per period stacked under a shared
 // swatch+name header, so the two amounts are directly comparable at a
-// glance rather than needing to scan two separate lists.
-export function CategoryCompareBar({ category, currency, a, b, maxAmount, labelA, labelB }: CompareProps) {
+// glance rather than needing to scan two separate lists. Each period's own
+// line is independently tappable (its own month's expenses), not the row
+// as a whole.
+export function CategoryCompareBar({ category, currency, a, b, maxAmount, labelA, labelB, onClickA, onClickB }: CompareProps) {
   const pctA = maxAmount > 0 ? (a / maxAmount) * 100 : 0
   const pctB = maxAmount > 0 ? (b / maxAmount) * 100 : 0
   const color = category?.color ?? '#888'
@@ -48,20 +53,20 @@ export function CategoryCompareBar({ category, currency, a, b, maxAmount, labelA
         <span className="swatch" style={{ background: color }} />
         <span>{category?.name ?? '—'}</span>
       </div>
-      <div className="compare-line">
+      <button className="compare-line" type="button" onClick={onClickA}>
         <span className="compare-label compare-label-a">{labelA}</span>
         <div className="bar-track">
           <div className="bar-fill" style={{ width: `${pctA}%`, background: color }} />
         </div>
         <strong>{formatMoney(a, currency)}</strong>
-      </div>
-      <div className="compare-line">
+      </button>
+      <button className="compare-line" type="button" onClick={onClickB}>
         <span className="compare-label compare-label-b">{labelB}</span>
         <div className="bar-track">
           <div className="bar-fill" style={{ width: `${pctB}%`, background: color, opacity: 0.55 }} />
         </div>
         <strong>{formatMoney(b, currency)}</strong>
-      </div>
+      </button>
     </div>
   )
 }

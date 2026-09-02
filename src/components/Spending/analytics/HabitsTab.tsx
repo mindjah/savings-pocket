@@ -1,10 +1,11 @@
-import { useMemo } from 'react'
-import type { Category, CategoryBudget, SpendingEntry } from '../../../db/types'
+import { useMemo, useState } from 'react'
+import type { Category, CategoryBudget, Currency, SpendingEntry } from '../../../db/types'
 import { pad2, formatMoney } from '../../../lib/format'
 import { categoryRanking, spendingHabits } from '../../../lib/analytics'
 import { useTranslation } from '../../../hooks/useTranslation'
-import { tHabitOver, tHabitUnder } from '../../../i18n/translations'
+import { tHabitOver, tHabitUnder, tTotalLastMonths } from '../../../i18n/translations'
 import { CategoryBar } from './CategoryBar'
+import { CategoryExpensesModal } from '../CategoryExpensesModal'
 
 interface Props {
   entriesByMonth: Map<string, SpendingEntry[]>
@@ -26,6 +27,7 @@ export function HabitsTab({ entriesByMonth, categoryBudgetsByMonth, categories }
   const { t, lang } = useTranslation()
   const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories])
   const recentMonths = useMemo(() => lastSixMonths(), [])
+  const [categoryModalFor, setCategoryModalFor] = useState<{ categoryId: number; currency: Currency } | null>(null)
 
   const recentEntriesByMonth = useMemo(() => {
     const map = new Map<string, SpendingEntry[]>()
@@ -63,6 +65,7 @@ export function HabitsTab({ entriesByMonth, categoryBudgetsByMonth, categories }
               currency={row.currency}
               amount={row.avgMonthly}
               maxAmount={maxAvg}
+              onClick={() => setCategoryModalFor({ categoryId: row.categoryId, currency: row.currency })}
             />
           ))}
         </div>
@@ -86,7 +89,12 @@ export function HabitsTab({ entriesByMonth, categoryBudgetsByMonth, categories }
                 ? tHabitOver(lang, name, insight.monthsOver, insight.monthsBudgeted)
                 : tHabitUnder(lang, name, insight.monthsUnder, insight.monthsBudgeted)
             return (
-              <div className="card" key={`${insight.categoryId}:${insight.currency}`}>
+              <button
+                className="card budget-summary-card"
+                type="button"
+                key={`${insight.categoryId}:${insight.currency}`}
+                onClick={() => setCategoryModalFor({ categoryId: insight.categoryId, currency: insight.currency })}
+              >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                   <span className="swatch" style={{ background: category?.color ?? '#888' }} />
                   <strong>{name}</strong>
@@ -95,10 +103,23 @@ export function HabitsTab({ entriesByMonth, categoryBudgetsByMonth, categories }
                 <div className="muted" style={{ marginTop: 4 }}>
                   {t('Avg actual')}: {formatMoney(insight.avgActual, insight.currency)} · {t('Avg budget')}: {formatMoney(insight.avgBudget, insight.currency)}
                 </div>
-              </div>
+              </button>
             )
           })}
         </div>
+      )}
+
+      {categoryModalFor && (
+        <CategoryExpensesModal
+          categoryId={categoryModalFor.categoryId}
+          currency={categoryModalFor.currency}
+          categoryName={categoryMap.get(categoryModalFor.categoryId)?.name ?? t('Unknown')}
+          categoryColor={categoryMap.get(categoryModalFor.categoryId)?.color ?? '#888'}
+          monthPrefix={recentMonths}
+          readOnly
+          totalLabel={tTotalLastMonths(lang, recentMonths.length)}
+          onClose={() => setCategoryModalFor(null)}
+        />
       )}
     </div>
   )

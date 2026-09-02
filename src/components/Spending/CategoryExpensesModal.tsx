@@ -13,18 +13,37 @@ interface Props {
   currency: Currency
   categoryName: string
   categoryColor: string
-  monthPrefix: string
+  // A single "yyyy-mm" for the live Spending screen's own month-scoped
+  // usage, or several for Analytics (a whole year, or the last 6 months).
+  monthPrefix: string | string[]
+  // Analytics shows historical spending for reference only — no delete
+  // (and nothing to edit here to begin with).
+  readOnly?: boolean
+  totalLabel?: string
   onClose: () => void
 }
 
-export function CategoryExpensesModal({ categoryId, currency, categoryName, categoryColor, monthPrefix, onClose }: Props) {
+export function CategoryExpensesModal({
+  categoryId,
+  currency,
+  categoryName,
+  categoryColor,
+  monthPrefix,
+  readOnly = false,
+  totalLabel,
+  onClose,
+}: Props) {
   const { t, lang } = useTranslation()
+  const monthPrefixes = Array.isArray(monthPrefix) ? monthPrefix : [monthPrefix]
   const entries = useLiveQuery(
     async () =>
-      (await db.spendingEntries.where('date').startsWith(monthPrefix).toArray())
-        .filter((e) => e.categoryId === categoryId && e.currency === currency)
+      (await db.spendingEntries.toArray())
+        .filter(
+          (e) =>
+            e.categoryId === categoryId && e.currency === currency && monthPrefixes.some((m) => e.date.startsWith(m)),
+        )
         .sort((a, b) => b.date.localeCompare(a.date)),
-    [categoryId, currency, monthPrefix],
+    [categoryId, currency, monthPrefixes.join(',')],
   )
   const toast = useToast()
 
@@ -48,7 +67,7 @@ export function CategoryExpensesModal({ categoryId, currency, categoryName, cate
       onClose={onClose}
     >
       <div className="section-title">
-        <span className="muted">{t('Total this month')}</span>
+        <span className="muted">{totalLabel ?? t('Total this month')}</span>
         <span className="entry-amount">{formatMoney(total, currency)}</span>
       </div>
 
@@ -77,9 +96,11 @@ export function CategoryExpensesModal({ categoryId, currency, categoryName, cate
               </div>
               <div className="icon-btn-row" style={{ alignItems: 'center' }}>
                 <strong>{formatMoney(e.amount, e.currency)}</strong>
-                <button className="btn btn-ghost btn-icon" onClick={() => handleDelete(e.id)} type="button">
-                  <DeleteIcon />
-                </button>
+                {!readOnly && (
+                  <button className="btn btn-ghost btn-icon" onClick={() => handleDelete(e.id)} type="button">
+                    <DeleteIcon />
+                  </button>
+                )}
               </div>
             </div>
           ))}
