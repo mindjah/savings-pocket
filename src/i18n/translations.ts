@@ -188,7 +188,7 @@ export const RU: Record<string, string> = {
   // Spending view / day entries
   Manage: 'Управление',
   'Total spent': 'Потрачено всего',
-  'Total scheduled': 'Запланировано всего',
+  'Spent & scheduled': 'Потрачено и запланировано',
   'No spending logged this month yet. Tap any day to add an expense.':
     'В этом месяце расходов пока нет. Нажмите на день, чтобы добавить расход.',
   'Recurring expense planned for this day': 'На этот день запланирован повторяющийся расход',

@@ -282,7 +282,7 @@ export function SpendingView({ resetKey }: Props) {
           {t('Total spent')}
         </button>
         <button type="button" className={totalsMode === 'scheduled' ? 'active' : ''} onClick={() => setTotalsMode('scheduled')}>
-          {t('Total scheduled')}
+          {t('Spent & scheduled')}
         </button>
       </div>
 
