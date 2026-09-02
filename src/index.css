@@ -702,6 +702,13 @@ h1, h2, h3, p {
 
 .form-row > * {
   flex: 1;
+  /* Flex items default to min-width: auto — their content's intrinsic
+     size — so a wide child (native type="date"/"month" inputs render
+     noticeably wider than they're laid out at, ignoring width: 100% on
+     their internal shadow parts) refuses to shrink to fit the row and
+     overflows the viewport instead. min-width: 0 lets flex-shrink
+     actually take effect. */
+  min-width: 0;
 }
 
 .transfer-row-icon {
