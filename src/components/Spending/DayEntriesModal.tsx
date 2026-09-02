@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
-import type { Currency, RecurrenceType, SavingsTrackingMode, SpendingEntry } from '../../db/types'
+import type { Currency, RecurrenceType, RecurringExpense, SavingsTrackingMode, SpendingEntry } from '../../db/types'
 import { CURRENCIES, DEFAULT_SPENDING_CURRENCIES } from '../../lib/constants'
 import { formatDate, formatMoney, parseAmount, roundFiat, todayIso } from '../../lib/format'
 import { applyAutoDebit, reverseAutoDebit } from '../../lib/autoDebit'
@@ -219,14 +219,67 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
     }
   }
 
-  async function handleDelete(id?: number) {
+  async function handleDelete(entry: SpendingEntry) {
+    const id = entry.id
     if (!id) return
     if (!confirm(t('Delete this spending entry?'))) return
-    await db.transaction('rw', db.spendingEntries, db.savingsEntries, db.savingsHistory, async () => {
-      await reverseAutoDebit(id, { deleted: true })
-      await db.spendingEntries.delete(id)
-    })
+    await db.transaction(
+      'rw',
+      db.spendingEntries,
+      db.savingsEntries,
+      db.savingsHistory,
+      db.recurringExpenses,
+      async () => {
+        await reverseAutoDebit(id, { deleted: true })
+        await db.spendingEntries.delete(id)
+        // A future, not-yet-happened occurrence of a recurring expense —
+        // record it as skipped so materializeRecurringExpenses doesn't
+        // quietly recreate this exact date once it arrives.
+        if (entry.recurringExpenseId != null && entry.date > todayIso()) {
+          const r = await db.recurringExpenses.get(entry.recurringExpenseId)
+          if (r) {
+            await db.recurringExpenses.update(r.id!, { skippedDates: [...(r.skippedDates ?? []), entry.date] })
+          }
+        }
+      },
+    )
     if (editingId === id) handleCancel()
+  }
+
+  // A previewed (not-yet-materialized) future occurrence — tapping Edit
+  // creates the real row on the spot (same thing that already happens for
+  // a recurring expense's very first occurrence) so it can be edited like
+  // any other entry.
+  async function materializePlanned(r: RecurringExpense): Promise<SpendingEntry> {
+    // Carries the recurring template's pocket forward (same as the due-date
+    // catch-up in materializeRecurringExpenses) so materializePendingAutoDebits
+    // still charges it once this now-real, still-future entry's date arrives.
+    const base = {
+      categoryId: r.categoryId,
+      amount: r.amount,
+      currency: r.currency,
+      note: r.note,
+      date,
+      createdAt: new Date().toISOString(),
+      recurringExpenseId: r.id,
+      debitedFromPocketId: r.debitedFromPocketId,
+    }
+    const newId = await db.spendingEntries.add(base)
+    return { id: newId, ...base }
+  }
+
+  async function editPlanned(r: RecurringExpense) {
+    const entry = await materializePlanned(r)
+    startEdit(entry)
+  }
+
+  // Skips just this one occurrence — the series keeps generating on
+  // schedule after it (deactivating the whole recurring expense would
+  // cancel every future occurrence, not just this date).
+  async function skipPlanned(r: RecurringExpense) {
+    if (!r.id) return
+    if (!confirm(t('Skip this occurrence? The recurring expense will continue on its normal schedule after this date.'))) return
+    await db.recurringExpenses.update(r.id, { skippedDates: [...(r.skippedDates ?? []), date] })
   }
 
   const blockedNoPocket = mode === 'auto' && pocketsForCurrency.length === 0
@@ -309,7 +362,7 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
               {plannedRecurring.map((r) => {
                 const cat = categoryMap.get(r.categoryId)
                 return (
-                  <div className="day-entry-row" key={`planned-${r.id}`} style={{ opacity: 0.7 }}>
+                  <div className="day-entry-row" key={`planned-${r.id}`}>
                     <div className="info">
                       <span className="swatch" style={{ background: cat?.color ?? '#888' }} />
                       <div className="text">
@@ -320,7 +373,15 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
                         <div className="note">{t('Recurring expense planned for this day')}</div>
                       </div>
                     </div>
-                    <strong>{formatMoney(r.amount, r.currency)}</strong>
+                    <div className="icon-btn-row" style={{ alignItems: 'center' }}>
+                      <strong>{formatMoney(r.amount, r.currency)}</strong>
+                      <button className="btn btn-ghost btn-icon" onClick={() => editPlanned(r)} type="button">
+                        <EditIcon />
+                      </button>
+                      <button className="btn btn-ghost btn-icon" onClick={() => skipPlanned(r)} type="button">
+                        <DeleteIcon />
+                      </button>
+                    </div>
                   </div>
                 )
               })}
@@ -352,7 +413,7 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
                       <button className="btn btn-ghost btn-icon" onClick={() => startEdit(e)} type="button">
                         <EditIcon />
                       </button>
-                      <button className="btn btn-ghost btn-icon" onClick={() => handleDelete(e.id)} type="button">
+                      <button className="btn btn-ghost btn-icon" onClick={() => handleDelete(e)} type="button">
                         <DeleteIcon />
                       </button>
                     </div>
