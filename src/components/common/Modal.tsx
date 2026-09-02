@@ -14,6 +14,11 @@ interface ModalProps {
   // uses. Mobile is untouched — the widening only kicks in at the app's
   // existing desktop breakpoint (see .app-shell in index.css).
   wide?: boolean
+  // When true, closing (tap-outside, the X button, or Escape) asks for
+  // confirmation first instead of silently discarding whatever the user
+  // was in the middle of entering — the same protection either way, so
+  // tapping outside can't be used to bypass the warning the X button gives.
+  hasUnsavedChanges?: boolean
 }
 
 // How many Modals are currently mounted (a bottom sheet opened from within
@@ -40,17 +45,23 @@ function useBodyScrollLock() {
   }, [])
 }
 
-export function Modal({ title, onClose, children, wide }: ModalProps) {
+export function Modal({ title, onClose, children, wide, hasUnsavedChanges }: ModalProps) {
   const { t } = useTranslation()
   useBodyScrollLock()
 
+  function requestClose() {
+    if (hasUnsavedChanges && !confirm(t('You have unsaved changes. Close without saving?'))) return
+    onClose()
+  }
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') requestClose()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onClose, hasUnsavedChanges])
 
   // Portaled straight to <body> — rendered inline, a bottom sheet opened
   // from within another bottom sheet (e.g. Analytics' budget card opening
@@ -72,12 +83,12 @@ export function Modal({ title, onClose, children, wide }: ModalProps) {
   // properties (color, font-family) still cascade through it normally.
   return createPortal(
     <div className="boucoup-scope" style={{ display: 'contents' }}>
-      <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-overlay" onClick={requestClose}>
         <div className={`modal${wide ? ' modal-wide' : ''}`} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
           <div className="modal-grabber" aria-hidden="true" />
           <div className="modal-header">
             <h2>{title}</h2>
-            <button className="btn btn-ghost btn-icon" onClick={onClose} aria-label={t('Close')}>
+            <button className="btn btn-ghost btn-icon" onClick={requestClose} aria-label={t('Close')}>
               ✕
             </button>
           </div>

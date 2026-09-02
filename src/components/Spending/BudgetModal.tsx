@@ -36,7 +36,7 @@ function AddTotalBudgetModal({ currencyOptions, onAdd, onClose }: AddTotalBudget
   }
 
   return (
-    <Modal title={t('Add total budget')} onClose={onClose}>
+    <Modal title={t('Add total budget')} onClose={onClose} hasUnsavedChanges={amount !== '' || currency !== ''}>
       <div className="form-row">
         <div className="form-group">
           <label htmlFor="newTotalBudgetAmount">{t('Amount')}</label>
@@ -94,7 +94,11 @@ function AddBudgetExpenseModal({ categories, currencyOptions, existingPairs, onA
   }
 
   return (
-    <Modal title={t('Add budget expense')} onClose={onClose}>
+    <Modal
+      title={t('Add budget expense')}
+      onClose={onClose}
+      hasUnsavedChanges={categoryId !== '' || amount !== '' || note !== ''}
+    >
       <div className="form-group">
         <label htmlFor="newBudgetCategory">{t('Category')}</label>
         <select id="newBudgetCategory" value={categoryId} onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : '')}>
@@ -178,7 +182,7 @@ function EditTotalBudgetModal({ currency, amount, onSave, onDelete, onClose }: E
   }
 
   return (
-    <Modal title={`${t('Total budget')} · ${currency}`} onClose={onClose}>
+    <Modal title={`${t('Total budget')} · ${currency}`} onClose={onClose} hasUnsavedChanges={value !== String(amount)}>
       <div className="form-group">
         <label htmlFor="editTotalBudgetAmount">{t('Amount')}</label>
         <input
@@ -233,7 +237,13 @@ function EditBudgetExpenseModal({ entry, categories, currencyOptions, existingPa
   }
 
   return (
-    <Modal title={t('Budget expenses')} onClose={onClose}>
+    <Modal
+      title={t('Budget expenses')}
+      onClose={onClose}
+      hasUnsavedChanges={
+        categoryId !== entry.categoryId || amount !== String(entry.amount) || currency !== entry.currency || note !== entry.note
+      }
+    >
       <div className="form-group">
         <label htmlFor="editBudgetCategory">{t('Category')}</label>
         <select id="editBudgetCategory" value={categoryId} onChange={(e) => setCategoryId(Number(e.target.value))}>

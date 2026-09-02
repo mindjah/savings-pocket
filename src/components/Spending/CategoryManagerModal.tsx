@@ -43,7 +43,11 @@ function EditCategoryModal({ category, onSave, onToggleArchive, onDelete, onClos
   }
 
   return (
-    <Modal title={t('Category')} onClose={onClose}>
+    <Modal
+      title={t('Category')}
+      onClose={onClose}
+      hasUnsavedChanges={name !== category.name || color !== category.color}
+    >
       <div className="form-group">
         <label htmlFor="editCatName">{t('Name')}</label>
         <input
@@ -127,7 +131,11 @@ export function CategoryManagerModal({ onClose }: Props) {
 
   return (
     <>
-      <Modal title={t('Manage categories')} onClose={onClose}>
+      <Modal
+        title={t('Manage categories')}
+        onClose={onClose}
+        hasUnsavedChanges={name !== '' || color !== CATEGORY_COLORS[0]}
+      >
         <div className="form-row">
           <div className="form-group" style={{ flex: 2 }}>
             <label htmlFor="catName">{t('New category')}</label>

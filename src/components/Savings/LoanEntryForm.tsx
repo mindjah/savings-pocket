@@ -41,6 +41,14 @@ export function LoanEntryForm({ entry, defaultCurrency, availableCurrencies, onC
   const valid =
     borrowerName.trim().length > 0 && amount.trim() !== '' && !Number.isNaN(parsedAmount) && parsedAmount >= 0
 
+  const dirty = entry
+    ? borrowerName !== entry.borrowerName ||
+      currency !== entry.currency ||
+      note !== entry.note ||
+      amount !== String(entry.amount) ||
+      reason.trim() !== ''
+    : borrowerName !== '' || currency !== defaultCurrency || note !== '' || amount !== ''
+
   async function handleSubmit() {
     if (!valid) return
     const now = new Date().toISOString()
@@ -102,6 +110,7 @@ export function LoanEntryForm({ entry, defaultCurrency, availableCurrencies, onC
         )
       }
       onClose={onClose}
+      hasUnsavedChanges={dirty}
     >
       <div className="form-row">
         <div className="form-group" style={{ flex: 2 }}>

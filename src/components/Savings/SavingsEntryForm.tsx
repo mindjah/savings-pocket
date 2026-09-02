@@ -50,6 +50,21 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
   const amountChanged = isEdit && entry && storedAmount !== entry.amount
   const valid = location.trim().length > 0 && amount.trim() !== '' && !Number.isNaN(parsedMagnitude)
 
+  const dirty = entry
+    ? currency !== entry.currency ||
+      type !== entry.type ||
+      purpose !== (entry.purpose ?? 'savings') ||
+      location !== entry.location ||
+      note !== entry.note ||
+      amount !== String(Math.abs(entry.amount)) ||
+      reason.trim() !== ''
+    : currency !== defaultCurrency ||
+      type !== 'card' ||
+      purpose !== 'savings' ||
+      location !== '' ||
+      note !== '' ||
+      amount !== ''
+
   async function handleSubmit() {
     if (!valid) return
     const now = new Date().toISOString()
@@ -119,6 +134,7 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
         )
       }
       onClose={onClose}
+      hasUnsavedChanges={dirty}
     >
       <div className="form-row">
         <div className="form-group">

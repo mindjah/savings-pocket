@@ -34,7 +34,7 @@ export function PlanningModal({ onClose }: Props) {
 
   return (
     <>
-      <Modal wide title={t('Planning sandbox')} onClose={onClose}>
+      <Modal wide title={t('Planning sandbox')} onClose={onClose} hasUnsavedChanges={newName.trim() !== ''}>
         <p className="muted" style={{ marginTop: -4 }}>
           {t(
             'A sandbox to see what you can afford this month — separate from your real pockets and spending until it actually happens. Save multiple named plans to compare.',
