@@ -124,6 +124,21 @@ export function CompareTab({ entriesByMonth, categoryBudgetsByMonth, totalBudget
             </div>
           </div>
 
+          {(budgetA.hasBudget || budgetB.hasBudget) && (
+            <>
+              <div className="section-title">
+                <h2>{t('Budget')}</h2>
+              </div>
+              <div className={budgetA.hasBudget && budgetB.hasBudget ? 'form-row' : undefined}>
+                {renderBudgetSection(monthLabel(monthA), budgetA)}
+                {renderBudgetSection(monthLabel(monthB), budgetB)}
+              </div>
+            </>
+          )}
+
+          <div className="section-title">
+            <h2>{t('By category')}</h2>
+          </div>
           <div className="category-breakdown">
             {compareRows.map((row) => (
               <CategoryCompareBar
@@ -138,9 +153,6 @@ export function CompareTab({ entriesByMonth, categoryBudgetsByMonth, totalBudget
               />
             ))}
           </div>
-
-          {renderBudgetSection(monthLabel(monthA), budgetA)}
-          {renderBudgetSection(monthLabel(monthB), budgetB)}
         </>
       )}
     </div>
