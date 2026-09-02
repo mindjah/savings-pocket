@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
 import type { Category, CategoryBudget, Currency, SpendingEntry, TotalBudget } from '../../../db/types'
 import { MONTH_NAMES } from '../../../lib/constants'
-import { formatMoney, pad2 } from '../../../lib/format'
-import { budgetCardLevel, budgetComparisonForMonth, categoryTotals, compareCategoryTotals, currencyTotals } from '../../../lib/analytics'
+import { formatMoney, pad2, todayIso } from '../../../lib/format'
+import { budgetComparisonForMonth, categoryTotals, compareCategoryTotals, currencyTotals, mergeCategoryCurrencies } from '../../../lib/analytics'
+import { budgetCardLevel, computeBudgetStatus } from '../../../lib/planning'
+import { useFiatRates } from '../../../hooks/useFiatRates'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { CategoryCompareBar } from './CategoryBar'
 import { BudgetStatusModal } from '../BudgetStatusModal'
@@ -24,13 +26,30 @@ function defaultMonths(): [string, string] {
   return [previous, current]
 }
 
+function daysInMonth(year: number, month0: number): number {
+  return new Date(year, month0 + 1, 0).getDate()
+}
+
+// Same generalization BudgetStatusModal/SpendingView use for an arbitrary
+// (not necessarily current) month: a fully past one is simply over or under
+// (elapsed 1), a not-yet-started future one hasn't spent anything against
+// it yet (elapsed 0), and the real current month uses its own real pace.
+function monthProgress(monthPrefix: string, realMonthPrefix: string, today: Date): { dayOfMonth: number; daysInMonth: number } {
+  const [y, m] = monthPrefix.split('-').map(Number)
+  const total = daysInMonth(y, m - 1)
+  if (monthPrefix < realMonthPrefix) return { dayOfMonth: total, daysInMonth: total }
+  if (monthPrefix > realMonthPrefix) return { dayOfMonth: 0, daysInMonth: total }
+  return { dayOfMonth: today.getDate(), daysInMonth: total }
+}
+
 export function CompareTab({ entriesByMonth, categoryBudgetsByMonth, totalBudgetsByMonth, categories }: Props) {
   const { t, lang } = useTranslation()
   const [defaultA, defaultB] = useMemo(() => defaultMonths(), [])
   const [monthA, setMonthA] = useState(defaultA)
   const [monthB, setMonthB] = useState(defaultB)
   const [budgetStatusMonth, setBudgetStatusMonth] = useState<string | null>(null)
-  const [categoryModalFor, setCategoryModalFor] = useState<{ categoryId: number; currency: Currency; month: string } | null>(null)
+  const [categoryModalFor, setCategoryModalFor] = useState<{ categoryId: number; month: string } | null>(null)
+  const { rates: fx } = useFiatRates()
 
   const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories])
 
@@ -52,23 +71,59 @@ export function CompareTab({ entriesByMonth, categoryBudgetsByMonth, totalBudget
   const totalsB = currencyTotals(entriesB)
   const currencies = Array.from(new Set([...Object.keys(totalsA), ...Object.keys(totalsB)])) as Currency[]
 
-  const compareRows = useMemo(
-    () => compareCategoryTotals(categoryTotals(entriesA), categoryTotals(entriesB)).sort((r1, r2) => r2.a + r2.b - (r1.a + r1.b)),
-    [entriesA, entriesB],
-  )
-  const maxByCurrency = useMemo(() => {
+  const compareRows = useMemo(() => {
+    const mergedA = mergeCategoryCurrencies(categoryTotals(entriesA), fx)
+    const mergedB = mergeCategoryCurrencies(categoryTotals(entriesB), fx)
+    return compareCategoryTotals(mergedA, mergedB).sort((r1, r2) => r2.a + r2.b - (r1.a + r1.b))
+  }, [entriesA, entriesB, fx])
+  // Each period's bars scale against that period's own max — the two
+  // periods can land on different currencies for the same category (see
+  // CategoryCompareBar), so there's no single shared max that stays fair.
+  const maxAByCurrency = useMemo(() => {
     const map = new Map<Currency, number>()
-    compareRows.forEach((r) => map.set(r.currency, Math.max(map.get(r.currency) ?? 0, r.a, r.b)))
+    compareRows.forEach((r) => map.set(r.currencyA, Math.max(map.get(r.currencyA) ?? 0, r.a)))
+    return map
+  }, [compareRows])
+  const maxBByCurrency = useMemo(() => {
+    const map = new Map<Currency, number>()
+    compareRows.forEach((r) => map.set(r.currencyB, Math.max(map.get(r.currencyB) ?? 0, r.b)))
     return map
   }, [compareRows])
 
   const budgetA = budgetComparisonForMonth(categoryBudgetsByMonth.get(monthA) ?? [], totalBudgetsByMonth.get(monthA) ?? [], entriesA)
   const budgetB = budgetComparisonForMonth(categoryBudgetsByMonth.get(monthB) ?? [], totalBudgetsByMonth.get(monthB) ?? [], entriesB)
 
-  function renderBudgetSection(label: string, month: string, budget: ReturnType<typeof budgetComparisonForMonth>) {
+  // Card color uses the exact same computeBudgetStatus + budgetCardLevel
+  // SpendingView's own budget-status button uses — not a separate
+  // heuristic — so the two surfaces can't show different colors for what's
+  // really the same status.
+  const now = new Date()
+  const realMonthPrefix = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`
+  const levelA = useMemo(() => {
+    if (!budgetA.hasBudget) return null
+    const { dayOfMonth, daysInMonth: total } = monthProgress(monthA, realMonthPrefix, now)
+    const happenedEntriesA = entriesA.filter((e) => e.date <= todayIso())
+    const status = computeBudgetStatus(categoryBudgetsByMonth.get(monthA) ?? [], budgetA.totalBudget, happenedEntriesA, dayOfMonth, total, fx)
+    return status ? budgetCardLevel(status) : null
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [budgetA, monthA, categoryBudgetsByMonth, entriesA, fx])
+  const levelB = useMemo(() => {
+    if (!budgetB.hasBudget) return null
+    const { dayOfMonth, daysInMonth: total } = monthProgress(monthB, realMonthPrefix, now)
+    const happenedEntriesB = entriesB.filter((e) => e.date <= todayIso())
+    const status = computeBudgetStatus(categoryBudgetsByMonth.get(monthB) ?? [], budgetB.totalBudget, happenedEntriesB, dayOfMonth, total, fx)
+    return status ? budgetCardLevel(status) : null
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [budgetB, monthB, categoryBudgetsByMonth, entriesB, fx])
+
+  function renderBudgetSection(
+    label: string,
+    month: string,
+    budget: ReturnType<typeof budgetComparisonForMonth>,
+    level: ReturnType<typeof budgetCardLevel> | null,
+  ) {
     if (!budget.hasBudget) return null
     const overCategories = budget.categories.filter((c) => c.over)
-    const level = budgetCardLevel(budget)
     return (
       <button
         className={`card budget-summary-card${level ? ` budget-level-${level}` : ''}`}
@@ -141,8 +196,8 @@ export function CompareTab({ entriesByMonth, categoryBudgetsByMonth, totalBudget
                 <h2>{t('Budget')}</h2>
               </div>
               <div className={budgetA.hasBudget && budgetB.hasBudget ? 'form-row' : undefined}>
-                {renderBudgetSection(monthLabel(monthA), monthA, budgetA)}
-                {renderBudgetSection(monthLabel(monthB), monthB, budgetB)}
+                {renderBudgetSection(monthLabel(monthA), monthA, budgetA, levelA)}
+                {renderBudgetSection(monthLabel(monthB), monthB, budgetB, levelB)}
               </div>
             </>
           )}
@@ -153,16 +208,18 @@ export function CompareTab({ entriesByMonth, categoryBudgetsByMonth, totalBudget
           <div className="category-breakdown">
             {compareRows.map((row) => (
               <CategoryCompareBar
-                key={`${row.categoryId}:${row.currency}`}
+                key={row.categoryId}
                 category={categoryMap.get(row.categoryId)}
-                currency={row.currency}
+                currencyA={row.currencyA}
+                currencyB={row.currencyB}
                 a={row.a}
                 b={row.b}
-                maxAmount={maxByCurrency.get(row.currency) ?? 0}
+                maxAmountA={maxAByCurrency.get(row.currencyA) ?? 0}
+                maxAmountB={maxBByCurrency.get(row.currencyB) ?? 0}
                 labelA={monthLabelShort(monthA)}
                 labelB={monthLabelShort(monthB)}
-                onClickA={() => setCategoryModalFor({ categoryId: row.categoryId, currency: row.currency, month: monthA })}
-                onClickB={() => setCategoryModalFor({ categoryId: row.categoryId, currency: row.currency, month: monthB })}
+                onClickA={() => setCategoryModalFor({ categoryId: row.categoryId, month: monthA })}
+                onClickB={() => setCategoryModalFor({ categoryId: row.categoryId, month: monthB })}
               />
             ))}
           </div>
@@ -174,7 +231,6 @@ export function CompareTab({ entriesByMonth, categoryBudgetsByMonth, totalBudget
       {categoryModalFor && (
         <CategoryExpensesModal
           categoryId={categoryModalFor.categoryId}
-          currency={categoryModalFor.currency}
           categoryName={categoryMap.get(categoryModalFor.categoryId)?.name ?? t('Unknown')}
           categoryColor={categoryMap.get(categoryModalFor.categoryId)?.color ?? '#888'}
           monthPrefix={categoryModalFor.month}

@@ -1,5 +1,6 @@
 import type { CategoryBudget, Currency, SpendingEntry, TotalBudget } from '../db/types'
 import type { CategoryAmount } from './planning'
+import { convertFiat, type FxRates } from './fxRates'
 
 // yyyy-mm from a yyyy-mm-dd date string.
 export function monthOf(date: string): string {
@@ -25,27 +26,67 @@ export function currencyTotals(entries: SpendingEntry[]): Partial<Record<Currenc
   return totals
 }
 
+// Merges a category's spend across multiple currencies into one, converting
+// into whichever currency it was actually spent most in (by real converted
+// value) — the same "pick the currency with the larger converted amount"
+// rule computeBudgetStatus (planning.ts) already uses for a category
+// budgeted in more than one currency. Falls back to leaving currencies
+// separate if fx rates aren't loaded yet, matching that same function's
+// "can't compare fairly yet, so don't guess" precedent. A category with
+// only one currency passes through unchanged either way.
+export function mergeCategoryCurrencies(rows: CategoryAmount[], fx: FxRates | null): CategoryAmount[] {
+  const byCategory = new Map<number, CategoryAmount[]>()
+  rows.forEach((row) => {
+    const list = byCategory.get(row.categoryId) ?? []
+    list.push(row)
+    byCategory.set(row.categoryId, list)
+  })
+  const result: CategoryAmount[] = []
+  byCategory.forEach((list, categoryId) => {
+    if (list.length === 1 || !fx) {
+      list.forEach((row) => result.push(row))
+      return
+    }
+    const refCurrency = list.reduce((best, cur) =>
+      convertFiat(cur.amount, cur.currency, 'USD', fx) > convertFiat(best.amount, best.currency, 'USD', fx) ? cur : best,
+    ).currency
+    const amount = list.reduce(
+      (sum, row) => sum + (row.currency === refCurrency ? row.amount : convertFiat(row.amount, row.currency, refCurrency, fx)),
+      0,
+    )
+    result.push({ categoryId, currency: refCurrency, amount })
+  })
+  return result
+}
+
 export interface CategoryComparisonRow {
   categoryId: number
-  currency: Currency
+  currencyA: Currency
+  currencyB: Currency
   a: number
   b: number
 }
 
-// Outer join by (categoryId, currency) — a category spent in only one of the
-// two periods still shows up, zero-filled on the other side, rather than
-// silently dropping out.
+// Outer join by categoryId only — callers pass currency-merged totals (see
+// mergeCategoryCurrencies), so each side has at most one row per category.
+// The two sides can still land on different ref currencies for the same
+// category (e.g. mostly-EUR in August, mostly-RUB in September), so the
+// currency is tracked per side rather than assumed shared. A category spent
+// in only one of the two periods still shows up, zero-filled on the other
+// side, rather than silently dropping out.
 export function compareCategoryTotals(a: CategoryAmount[], b: CategoryAmount[]): CategoryComparisonRow[] {
-  const map = new Map<string, CategoryComparisonRow>()
-  const key = (categoryId: number, currency: Currency) => `${categoryId}:${currency}`
+  const map = new Map<number, CategoryComparisonRow>()
   a.forEach((row) => {
-    map.set(key(row.categoryId, row.currency), { categoryId: row.categoryId, currency: row.currency, a: row.amount, b: 0 })
+    map.set(row.categoryId, { categoryId: row.categoryId, currencyA: row.currency, currencyB: row.currency, a: row.amount, b: 0 })
   })
   b.forEach((row) => {
-    const k = key(row.categoryId, row.currency)
-    const existing = map.get(k)
-    if (existing) existing.b = row.amount
-    else map.set(k, { categoryId: row.categoryId, currency: row.currency, a: 0, b: row.amount })
+    const existing = map.get(row.categoryId)
+    if (existing) {
+      existing.b = row.amount
+      existing.currencyB = row.currency
+    } else {
+      map.set(row.categoryId, { categoryId: row.categoryId, currencyA: row.currency, currencyB: row.currency, a: 0, b: row.amount })
+    }
   })
   return Array.from(map.values())
 }
@@ -125,26 +166,10 @@ export function budgetComparisonForMonth(
   return { hasBudget: true, totalBudget, totalActual, categories }
 }
 
-export type BudgetCardLevel = 'green' | 'yellow' | 'orange' | 'red'
-
-// A finished (or arbitrary, not-necessarily-current) month's overall status
-// — unlike categoryPaceLevel (planning.ts), there's no "elapsed fraction"
-// to pace against here, just how the final total actually landed against
-// budget. The 15% orange/red split mirrors the 15% threshold already used
-// elsewhere (categoryPaceLevel's own yellow cutoff, spendingHabits'
-// "consistently off" cutoff), so it reads as the same calibration.
-export function budgetCardLevel(comparison: MonthBudgetComparison): BudgetCardLevel | null {
-  if (!comparison.hasBudget) return null
-  const ratios = Object.entries(comparison.totalBudget)
-    .filter(([, budget]) => (budget ?? 0) > 0)
-    .map(([currency, budget]) => (comparison.totalActual[currency as Currency] ?? 0) / (budget as number))
-  if (ratios.length === 0) return null
-  const worst = Math.max(...ratios)
-  if (worst > 1.15) return 'red'
-  if (worst > 1) return 'orange'
-  if (worst > 0.85) return 'yellow'
-  return 'green'
-}
+// The card's status color now comes from computeBudgetStatus + the shared
+// budgetCardLevel (planning.ts) — the exact same computation SpendingView's
+// own budget-status button uses — rather than a separate ratio-based
+// heuristic living here, so the two surfaces can't drift apart.
 
 export interface HabitInsight {
   categoryId: number
@@ -235,12 +260,14 @@ export interface CategoryRankingRow {
   categoryId: number
   currency: Currency
   avgMonthly: number
-  monthCount: number
 }
 
-// Highest-to-lowest average monthly spend per category+currency — no budget
-// needed, just "where the money actually goes."
-export function categoryRanking(entriesByMonth: Map<string, SpendingEntry[]>): CategoryRankingRow[] {
+// Highest-to-lowest average monthly spend per category — a category spent
+// in more than one currency over the window is merged the same way the
+// compare/year breakdowns are (see mergeCategoryCurrencies), converting
+// into whichever currency it was spent most in, since this is a pure
+// "where does the money go" ranking, not a per-currency budget check.
+export function categoryRanking(entriesByMonth: Map<string, SpendingEntry[]>, fx: FxRates | null): CategoryRankingRow[] {
   const perKey = new Map<string, number[]>()
   entriesByMonth.forEach((entries) => {
     categoryTotals(entries).forEach((row) => {
@@ -250,15 +277,13 @@ export function categoryRanking(entriesByMonth: Map<string, SpendingEntry[]>): C
       perKey.set(key, list)
     })
   })
-  const rows: CategoryRankingRow[] = []
+  const totals: CategoryAmount[] = []
   perKey.forEach((amounts, key) => {
     const [categoryIdStr, currency] = key.split(':')
-    rows.push({
-      categoryId: Number(categoryIdStr),
-      currency: currency as Currency,
-      avgMonthly: amounts.reduce((sum, a) => sum + a, 0) / entriesByMonth.size,
-      monthCount: amounts.length,
-    })
+    totals.push({ categoryId: Number(categoryIdStr), currency: currency as Currency, amount: amounts.reduce((sum, a) => sum + a, 0) })
   })
-  return rows.sort((a, b) => b.avgMonthly - a.avgMonthly)
+  const merged = mergeCategoryCurrencies(totals, fx)
+  return merged
+    .map((row) => ({ categoryId: row.categoryId, currency: row.currency, avgMonthly: row.amount / entriesByMonth.size }))
+    .sort((a, b) => b.avgMonthly - a.avgMonthly)
 }

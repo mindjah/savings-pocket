@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import type { Category, Currency, SpendingEntry, TotalBudget } from '../../../db/types'
 import { MONTH_NAMES } from '../../../lib/constants'
 import { formatMoneyCompact } from '../../../lib/format'
-import { categoryTotals, currencyTotals, monthlyTotalsForYear } from '../../../lib/analytics'
+import { categoryTotals, currencyTotals, mergeCategoryCurrencies, monthlyTotalsForYear } from '../../../lib/analytics'
+import { useFiatRates } from '../../../hooks/useFiatRates'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { CategoryBar } from './CategoryBar'
 import { CategoryExpensesModal } from '../CategoryExpensesModal'
@@ -17,7 +18,8 @@ interface Props {
 export function YearTab({ entriesByMonth, totalBudgetsByMonth, categories }: Props) {
   const { t, lang } = useTranslation()
   const [year, setYear] = useState(new Date().getFullYear())
-  const [categoryModalFor, setCategoryModalFor] = useState<{ categoryId: number; currency: Currency } | null>(null)
+  const [categoryModalFor, setCategoryModalFor] = useState<{ categoryId: number } | null>(null)
+  const { rates: fx } = useFiatRates()
 
   const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories])
 
@@ -38,7 +40,7 @@ export function YearTab({ entriesByMonth, totalBudgetsByMonth, categories }: Pro
   const monthlyTotals = useMemo(() => monthlyTotalsForYear(yearEntries, year), [yearEntries, year])
   const currencies = Object.keys(monthlyTotals) as Currency[]
 
-  const yearCategoryTotals = useMemo(() => categoryTotals(yearEntries), [yearEntries])
+  const yearCategoryTotals = useMemo(() => mergeCategoryCurrencies(categoryTotals(yearEntries), fx), [yearEntries, fx])
   const maxByCurrency = useMemo(() => {
     const map = new Map<Currency, number>()
     yearCategoryTotals.forEach((row) => map.set(row.currency, Math.max(map.get(row.currency) ?? 0, row.amount)))
@@ -125,7 +127,7 @@ export function YearTab({ entriesByMonth, totalBudgetsByMonth, categories }: Pro
                   currency={row.currency}
                   amount={row.amount}
                   maxAmount={maxByCurrency.get(row.currency) ?? 0}
-                  onClick={() => setCategoryModalFor({ categoryId: row.categoryId, currency: row.currency })}
+                  onClick={() => setCategoryModalFor({ categoryId: row.categoryId })}
                 />
               ))}
           </div>
@@ -135,7 +137,6 @@ export function YearTab({ entriesByMonth, totalBudgetsByMonth, categories }: Pro
       {categoryModalFor && (
         <CategoryExpensesModal
           categoryId={categoryModalFor.categoryId}
-          currency={categoryModalFor.currency}
           categoryName={categoryMap.get(categoryModalFor.categoryId)?.name ?? t('Unknown')}
           categoryColor={categoryMap.get(categoryModalFor.categoryId)?.color ?? '#888'}
           monthPrefix={yearMonthPrefixes}

@@ -10,7 +10,11 @@ import { EntryBadges } from '../common/EntryBadges'
 
 interface Props {
   categoryId: number
-  currency: Currency
+  // Omit to show every currency this category has expenses in — used by
+  // Analytics, which merges a category's currencies into one line (see
+  // mergeCategoryCurrencies) but should still reveal the real per-currency
+  // breakdown once you actually tap in for the details.
+  currency?: Currency
   categoryName: string
   categoryColor: string
   // A single "yyyy-mm" for the live Spending screen's own month-scoped
@@ -40,7 +44,9 @@ export function CategoryExpensesModal({
       (await db.spendingEntries.toArray())
         .filter(
           (e) =>
-            e.categoryId === categoryId && e.currency === currency && monthPrefixes.some((m) => e.date.startsWith(m)),
+            e.categoryId === categoryId &&
+            (!currency || e.currency === currency) &&
+            monthPrefixes.some((m) => e.date.startsWith(m)),
         )
         .sort((a, b) => b.date.localeCompare(a.date)),
     [categoryId, currency, monthPrefixes.join(',')],
@@ -54,7 +60,13 @@ export function CategoryExpensesModal({
     toast(t('Spending entry deleted'))
   }
 
-  const total = (entries ?? []).reduce((sum, e) => sum + e.amount, 0)
+  // Without a single currency to filter to, there's no one number to sum
+  // into — show each currency's own subtotal instead of pretending they
+  // add up to something.
+  const totalsByCurrency = new Map<Currency, number>()
+  ;(entries ?? []).forEach((e) => {
+    totalsByCurrency.set(e.currency, (totalsByCurrency.get(e.currency) ?? 0) + e.amount)
+  })
 
   return (
     <Modal
@@ -68,7 +80,13 @@ export function CategoryExpensesModal({
     >
       <div className="section-title">
         <span className="muted">{totalLabel ?? t('Total this month')}</span>
-        <span className="entry-amount">{formatMoney(total, currency)}</span>
+        <span className="entry-amount">
+          {currency
+            ? formatMoney(totalsByCurrency.get(currency) ?? 0, currency)
+            : Array.from(totalsByCurrency.entries())
+                .map(([c, amt]) => formatMoney(amt, c))
+                .join(' + ') || '—'}
+        </span>
       </div>
 
       {!entries || entries.length === 0 ? (
