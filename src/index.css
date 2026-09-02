@@ -304,6 +304,30 @@ h1, h2, h3, p {
   cursor: pointer;
 }
 
+/* Soft status tint per month's actual-vs-budget outcome — .card.
+   .budget-summary-card.budget-level-* (3 classes) beats theme.css's
+   .boucoup-scope .card (2 classes) regardless of load order, same
+   reasoning as the compare-tab chip fix earlier. */
+.card.budget-summary-card.budget-level-green {
+  background: color-mix(in srgb, var(--accent) 14%, var(--compare-mix-base));
+  border: none;
+}
+
+.card.budget-summary-card.budget-level-yellow {
+  background: color-mix(in srgb, var(--warning) 18%, var(--compare-mix-base));
+  border: none;
+}
+
+.card.budget-summary-card.budget-level-orange {
+  background: color-mix(in srgb, var(--warning-strong) 16%, var(--compare-mix-base));
+  border: none;
+}
+
+.card.budget-summary-card.budget-level-red {
+  background: color-mix(in srgb, var(--danger-strong) 14%, var(--compare-mix-base));
+  border: none;
+}
+
 .section-title {
   display: flex;
   align-items: center;
@@ -1172,14 +1196,14 @@ h1, h2, h3, p {
   width: 100%;
   background: none;
   border: none;
-  padding: 6px 0;
+  padding: 10px 0;
   text-align: left;
   color: inherit;
 }
 
 .category-breakdown-row .bar-track {
   flex: 1;
-  height: 6px;
+  height: 12px;
   border-radius: 999px;
   background: var(--surface-hover);
   overflow: hidden;
@@ -1220,7 +1244,7 @@ h1, h2, h3, p {
   width: 100%;
   background: none;
   border: none;
-  padding: 2px 0;
+  padding: 6px 0;
   text-align: left;
   color: inherit;
   font-family: inherit;
@@ -1248,7 +1272,7 @@ h1, h2, h3, p {
 
 .category-compare-row .compare-line .bar-track {
   flex: 1;
-  height: 6px;
+  height: 10px;
   border-radius: 999px;
   background: var(--surface-hover);
   overflow: hidden;
