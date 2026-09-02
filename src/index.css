@@ -15,7 +15,14 @@
   --warning: #fbbf24;
   --warning-strong: #f97316;
   /* Analytics compare tab: distinguishes the two compared months by color,
-     independent of the semantic accent/warning/danger meanings above. */
+     independent of the semantic accent/warning/danger meanings above.
+     --compare-mix-base defaults to --surface (this app's own adaptive
+     light/dark token) but a branch whose design is fixed-light regardless
+     of OS preference (e.g. lavender-design) should pin it to that fixed
+     light color instead — mixing a bright hue into a dark --surface (OS
+     dark preference, no light override) produces a muddy dark blob, not
+     a light tint. */
+  --compare-mix-base: var(--surface);
   --compare-a: #3b82f6;
   --compare-b: var(--accent);
   --radius-sm: 8px;
@@ -368,27 +375,36 @@ h1, h2, h3, p {
    scoping through the wrapper column class beats it on specificity alone,
    without needing !important or a theme.css-side override on every branch. */
 .compare-totals-col-a .total-chip.compare-chip-a {
-  background: color-mix(in srgb, var(--compare-a) 14%, var(--surface));
-  border-color: color-mix(in srgb, var(--compare-a) 35%, var(--border));
+  background: color-mix(in srgb, var(--compare-a) 14%, var(--compare-mix-base));
+  border: none;
 }
 
 .compare-totals-col-b .total-chip.compare-chip-b {
-  background: color-mix(in srgb, var(--compare-b) 14%, var(--surface));
-  border-color: color-mix(in srgb, var(--compare-b) 35%, var(--border));
+  background: color-mix(in srgb, var(--compare-b) 14%, var(--compare-mix-base));
+  border: none;
 }
 
 /* Same tint on the month pickers themselves, so the color language starts
    right at the source of "which month is which" instead of only appearing
    further down. IDs (specificity 1,0,0) beat .boucoup-scope input's
    (0,1,1) unconditionally, same reasoning as the chips above. */
+#compareMonthA,
+#compareMonthB {
+  /* These always sit on a light tint (see --compare-mix-base above), but
+     the page's own color-scheme: light dark (:root, top of file) lets the
+     browser pick the calendar-picker-indicator icon's light/dark variant
+     based on OS preference, not this input's actual background — under an
+     OS dark preference it can pick the near-white variant, invisible here.
+     Pin these two to the light variant so the icon always renders dark. */
+  color-scheme: light;
+}
+
 #compareMonthA {
-  background: color-mix(in srgb, var(--compare-a) 12%, var(--surface));
-  border-color: var(--compare-a);
+  background: color-mix(in srgb, var(--compare-a) 12%, var(--compare-mix-base));
 }
 
 #compareMonthB {
-  background: color-mix(in srgb, var(--compare-b) 12%, var(--surface));
-  border-color: var(--compare-b);
+  background: color-mix(in srgb, var(--compare-b) 12%, var(--compare-mix-base));
 }
 
 .entry-list {
