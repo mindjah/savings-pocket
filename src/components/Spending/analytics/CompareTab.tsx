@@ -86,7 +86,7 @@ export function CompareTab({ entriesByMonth, categoryBudgetsByMonth, totalBudget
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div className="form-row">
         <div className="form-group">
           <label htmlFor="compareMonthA">{t('First month')}</label>
@@ -126,7 +126,7 @@ export function CompareTab({ entriesByMonth, categoryBudgetsByMonth, totalBudget
 
           {(budgetA.hasBudget || budgetB.hasBudget) && (
             <>
-              <div className="section-title">
+              <div className="section-title" style={{ marginTop: 14 }}>
                 <h2>{t('Budget')}</h2>
               </div>
               <div className={budgetA.hasBudget && budgetB.hasBudget ? 'form-row' : undefined}>
@@ -136,7 +136,7 @@ export function CompareTab({ entriesByMonth, categoryBudgetsByMonth, totalBudget
             </>
           )}
 
-          <div className="section-title">
+          <div className="section-title" style={{ marginTop: 14 }}>
             <h2>{t('By category')}</h2>
           </div>
           <div className="category-breakdown">
