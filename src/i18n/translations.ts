@@ -331,7 +331,26 @@ export const RU: Record<string, string> = {
   'Next:': 'Далее:',
 
   // Analytics
-  'Analytics is in progress — check back soon.': 'Раздел аналитики в разработке — загляните позже.',
+  'Compare months': 'Сравнение месяцев',
+  'Year breakdown': 'Обзор за год',
+  'Spending habits': 'Привычки трат',
+  'First month': 'Первый месяц',
+  'Second month': 'Второй месяц',
+  'No spending logged in either month.': 'В обоих месяцах расходов нет.',
+  vs: 'и',
+  'over budget': 'бюджет превышен',
+  'Over budget in:': 'Бюджет превышен в категориях:',
+  'Previous year': 'Предыдущий год',
+  'Next year': 'Следующий год',
+  'No spending logged this year.': 'В этом году расходов пока нет.',
+  'Budget adherence': 'Соблюдение бюджета',
+  'Where you spend most (last 6 months)': 'Куда уходит больше всего денег (последние 6 месяцев)',
+  'Not enough spending history yet.': 'Пока недостаточно истории расходов.',
+  Recommendations: 'Рекомендации',
+  'No consistent over/under-budget pattern found yet — check back after a few more budgeted months.':
+    'Пока не найдено устойчивой картины перерасхода или недорасхода — загляните позже, когда наберётся больше месяцев с бюджетом.',
+  'Avg actual': 'Средний факт',
+  'Avg budget': 'Средний бюджет',
 
   // Settings
   Currencies: 'Валюты',
@@ -472,6 +491,18 @@ export function tLimitsExceededInCategories(lang: Language, n: number): string {
 
 export function tSpentConvertedFrom(lang: Language, amountText: string): string {
   return lang === 'ru' ? `Потрачено (конвертировано) из ${amountText}` : `Spent converted from ${amountText}`
+}
+
+export function tHabitOver(lang: Language, category: string, monthsOver: number, monthsBudgeted: number): string {
+  return lang === 'ru'
+    ? `Вы превышали бюджет в категории «${category}» в ${monthsOver} из последних ${monthsBudgeted} месяцев — возможно, стоит его увеличить.`
+    : `You've gone over budget in ${category} for ${monthsOver} of the last ${monthsBudgeted} months — consider raising it.`
+}
+
+export function tHabitUnder(lang: Language, category: string, monthsUnder: number, monthsBudgeted: number): string {
+  return lang === 'ru'
+    ? `Вы стабильно тратите меньше бюджета в категории «${category}» (${monthsUnder} из последних ${monthsBudgeted} месяцев) — возможно, стоит его уменьшить.`
+    : `You've consistently spent under budget in ${category} for ${monthsUnder} of the last ${monthsBudgeted} months — consider lowering it.`
 }
 
 export function tCopyBudgetConfirm(lang: Language, monthLabel: string): string {
