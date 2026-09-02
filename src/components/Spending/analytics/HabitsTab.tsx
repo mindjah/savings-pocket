@@ -64,6 +64,12 @@ export function HabitsTab({ entriesByMonth, categoryBudgetsByMonth, categories }
         </div>
       ) : (
         <div className="category-breakdown">
+          <div className="category-breakdown-header">
+            <span className="swatch-spacer" aria-hidden="true" />
+            <span style={{ width: 96, flexShrink: 0 }}>{t('Category')}</span>
+            <span style={{ flex: 1 }} />
+            <span>{t('Avg/mo')}</span>
+          </div>
           {ranking.map((row) => (
             <CategoryBar
               key={`${row.categoryId}:${row.currency}`}
