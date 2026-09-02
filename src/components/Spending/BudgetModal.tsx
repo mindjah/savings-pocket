@@ -562,7 +562,7 @@ export function BudgetModal({ onClose }: Props) {
 
   return (
     <>
-      <Modal title={t('Manage budget')} onClose={handleClose}>
+      <Modal wide title={t('Manage budget')} onClose={handleClose}>
         <div className="settings-row">
           <div style={{ flex: 1, minWidth: 0 }}>
             <div>{t('Enable budget tracking')}</div>

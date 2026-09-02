@@ -75,6 +75,7 @@ export function CategoryExpensesModal({
 
   return (
     <Modal
+      wide={readOnly}
       title={
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
           <span className="swatch" style={{ background: categoryColor }} />

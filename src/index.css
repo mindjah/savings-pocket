@@ -758,6 +758,17 @@ h1, h2, h3, p {
   }
 }
 
+/* Content-heavy sheets (Budget status, Planning sandbox, Manage budget,
+   Analytics and the bottom sheets it opens) get real breathing room on a
+   laptop screen instead of the same narrow column every mobile-shaped
+   modal uses — gated behind the app's existing desktop breakpoint so
+   mobile stays exactly as it was. */
+@media (min-width: 860px) {
+  .modal.modal-wide {
+    max-width: 900px;
+  }
+}
+
 .modal-header {
   display: flex;
   align-items: center;

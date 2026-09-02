@@ -505,6 +505,7 @@ export function BudgetStatusModal({ onClose, monthPrefix: monthPrefixProp }: Pro
 
   return (
     <Modal
+      wide
       title={
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
           <BudgetIcon size={20} />

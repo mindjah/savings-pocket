@@ -48,7 +48,7 @@ export function AnalyticsModal({ onClose }: Props) {
   const totalBudgetsByMonth = useMemo(() => groupByMonth<TotalBudget>(totalBudgets), [totalBudgets])
 
   return (
-    <Modal title={t('Analytics')} onClose={onClose}>
+    <Modal wide title={t('Analytics')} onClose={onClose}>
       <div className="segmented">
         <button type="button" className={tab === 'compare' ? 'active' : ''} onClick={() => setTab('compare')}>
           {t('Compare months')}
