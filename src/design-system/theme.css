@@ -72,6 +72,13 @@
      lighter tint of brand-primary, too close to tell apart at a glance). */
   --compare-a: var(--purple-mark-2);
   --compare-b: var(--brand-primary);
+  /* This design is fixed-light regardless of OS preference (this whole
+     .boucoup-scope block hardcodes real Boucoup hex values, unlike main's
+     own adaptive --surface) — pin the mix base to that same fixed light
+     grey instead of --surface, or these tints turn into a dark muddy blob
+     under an OS dark preference (--surface itself stays dark; only this
+     scope's own background/color get forced light). */
+  --compare-mix-base: var(--grey-100);
 
   /* ---------- TYPE ---------- */
   --font-display: "Nunito", system-ui, -apple-system, sans-serif;
