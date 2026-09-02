@@ -337,7 +337,6 @@ export const RU: Record<string, string> = {
   'First month': 'Первый месяц',
   'Second month': 'Второй месяц',
   'No spending logged in either month.': 'В обоих месяцах расходов нет.',
-  vs: 'и',
   'over budget': 'бюджет превышен',
   'Over budget in:': 'Бюджет превышен в категориях:',
   'Previous year': 'Предыдущий год',
