@@ -105,17 +105,23 @@ export function CompareTab({ entriesByMonth, categoryBudgetsByMonth, totalBudget
         </div>
       ) : (
         <>
-          <div className="muted">
-            {monthLabel(monthA)} {t('vs')} {monthLabel(monthB)}
-          </div>
-          <div className="totals-row">
-            {currencies.map((c) => (
-              <div className="total-chip" key={c}>
-                <div className="muted">{c}</div>
-                <div className="amount">{formatMoney(totalsA[c] ?? 0, c)}</div>
-                <div className="muted" style={{ marginTop: 2 }}>{formatMoney(totalsB[c] ?? 0, c)}</div>
-              </div>
-            ))}
+          <div className="form-row">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {currencies.map((c) => (
+                <div className="total-chip" key={c}>
+                  <div className="muted">{c}</div>
+                  <div className="amount">{formatMoney(totalsA[c] ?? 0, c)}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {currencies.map((c) => (
+                <div className="total-chip" key={c}>
+                  <div className="muted">{c}</div>
+                  <div className="amount">{formatMoney(totalsB[c] ?? 0, c)}</div>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="category-breakdown">
