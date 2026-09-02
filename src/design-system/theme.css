@@ -66,6 +66,13 @@
   --fg-3: var(--grey-600);
   --border-hairline: var(--grey-200);
 
+  /* Analytics compare tab: index.css's own #3b82f6/--accent defaults are
+     app-colors, not this palette — override with two on-brand hues that
+     are actually distinguishable from each other (brand-light is just a
+     lighter tint of brand-primary, too close to tell apart at a glance). */
+  --compare-a: var(--purple-mark-2);
+  --compare-b: var(--brand-primary);
+
   /* ---------- TYPE ---------- */
   --font-display: "Nunito", system-ui, -apple-system, sans-serif;
   --font-ui: "Lato", "Nunito", system-ui, -apple-system, sans-serif;
