@@ -71,7 +71,12 @@ export function AnalyticsModal({ onClose }: Props) {
           />
         )}
         {tab === 'year' && (
-          <YearTab entriesByMonth={entriesByMonth} totalBudgetsByMonth={totalBudgetsByMonth} categories={categories} />
+          <YearTab
+            entriesByMonth={entriesByMonth}
+            categoryBudgetsByMonth={categoryBudgetsByMonth}
+            totalBudgetsByMonth={totalBudgetsByMonth}
+            categories={categories}
+          />
         )}
         {tab === 'habits' && (
           <HabitsTab entriesByMonth={entriesByMonth} categoryBudgetsByMonth={categoryBudgetsByMonth} categories={categories} />

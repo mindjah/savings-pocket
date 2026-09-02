@@ -1,6 +1,27 @@
 import type { CategoryBudget, Currency, PlannedExpense, RecurringExpense, SpendingEntry } from '../db/types'
 import { convertFiat, type FxRates } from './fxRates'
 
+function daysInMonth(year: number, month0: number): number {
+  return new Date(year, month0 + 1, 0).getDate()
+}
+
+// Pace (spent-so-far vs. calendar-elapsed-so-far) only means anything for
+// the month actually in progress. Anywhere a budget status gets computed
+// for an arbitrary (not necessarily current) month — Analytics' Compare
+// and Year tabs, BudgetStatusModal opened from a browsed month — needs
+// this same generalization: a fully past month is simply over or under
+// (elapsed 1, no partial-pace yellow), a not-yet-started future one hasn't
+// spent anything against it yet (elapsed 0), and the real current month
+// uses its own real day-of-month pace. Centralized here so every caller
+// agrees on what "in progress" means for a given month.
+export function monthProgress(monthPrefix: string, realMonthPrefix: string, today: Date): { dayOfMonth: number; daysInMonth: number } {
+  const [y, m] = monthPrefix.split('-').map(Number)
+  const total = daysInMonth(y, m - 1)
+  if (monthPrefix < realMonthPrefix) return { dayOfMonth: total, daysInMonth: total }
+  if (monthPrefix > realMonthPrefix) return { dayOfMonth: 0, daysInMonth: total }
+  return { dayOfMonth: today.getDate(), daysInMonth: total }
+}
+
 // Active recurring expenses that belong to the given month (yyyy-mm prefix)
 // — the "fixed expenses" for that month. Computed on the fly, never
 // duplicated into their own table.

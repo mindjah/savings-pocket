@@ -1343,12 +1343,23 @@ h1, h2, h3, p {
   background: var(--surface-hover);
 }
 
-.year-adherence-dot.over {
-  background: var(--danger-strong);
+/* Same 4 colors as the budget cards' budget-level-* (Compare tab) — the
+   exact same computeBudgetStatus + budgetCardLevel result, just a dot
+   instead of a card, so a month's status reads identically everywhere. */
+.year-adherence-dot.green {
+  background: var(--accent);
 }
 
-.year-adherence-dot.under {
-  background: var(--accent);
+.year-adherence-dot.yellow {
+  background: var(--warning);
+}
+
+.year-adherence-dot.orange {
+  background: var(--warning-strong);
+}
+
+.year-adherence-dot.red {
+  background: var(--danger-strong);
 }
 
 .day-entry-row {

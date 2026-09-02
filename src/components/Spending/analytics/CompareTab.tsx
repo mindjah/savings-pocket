@@ -3,7 +3,7 @@ import type { Category, CategoryBudget, Currency, SpendingEntry, TotalBudget } f
 import { MONTH_NAMES } from '../../../lib/constants'
 import { formatDate, formatMoney, pad2, todayIso } from '../../../lib/format'
 import { budgetComparisonForMonth, categoryTotals, compareCategoryTotals, currencyTotals, mergeCategoryCurrencies } from '../../../lib/analytics'
-import { budgetCardLevel, computeBudgetStatus } from '../../../lib/planning'
+import { budgetCardLevel, computeBudgetStatus, monthProgress } from '../../../lib/planning'
 import { useFiatRates } from '../../../hooks/useFiatRates'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { CategoryCompareBar } from './CategoryBar'
@@ -24,22 +24,6 @@ function defaultMonths(): [string, string] {
   const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
   const previous = `${prevDate.getFullYear()}-${pad2(prevDate.getMonth() + 1)}`
   return [previous, current]
-}
-
-function daysInMonth(year: number, month0: number): number {
-  return new Date(year, month0 + 1, 0).getDate()
-}
-
-// Same generalization BudgetStatusModal/SpendingView use for an arbitrary
-// (not necessarily current) month: a fully past one is simply over or under
-// (elapsed 1), a not-yet-started future one hasn't spent anything against
-// it yet (elapsed 0), and the real current month uses its own real pace.
-function monthProgress(monthPrefix: string, realMonthPrefix: string, today: Date): { dayOfMonth: number; daysInMonth: number } {
-  const [y, m] = monthPrefix.split('-').map(Number)
-  const total = daysInMonth(y, m - 1)
-  if (monthPrefix < realMonthPrefix) return { dayOfMonth: total, daysInMonth: total }
-  if (monthPrefix > realMonthPrefix) return { dayOfMonth: 0, daysInMonth: total }
-  return { dayOfMonth: today.getDate(), daysInMonth: total }
 }
 
 export function CompareTab({ entriesByMonth, categoryBudgetsByMonth, totalBudgetsByMonth, categories }: Props) {
