@@ -49,14 +49,14 @@ export function CategoryCompareBar({ category, currency, a, b, maxAmount, labelA
         <span>{category?.name ?? '—'}</span>
       </div>
       <div className="compare-line">
-        <span className="compare-label">{labelA}</span>
+        <span className="compare-label compare-label-a">{labelA}</span>
         <div className="bar-track">
           <div className="bar-fill" style={{ width: `${pctA}%`, background: color }} />
         </div>
         <strong>{formatMoney(a, currency)}</strong>
       </div>
       <div className="compare-line">
-        <span className="compare-label">{labelB}</span>
+        <span className="compare-label compare-label-b">{labelB}</span>
         <div className="bar-track">
           <div className="bar-fill" style={{ width: `${pctB}%`, background: color, opacity: 0.55 }} />
         </div>
