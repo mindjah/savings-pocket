@@ -5,7 +5,7 @@ import { CryptoView } from './components/Crypto/CryptoView'
 import { SpendingView } from './components/Spending/SpendingView'
 import { SettingsView } from './components/Settings/SettingsView'
 import { ToastProvider } from './hooks/useToast'
-import { HEADER_ACTIONS_ID } from './components/common/HeaderPortal'
+import { HEADER_ACTIONS_ID, HEADER_TITLE_ID, HeaderTitlePortal } from './components/common/HeaderPortal'
 import { materializeRecurringExpenses } from './lib/recurring'
 import { materializePendingAutoDebits } from './lib/pendingDebits'
 import { LockScreen } from './components/Lock/LockScreen'
@@ -152,9 +152,16 @@ function AppShell() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <h1>{t(TITLES[tab])}</h1>
+        {/* Never given direct React children — always written to via
+            HeaderTitlePortal below, for every tab, including the default
+            per-tab title. Mixing a directly-rendered child with a portal
+            target on the same node crashes on unmount: React's text-content
+            fast path wipes the portal's out-of-band node, which then throws
+            when the portal's own cleanup tries to remove it again. */}
+        <h1 id={HEADER_TITLE_ID} />
         <div id={HEADER_ACTIONS_ID} className="app-header-actions" />
       </header>
+      {tab !== 'spending' && <HeaderTitlePortal>{t(TITLES[tab])}</HeaderTitlePortal>}
       <NavBar active={tab} onChange={handleChange} />
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         {tab === 'savings' && <SavingsView resetKey={savingsResetKey} />}

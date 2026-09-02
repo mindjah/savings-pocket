@@ -15,7 +15,7 @@ import { AnalyticsModal } from './AnalyticsModal'
 import { PlanningModal } from './PlanningModal'
 import { BudgetModal } from './BudgetModal'
 import { BudgetStatusModal } from './BudgetStatusModal'
-import { HeaderPortal } from '../common/HeaderPortal'
+import { HeaderPortal, HeaderTitlePortal } from '../common/HeaderPortal'
 import { ManageIcon } from '../common/ManageIcon'
 import { CheckIcon } from '../common/CheckIcon'
 import { WarningIcon } from '../common/WarningIcon'
@@ -263,15 +263,12 @@ export function SpendingView({ resetKey }: Props) {
         </button>
       </HeaderPortal>
 
-      <div className="section-title">
-        <h2>
-          {t(MONTH_NAMES[month])} {year}
-        </h2>
-        <button
-          className="btn btn-accent-text header-action-desktop manage-btn"
-          onClick={() => setManageMenuOpen(true)}
-          type="button"
-        >
+      <HeaderTitlePortal>
+        {t(MONTH_NAMES[month])} {year}
+      </HeaderTitlePortal>
+
+      <div className="desktop-header-row">
+        <button className="btn btn-accent-text manage-btn" onClick={() => setManageMenuOpen(true)} type="button">
           {t('Manage')}
           <ManageIcon size={20} />
         </button>
@@ -353,13 +350,13 @@ export function SpendingView({ resetKey }: Props) {
 
       <div className="card">
         <div className="calendar-header">
-          <button className="btn btn-ghost btn-icon" onClick={goPrevMonth} aria-label={t('Previous month')} type="button">
+          <button className="btn btn-ghost btn-icon calendar-nav-btn" onClick={goPrevMonth} aria-label={t('Previous month')} type="button">
             ‹
           </button>
           <span className="month-label">
             {t(MONTH_NAMES[month])} {year}
           </span>
-          <button className="btn btn-ghost btn-icon" onClick={goNextMonth} aria-label={t('Next month')} type="button">
+          <button className="btn btn-ghost btn-icon calendar-nav-btn" onClick={goNextMonth} aria-label={t('Next month')} type="button">
             ›
           </button>
         </div>
