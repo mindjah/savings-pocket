@@ -111,6 +111,10 @@ export interface RecurringExpense {
   nextDate: string // yyyy-mm-dd — next date an occurrence should be generated
   active: boolean
   debitedFromPocketId?: number
+  // Future occurrence dates the user explicitly skipped/deleted before they
+  // materialized into a real SpendingEntry — kept here (not as a deleted
+  // row) so the series doesn't quietly recreate them once the date arrives.
+  skippedDates?: string[]
   createdAt: string
 }
 

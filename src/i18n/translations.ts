@@ -329,6 +329,8 @@ export const RU: Record<string, string> = {
   'Recurring expense updated': 'Регулярный расход обновлён',
   'Recurring expense stopped': 'Регулярный расход остановлен',
   'Next:': 'Далее:',
+  'Skip this occurrence? The recurring expense will continue on its normal schedule after this date.':
+    'Пропустить это списание? Регулярный расход продолжится по обычному графику после этой даты.',
 
   // Analytics
   'Compare months': 'Сравнение месяцев',

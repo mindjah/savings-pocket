@@ -42,13 +42,16 @@ export function recurrenceLabel(type: RecurrenceType, intervalDays?: number, lan
 export const RECURRING_PREVIEW_COUNT = 12
 
 export function recurringPreviewDates(
-  r: { nextDate: string; recurrenceType: RecurrenceType; intervalDays?: number },
+  r: { nextDate: string; recurrenceType: RecurrenceType; intervalDays?: number; skippedDates?: string[] },
   count: number = RECURRING_PREVIEW_COUNT,
 ): string[] {
+  const skipped = new Set(r.skippedDates ?? [])
   const dates: string[] = []
   let cursor = r.nextDate
-  for (let i = 0; i < count; i++) {
-    dates.push(cursor)
+  // Keep advancing past explicitly skipped occurrences so the preview list
+  // still shows `count` real upcoming dates, not fewer.
+  while (dates.length < count) {
+    if (!skipped.has(cursor)) dates.push(cursor)
     cursor = computeNextDate(cursor, r.recurrenceType, r.intervalDays)
   }
   return dates
@@ -105,9 +108,10 @@ export async function materializeRecurringExpenses(): Promise<void> {
         // submitted) while nextDate still points at it — skip re-creating
         // it here, just advance the cursor past it.
         const existingDates = new Set(allSpending.filter((e) => e.recurringExpenseId === r.id).map((e) => e.date))
+        const skippedDates = new Set(r.skippedDates ?? [])
         let cursor = r.nextDate
         while (cursor <= today) {
-          if (!existingDates.has(cursor)) {
+          if (!existingDates.has(cursor) && !skippedDates.has(cursor)) {
             const categoryName = categoryMap.get(r.categoryId)?.name ?? 'expense'
             const comment = `Spent on ${categoryName}${r.note.trim() ? ` — ${r.note.trim()}` : ''} (recurring)`
             const newId = await db.spendingEntries.add({
