@@ -45,7 +45,7 @@ export function HabitsTab({ entriesByMonth, categoryBudgetsByMonth, categories }
   const insights = useMemo(() => spendingHabits(recentEntriesByMonth, recentBudgetsByMonth), [recentEntriesByMonth, recentBudgetsByMonth])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div className="section-title">
         <h2>{t('Where you spend most (last 6 months)')}</h2>
       </div>
@@ -68,7 +68,7 @@ export function HabitsTab({ entriesByMonth, categoryBudgetsByMonth, categories }
         </div>
       )}
 
-      <div className="section-title">
+      <div className="section-title" style={{ marginTop: 14 }}>
         <h2>{t('Recommendations')}</h2>
       </div>
       {insights.length === 0 ? (

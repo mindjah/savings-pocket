@@ -54,7 +54,7 @@ export function YearTab({ entriesByMonth, totalBudgetsByMonth, categories }: Pro
   }, [entriesByMonth, totalBudgetsByMonth, year])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div className="calendar-header">
         <button className="btn btn-ghost btn-icon calendar-nav-btn" onClick={() => setYear((y) => y - 1)} aria-label={t('Previous year')} type="button">
           ‹
@@ -91,7 +91,7 @@ export function YearTab({ entriesByMonth, totalBudgetsByMonth, categories }: Pro
             )
           })}
 
-          <div className="section-title">
+          <div className="section-title" style={{ marginTop: 14 }}>
             <h2>{t('Budget adherence')}</h2>
           </div>
           <div className="year-adherence-strip">
@@ -104,7 +104,7 @@ export function YearTab({ entriesByMonth, totalBudgetsByMonth, categories }: Pro
             ))}
           </div>
 
-          <div className="section-title">
+          <div className="section-title" style={{ marginTop: 14 }}>
             <h2>{t('By category')}</h2>
           </div>
           <div className="category-breakdown">
