@@ -319,6 +319,20 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
     (!noteRequired || note.trim().length > 0) &&
     !wouldGoNegative
 
+  // Only the open add/edit form counts as "unsaved" — browsing to a
+  // different date via the Date field above it is navigation, not data
+  // entry. Adding: anything typed at all. Editing: the fields have
+  // actually diverged from the entry being edited.
+  const formDirty = formOpen
+    ? editingId != null
+      ? editingEntry != null &&
+        (categoryId !== editingEntry.categoryId ||
+          amount !== String(editingEntry.amount) ||
+          currency !== editingEntry.currency ||
+          note !== editingEntry.note)
+      : categoryId !== '' || amount !== '' || note.trim() !== ''
+    : false
+
   return (
     <Modal
       title={
@@ -328,6 +342,7 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
         </span>
       }
       onClose={onClose}
+      hasUnsavedChanges={formDirty}
     >
       <div className="form-group">
         <label htmlFor="spendDate">{t('Date')}</label>

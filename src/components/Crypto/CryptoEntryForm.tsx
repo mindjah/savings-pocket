@@ -54,6 +54,23 @@ export function CryptoEntryForm({ entry, onClose }: Props) {
     !Number.isNaN(parsedAmount) &&
     parsedAmount >= 0
 
+  const dirty = entry
+    ? preset !== (initialIsPopular ? entry.coinId : CUSTOM_VALUE) ||
+      customCoinId !== (!initialIsPopular ? entry.coinId : '') ||
+      customSymbol !== (!initialIsPopular ? entry.symbol : '') ||
+      customName !== (!initialIsPopular ? entry.name : '') ||
+      amount !== String(entry.amount) ||
+      pinned !== entry.pinned ||
+      note !== entry.note ||
+      reason.trim() !== ''
+    : preset !== POPULAR_COINS[0].coinId ||
+      customCoinId !== '' ||
+      customSymbol !== '' ||
+      customName !== '' ||
+      amount !== '' ||
+      pinned !== false ||
+      note !== ''
+
   async function handleSubmit() {
     if (!valid) return
     const now = new Date().toISOString()
@@ -117,6 +134,7 @@ export function CryptoEntryForm({ entry, onClose }: Props) {
         )
       }
       onClose={onClose}
+      hasUnsavedChanges={dirty}
     >
       <div className="form-group">
         <label htmlFor="coin">{t('Coin')}</label>

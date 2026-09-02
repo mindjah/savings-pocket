@@ -86,6 +86,8 @@ export function TransferModal({ onClose }: Props) {
     parsedAmount > 0 &&
     (!requiresNonNegative || newFromAmount >= 0)
 
+  const dirty = fromKey !== '' || toKey !== '' || amount !== '' || reason.trim() !== ''
+
   function groupLabel(group: Asset['group']): string {
     if (group === 'pocket') return t('Pockets')
     if (group === 'credit') return t('Credits')
@@ -163,7 +165,7 @@ export function TransferModal({ onClose }: Props) {
   }
 
   return (
-    <Modal title={t('Transfer')} onClose={onClose}>
+    <Modal title={t('Transfer')} onClose={onClose} hasUnsavedChanges={dirty}>
       <p className="muted" style={{ marginTop: -4 }}>
         {t('Move money between any of your own pockets, credits, and loans.')}
       </p>

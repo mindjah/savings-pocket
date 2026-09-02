@@ -25,7 +25,11 @@ export function PasscodeSetupModal({ onClose, onSaved }: Props) {
   }
 
   return (
-    <Modal title={t('Set a backup passcode')} onClose={onClose}>
+    <Modal
+      title={t('Set a backup passcode')}
+      onClose={onClose}
+      hasUnsavedChanges={code !== '' || confirmCode !== ''}
+    >
       <p className="muted">{t('Used to unlock if Face ID ever fails. 4–6 digits.')}</p>
       <div className="form-group">
         <label htmlFor="newPasscode">{t('Passcode')}</label>

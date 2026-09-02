@@ -43,7 +43,11 @@ function AddIncomeModal({ currencyOptions, onAdd, onClose }: AddIncomeModalProps
   }
 
   return (
-    <Modal title={t('Add income')} onClose={onClose}>
+    <Modal
+      title={t('Add income')}
+      onClose={onClose}
+      hasUnsavedChanges={source.trim() !== '' || amount !== '' || currency !== ''}
+    >
       <div className="form-group">
         <label htmlFor="newIncomeSource">{t('Source')}</label>
         <input
@@ -113,7 +117,11 @@ function EditIncomeModal({ entry, currencyOptions, onSave, onDelete, onClose }: 
   }
 
   return (
-    <Modal title={t('Planned income')} onClose={onClose}>
+    <Modal
+      title={t('Planned income')}
+      onClose={onClose}
+      hasUnsavedChanges={source.trim() !== entry.source || amount !== String(entry.amount) || currency !== entry.currency}
+    >
       <div className="form-group">
         <label htmlFor="editIncomeSource">{t('Source')}</label>
         <input id="editIncomeSource" value={source} onChange={(e) => setSource(e.target.value)} placeholder={t('e.g. Salary')} />
@@ -175,7 +183,11 @@ function AddExpenseModal({ categories, currencyOptions, onAdd, onClose }: AddExp
   }
 
   return (
-    <Modal title={t('Add planned expense')} onClose={onClose}>
+    <Modal
+      title={t('Add planned expense')}
+      onClose={onClose}
+      hasUnsavedChanges={categoryId !== '' || amount !== '' || note !== ''}
+    >
       <div className="form-group">
         <label htmlFor="newExpenseCategory">{t('Category')}</label>
         <select id="newExpenseCategory" value={categoryId} onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : '')}>
@@ -258,7 +270,13 @@ function EditExpenseModal({ entry, categories, currencyOptions, onSave, onDelete
   }
 
   return (
-    <Modal title={t('Other planned expenses')} onClose={onClose}>
+    <Modal
+      title={t('Other planned expenses')}
+      onClose={onClose}
+      hasUnsavedChanges={
+        categoryId !== entry.categoryId || amount !== String(entry.amount) || currency !== entry.currency || note !== entry.note
+      }
+    >
       <div className="form-group">
         <label htmlFor="editExpenseCategory">{t('Category')}</label>
         <select id="editExpenseCategory" value={categoryId} onChange={(e) => setCategoryId(Number(e.target.value))}>

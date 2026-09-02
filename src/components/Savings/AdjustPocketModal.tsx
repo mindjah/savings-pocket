@@ -29,6 +29,7 @@ export function AdjustPocketModal({ entry, onClose }: Props) {
   const isCredit = entry.kind === 'credit'
 
   const valid = amount.trim() !== '' && !Number.isNaN(parsedAmount) && parsedAmount > 0 && (isCredit || newAmount >= 0)
+  const dirty = amount !== '' || reason.trim() !== ''
 
   async function handleConfirm() {
     if (!valid || entry.id == null) return
@@ -57,6 +58,7 @@ export function AdjustPocketModal({ entry, onClose }: Props) {
         </span>
       }
       onClose={onClose}
+      hasUnsavedChanges={dirty}
     >
       <div className="segmented">
         <button type="button" className={direction === 'add' ? 'active' : ''} onClick={() => setDirection('add')}>

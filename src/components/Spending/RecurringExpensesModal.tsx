@@ -47,13 +47,20 @@ export function RecurringExpensesModal({ onClose }: Props) {
     setEditingId(null)
   }
 
-  const editingCurrency = recurring?.find((r) => r.id === editingId)?.currency
+  const editingEntry = recurring?.find((r) => r.id === editingId)
+  const editingCurrency = editingEntry?.currency
   const parsedAmount = editingCurrency ? roundFiat(parseAmount(amount), editingCurrency) : parseAmount(amount)
   const parsedInterval = Number(intervalDays)
   const editValid =
     !Number.isNaN(parsedAmount) &&
     parsedAmount > 0 &&
     (recurrenceType !== 'custom' || (Number.isFinite(parsedInterval) && parsedInterval > 0))
+  const editDirty =
+    editingEntry != null &&
+    (amount !== String(editingEntry.amount) ||
+      note !== editingEntry.note ||
+      recurrenceType !== editingEntry.recurrenceType ||
+      intervalDays !== String(editingEntry.intervalDays ?? 30))
 
   async function saveEdit(r: RecurringExpense) {
     if (!r.id || !editValid) return
@@ -76,7 +83,7 @@ export function RecurringExpensesModal({ onClose }: Props) {
   }
 
   return (
-    <Modal title={t('Manage recurring expenses')} onClose={onClose}>
+    <Modal title={t('Manage recurring expenses')} onClose={onClose} hasUnsavedChanges={editDirty}>
       {!recurring || recurring.length === 0 ? (
         <div className="empty-state">
           <span className="icon">🔁</span>
