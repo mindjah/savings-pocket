@@ -210,10 +210,28 @@ export function SpendingView({ resetKey }: Props) {
   // in different currencies never get visually compared against each other.
   const breakdown = useMemo(() => {
     const map = new Map<string, { categoryId: number; currency: Currency; total: number }>()
+    const datesWithRealEntries = new Set((entries ?? []).map((e) => e.date))
     for (const e of entries ?? []) {
       const key = `${e.categoryId}:${e.currency}`
       const existing = map.get(key)
       map.set(key, { categoryId: e.categoryId, currency: e.currency, total: (existing?.total ?? 0) + e.amount })
+    }
+    // A recurring occurrence isn't a real entry until its date arrives (see
+    // materializeRecurringExpenses) — fold in previews for this month too,
+    // or a category with only future-dated recurring spend silently drops
+    // out of the breakdown even though the calendar cells above already
+    // show it. A brand-new recurring's first occurrence is the exception —
+    // it's created as a real entry immediately regardless of date (see
+    // DayEntriesModal), so its preview for that same date would double
+    // count without this dedup check (same one totalsByDay already uses).
+    for (const { r, dates } of recurringPreviews) {
+      for (const date of dates) {
+        if (!date.startsWith(monthPrefix)) continue
+        if (datesWithRealEntries.has(date)) continue
+        const key = `${r.categoryId}:${r.currency}`
+        const existing = map.get(key)
+        map.set(key, { categoryId: r.categoryId, currency: r.currency, total: (existing?.total ?? 0) + r.amount })
+      }
     }
     const maxByCurrency = new Map<Currency, number>()
     for (const row of map.values()) {
@@ -226,7 +244,7 @@ export function SpendingView({ resetKey }: Props) {
         barPct: ((row.total / (maxByCurrency.get(row.currency) ?? 1)) * 100),
       }))
       .sort((a, b) => a.currency.localeCompare(b.currency) || b.total - a.total)
-  }, [entries, categoryMap])
+  }, [entries, categoryMap, recurringPreviews, monthPrefix])
 
   const numDays = daysInMonth(year, month)
   const leadingBlanks = mondayIndex(year, month, 1)
