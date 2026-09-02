@@ -268,11 +268,7 @@ h1, h2, h3, p {
   .nav-item {
     flex: none;
     flex-direction: row;
-    /* A longer label (Russian in particular — "Песочница планирования",
-       "Управление бюджетом" — routinely wraps to two lines in the sidebar's
-       fixed width) must align its icon with the first line of text, not
-       float centered against the whole two-line block. */
-    align-items: flex-start;
+    align-items: center;
     justify-content: flex-start;
     gap: 10px;
     padding: 10px 12px;
