@@ -125,6 +125,27 @@ export function budgetComparisonForMonth(
   return { hasBudget: true, totalBudget, totalActual, categories }
 }
 
+export type BudgetCardLevel = 'green' | 'yellow' | 'orange' | 'red'
+
+// A finished (or arbitrary, not-necessarily-current) month's overall status
+// — unlike categoryPaceLevel (planning.ts), there's no "elapsed fraction"
+// to pace against here, just how the final total actually landed against
+// budget. The 15% orange/red split mirrors the 15% threshold already used
+// elsewhere (categoryPaceLevel's own yellow cutoff, spendingHabits'
+// "consistently off" cutoff), so it reads as the same calibration.
+export function budgetCardLevel(comparison: MonthBudgetComparison): BudgetCardLevel | null {
+  if (!comparison.hasBudget) return null
+  const ratios = Object.entries(comparison.totalBudget)
+    .filter(([, budget]) => (budget ?? 0) > 0)
+    .map(([currency, budget]) => (comparison.totalActual[currency as Currency] ?? 0) / (budget as number))
+  if (ratios.length === 0) return null
+  const worst = Math.max(...ratios)
+  if (worst > 1.15) return 'red'
+  if (worst > 1) return 'orange'
+  if (worst > 0.85) return 'yellow'
+  return 'green'
+}
+
 export interface HabitInsight {
   categoryId: number
   currency: Currency

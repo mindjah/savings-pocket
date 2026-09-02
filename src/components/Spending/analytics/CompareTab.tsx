@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import type { Category, CategoryBudget, Currency, SpendingEntry, TotalBudget } from '../../../db/types'
 import { MONTH_NAMES } from '../../../lib/constants'
 import { formatMoney, pad2 } from '../../../lib/format'
-import { budgetComparisonForMonth, categoryTotals, compareCategoryTotals, currencyTotals } from '../../../lib/analytics'
+import { budgetCardLevel, budgetComparisonForMonth, categoryTotals, compareCategoryTotals, currencyTotals } from '../../../lib/analytics'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { CategoryCompareBar } from './CategoryBar'
 import { BudgetStatusModal } from '../BudgetStatusModal'
@@ -68,9 +68,10 @@ export function CompareTab({ entriesByMonth, categoryBudgetsByMonth, totalBudget
   function renderBudgetSection(label: string, month: string, budget: ReturnType<typeof budgetComparisonForMonth>) {
     if (!budget.hasBudget) return null
     const overCategories = budget.categories.filter((c) => c.over)
+    const level = budgetCardLevel(budget)
     return (
       <button
-        className="card budget-summary-card"
+        className={`card budget-summary-card${level ? ` budget-level-${level}` : ''}`}
         type="button"
         style={{ marginTop: 8 }}
         onClick={() => setBudgetStatusMonth(month)}
