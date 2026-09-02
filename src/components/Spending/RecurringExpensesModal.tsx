@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import type { RecurrenceType, RecurringExpense } from '../../db/types'
 import { formatDate, formatMoney, parseAmount, roundFiat } from '../../lib/format'
-import { recurrenceLabel } from '../../lib/recurring'
+import { recurrenceLabel, recurringPreviewDates } from '../../lib/recurring'
 import { Modal } from '../common/Modal'
 import { useToast } from '../../hooks/useToast'
 import { useTranslation } from '../../hooks/useTranslation'
@@ -19,7 +19,10 @@ export function RecurringExpensesModal({ onClose }: Props) {
     async () =>
       (await db.recurringExpenses.toArray())
         .filter((r) => r.active)
-        .sort((a, b) => a.nextDate.localeCompare(b.nextDate)),
+        // r.nextDate can itself be a date the user skipped (skipping just
+        // records the date, it doesn't advance the cursor) — sort and
+        // display by the actual next upcoming occurrence instead.
+        .sort((a, b) => recurringPreviewDates(a, 1)[0].localeCompare(recurringPreviewDates(b, 1)[0])),
     [],
   )
   const categories = useLiveQuery(() => db.categories.toArray(), [])
@@ -175,7 +178,7 @@ export function RecurringExpensesModal({ onClose }: Props) {
                       {r.note && <div style={{ fontSize: '0.82rem' }}>{r.note}</div>}
                       <div className="muted">
                         {recurrenceLabel(r.recurrenceType, r.intervalDays, lang)} · {t('Next:')}{' '}
-                        {formatDate(r.nextDate, lang)}
+                        {formatDate(recurringPreviewDates(r, 1)[0], lang)}
                       </div>
                     </div>
                     <button className="btn btn-ghost btn-icon" onClick={() => startEdit(r)} type="button">
