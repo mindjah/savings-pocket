@@ -523,7 +523,7 @@ export function tTotalInMonth(lang: Language, monthLabel: string): string {
 }
 
 export function tAvgPerMonth(lang: Language, amountText: string): string {
-  return lang === 'ru' ? `В среднем ${amountText}/мес.` : `Avg ${amountText}/mo`
+  return lang === 'ru' ? `В ср. ${amountText}/мес` : `Avg ${amountText}/mo`
 }
 
 export function tCopyBudgetConfirm(lang: Language, monthLabel: string): string {
