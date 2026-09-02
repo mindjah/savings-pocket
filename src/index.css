@@ -356,14 +356,39 @@ h1, h2, h3, p {
    frames read as "this one" vs "that one" at a glance, not just by
    position — reused by the category bars' Aug/Sep-style labels below via
    the matching --compare-a/--compare-b colors (defined in :root above). */
-.total-chip.compare-chip-a {
+.compare-totals-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* boucoup-scope's own .total-chip rule (theme.css) matches at the same
+   2-class specificity and loads after this file, so it silently wins a
+   plain .total-chip.compare-chip-a override regardless of source order —
+   scoping through the wrapper column class beats it on specificity alone,
+   without needing !important or a theme.css-side override on every branch. */
+.compare-totals-col-a .total-chip.compare-chip-a {
   background: color-mix(in srgb, var(--compare-a) 14%, var(--surface));
   border-color: color-mix(in srgb, var(--compare-a) 35%, var(--border));
 }
 
-.total-chip.compare-chip-b {
+.compare-totals-col-b .total-chip.compare-chip-b {
   background: color-mix(in srgb, var(--compare-b) 14%, var(--surface));
   border-color: color-mix(in srgb, var(--compare-b) 35%, var(--border));
+}
+
+/* Same tint on the month pickers themselves, so the color language starts
+   right at the source of "which month is which" instead of only appearing
+   further down. IDs (specificity 1,0,0) beat .boucoup-scope input's
+   (0,1,1) unconditionally, same reasoning as the chips above. */
+#compareMonthA {
+  background: color-mix(in srgb, var(--compare-a) 12%, var(--surface));
+  border-color: var(--compare-a);
+}
+
+#compareMonthB {
+  background: color-mix(in srgb, var(--compare-b) 12%, var(--surface));
+  border-color: var(--compare-b);
 }
 
 .entry-list {
