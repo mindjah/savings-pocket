@@ -512,6 +512,12 @@ export function tTotalLastMonths(lang: Language, months: number): string {
   return lang === 'ru' ? `Всего за последние ${months} мес.` : `Total in the last ${months} months`
 }
 
+export function tDataAsOf(lang: Language, dateLabel: string): string {
+  return lang === 'ru'
+    ? `Текущий месяц ещё не закончился — данные по состоянию на ${dateLabel}`
+    : `The current month isn't over yet — data as of ${dateLabel}`
+}
+
 export function tTotalInMonth(lang: Language, monthLabel: string): string {
   return lang === 'ru' ? `Всего за ${monthLabel}` : `Total in ${monthLabel}`
 }
