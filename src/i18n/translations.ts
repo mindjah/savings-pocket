@@ -199,6 +199,7 @@ export const RU: Record<string, string> = {
   'No categories yet.': 'Категорий пока нет.',
   'Create a category': 'Создать категорию',
   Category: 'Категория',
+  'Avg/mo': 'В ср./мес',
   'Select…': 'Выбрать…',
   'Debit from': 'Списать с',
   '+ Add expense': '+ Добавить расход',
