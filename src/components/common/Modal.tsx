@@ -7,6 +7,13 @@ interface ModalProps {
   title: ReactNode
   onClose: () => void
   children: ReactNode
+  // Budget status, Planning sandbox, Manage budget and Analytics (plus the
+  // bottom sheets Analytics opens) have enough content — lists, charts,
+  // forms — to earn a wider sheet on a laptop screen instead of staying
+  // pinned to the same narrow column every other (mobile-shaped) modal
+  // uses. Mobile is untouched — the widening only kicks in at the app's
+  // existing desktop breakpoint (see .app-shell in index.css).
+  wide?: boolean
 }
 
 // How many Modals are currently mounted (a bottom sheet opened from within
@@ -33,7 +40,7 @@ function useBodyScrollLock() {
   }, [])
 }
 
-export function Modal({ title, onClose, children }: ModalProps) {
+export function Modal({ title, onClose, children, wide }: ModalProps) {
   const { t } = useTranslation()
   useBodyScrollLock()
 
@@ -66,7 +73,7 @@ export function Modal({ title, onClose, children }: ModalProps) {
   return createPortal(
     <div className="boucoup-scope" style={{ display: 'contents' }}>
       <div className="modal-overlay" onClick={onClose}>
-        <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+        <div className={`modal${wide ? ' modal-wide' : ''}`} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
           <div className="modal-grabber" aria-hidden="true" />
           <div className="modal-header">
             <h2>{title}</h2>

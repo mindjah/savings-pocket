@@ -525,6 +525,7 @@ export function PlanEditorModal({ planId, onClose }: Props) {
   return (
     <>
       <Modal
+        wide
         title={
           renaming ? (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
