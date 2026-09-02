@@ -1189,12 +1189,15 @@ h1, h2, h3, p {
   align-items: center;
   gap: 8px;
   font-size: 0.78rem;
-  color: var(--text-muted);
 }
 
 .category-compare-row .compare-line .compare-label {
   width: 32px;
   flex-shrink: 0;
+  /* Muted like the rest of this app's secondary labels (e.g. .muted) —
+     deliberately NOT on the whole .compare-line, or the amount below
+     would inherit it too and lose its intended full-contrast color. */
+  color: var(--text-muted);
 }
 
 .category-compare-row .compare-line .compare-label-a {
@@ -1221,7 +1224,12 @@ h1, h2, h3, p {
 }
 
 .category-compare-row .compare-line strong {
-  color: var(--text);
+  /* No explicit color — inherits the scope's real text color naturally
+     (--text on main, --fg-1 on lavender-design, via .category-compare-row).
+     Hardcoding var(--text) here was wrong on lavender-design, where
+     --fg-1 is the token .boucoup-scope actually sets as its own color and
+     --text is left at its OS-dependent base value, which can diverge into
+     near-invisible text against the scope's (forced-light) background. */
   flex-shrink: 0;
 }
 
