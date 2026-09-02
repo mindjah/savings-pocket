@@ -504,6 +504,18 @@ export function tHabitUnder(lang: Language, category: string, monthsUnder: numbe
     : `You've consistently spent under budget in ${category} for ${monthsUnder} of the last ${monthsBudgeted} months — consider lowering it.`
 }
 
+export function tTotalInYear(lang: Language, year: number): string {
+  return lang === 'ru' ? `Всего за ${year} год` : `Total in ${year}`
+}
+
+export function tTotalLastMonths(lang: Language, months: number): string {
+  return lang === 'ru' ? `Всего за последние ${months} мес.` : `Total in the last ${months} months`
+}
+
+export function tTotalInMonth(lang: Language, monthLabel: string): string {
+  return lang === 'ru' ? `Всего за ${monthLabel}` : `Total in ${monthLabel}`
+}
+
 export function tCopyBudgetConfirm(lang: Language, monthLabel: string): string {
   return lang === 'ru'
     ? `Это заменит ваш текущий (несохранённый) бюджет бюджетом за ${monthLabel}. Продолжить?`

@@ -5,6 +5,8 @@ import { formatMoneyCompact } from '../../../lib/format'
 import { categoryTotals, currencyTotals, monthlyTotalsForYear } from '../../../lib/analytics'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { CategoryBar } from './CategoryBar'
+import { CategoryExpensesModal } from '../CategoryExpensesModal'
+import { tTotalInYear } from '../../../i18n/translations'
 
 interface Props {
   entriesByMonth: Map<string, SpendingEntry[]>
@@ -13,10 +15,16 @@ interface Props {
 }
 
 export function YearTab({ entriesByMonth, totalBudgetsByMonth, categories }: Props) {
-  const { t } = useTranslation()
+  const { t, lang } = useTranslation()
   const [year, setYear] = useState(new Date().getFullYear())
+  const [categoryModalFor, setCategoryModalFor] = useState<{ categoryId: number; currency: Currency } | null>(null)
 
   const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories])
+
+  const yearMonthPrefixes = useMemo(
+    () => Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, '0')}`),
+    [year],
+  )
 
   const yearEntries = useMemo(() => {
     const list: SpendingEntry[] = []
@@ -117,10 +125,24 @@ export function YearTab({ entriesByMonth, totalBudgetsByMonth, categories }: Pro
                   currency={row.currency}
                   amount={row.amount}
                   maxAmount={maxByCurrency.get(row.currency) ?? 0}
+                  onClick={() => setCategoryModalFor({ categoryId: row.categoryId, currency: row.currency })}
                 />
               ))}
           </div>
         </>
+      )}
+
+      {categoryModalFor && (
+        <CategoryExpensesModal
+          categoryId={categoryModalFor.categoryId}
+          currency={categoryModalFor.currency}
+          categoryName={categoryMap.get(categoryModalFor.categoryId)?.name ?? t('Unknown')}
+          categoryColor={categoryMap.get(categoryModalFor.categoryId)?.color ?? '#888'}
+          monthPrefix={yearMonthPrefixes}
+          readOnly
+          totalLabel={tTotalInYear(lang, year)}
+          onClose={() => setCategoryModalFor(null)}
+        />
       )}
     </div>
   )

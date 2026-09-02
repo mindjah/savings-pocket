@@ -292,6 +292,18 @@ h1, h2, h3, p {
   padding: 16px;
 }
 
+/* .card rendered as a <button> (Analytics' tappable budget summary) —
+   resets the button-specific defaults .card itself doesn't need to
+   account for otherwise. */
+.budget-summary-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
 .section-title {
   display: flex;
   align-items: center;
@@ -1205,6 +1217,14 @@ h1, h2, h3, p {
   align-items: center;
   gap: 8px;
   font-size: 0.78rem;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 2px 0;
+  text-align: left;
+  color: inherit;
+  font-family: inherit;
+  cursor: pointer;
 }
 
 .category-compare-row .compare-line .compare-label {

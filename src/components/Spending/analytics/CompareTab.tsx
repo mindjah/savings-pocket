@@ -5,6 +5,9 @@ import { formatMoney, pad2 } from '../../../lib/format'
 import { budgetComparisonForMonth, categoryTotals, compareCategoryTotals, currencyTotals } from '../../../lib/analytics'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { CategoryCompareBar } from './CategoryBar'
+import { BudgetStatusModal } from '../BudgetStatusModal'
+import { CategoryExpensesModal } from '../CategoryExpensesModal'
+import { tTotalInMonth } from '../../../i18n/translations'
 
 interface Props {
   entriesByMonth: Map<string, SpendingEntry[]>
@@ -22,10 +25,12 @@ function defaultMonths(): [string, string] {
 }
 
 export function CompareTab({ entriesByMonth, categoryBudgetsByMonth, totalBudgetsByMonth, categories }: Props) {
-  const { t } = useTranslation()
+  const { t, lang } = useTranslation()
   const [defaultA, defaultB] = useMemo(() => defaultMonths(), [])
   const [monthA, setMonthA] = useState(defaultA)
   const [monthB, setMonthB] = useState(defaultB)
+  const [budgetStatusMonth, setBudgetStatusMonth] = useState<string | null>(null)
+  const [categoryModalFor, setCategoryModalFor] = useState<{ categoryId: number; currency: Currency; month: string } | null>(null)
 
   const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories])
 
@@ -60,11 +65,16 @@ export function CompareTab({ entriesByMonth, categoryBudgetsByMonth, totalBudget
   const budgetA = budgetComparisonForMonth(categoryBudgetsByMonth.get(monthA) ?? [], totalBudgetsByMonth.get(monthA) ?? [], entriesA)
   const budgetB = budgetComparisonForMonth(categoryBudgetsByMonth.get(monthB) ?? [], totalBudgetsByMonth.get(monthB) ?? [], entriesB)
 
-  function renderBudgetSection(label: string, budget: ReturnType<typeof budgetComparisonForMonth>) {
+  function renderBudgetSection(label: string, month: string, budget: ReturnType<typeof budgetComparisonForMonth>) {
     if (!budget.hasBudget) return null
     const overCategories = budget.categories.filter((c) => c.over)
     return (
-      <div className="card" style={{ marginTop: 8 }}>
+      <button
+        className="card budget-summary-card"
+        type="button"
+        style={{ marginTop: 8 }}
+        onClick={() => setBudgetStatusMonth(month)}
+      >
         <div style={{ fontWeight: 700, marginBottom: 6 }}>{label}</div>
         {Object.entries(budget.totalBudget).map(([currency, amount]) => {
           const actual = budget.totalActual[currency as Currency] ?? 0
@@ -81,7 +91,7 @@ export function CompareTab({ entriesByMonth, categoryBudgetsByMonth, totalBudget
             {t('Over budget in:')} {overCategories.map((c) => categoryMap.get(c.categoryId)?.name ?? '—').join(', ')}
           </div>
         )}
-      </div>
+      </button>
     )
   }
 
@@ -130,8 +140,8 @@ export function CompareTab({ entriesByMonth, categoryBudgetsByMonth, totalBudget
                 <h2>{t('Budget')}</h2>
               </div>
               <div className={budgetA.hasBudget && budgetB.hasBudget ? 'form-row' : undefined}>
-                {renderBudgetSection(monthLabel(monthA), budgetA)}
-                {renderBudgetSection(monthLabel(monthB), budgetB)}
+                {renderBudgetSection(monthLabel(monthA), monthA, budgetA)}
+                {renderBudgetSection(monthLabel(monthB), monthB, budgetB)}
               </div>
             </>
           )}
@@ -150,10 +160,27 @@ export function CompareTab({ entriesByMonth, categoryBudgetsByMonth, totalBudget
                 maxAmount={maxByCurrency.get(row.currency) ?? 0}
                 labelA={monthLabelShort(monthA)}
                 labelB={monthLabelShort(monthB)}
+                onClickA={() => setCategoryModalFor({ categoryId: row.categoryId, currency: row.currency, month: monthA })}
+                onClickB={() => setCategoryModalFor({ categoryId: row.categoryId, currency: row.currency, month: monthB })}
               />
             ))}
           </div>
         </>
+      )}
+
+      {budgetStatusMonth && <BudgetStatusModal monthPrefix={budgetStatusMonth} onClose={() => setBudgetStatusMonth(null)} />}
+
+      {categoryModalFor && (
+        <CategoryExpensesModal
+          categoryId={categoryModalFor.categoryId}
+          currency={categoryModalFor.currency}
+          categoryName={categoryMap.get(categoryModalFor.categoryId)?.name ?? t('Unknown')}
+          categoryColor={categoryMap.get(categoryModalFor.categoryId)?.color ?? '#888'}
+          monthPrefix={categoryModalFor.month}
+          readOnly
+          totalLabel={tTotalInMonth(lang, monthLabel(categoryModalFor.month))}
+          onClose={() => setCategoryModalFor(null)}
+        />
       )}
     </div>
   )
