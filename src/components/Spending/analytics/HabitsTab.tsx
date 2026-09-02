@@ -4,7 +4,7 @@ import { pad2, formatDate, formatMoney, todayIso } from '../../../lib/format'
 import { categoryRanking, spendingHabits } from '../../../lib/analytics'
 import { useFiatRates } from '../../../hooks/useFiatRates'
 import { useTranslation } from '../../../hooks/useTranslation'
-import { tDataAsOf, tHabitOver, tHabitUnder, tTotalLastMonths } from '../../../i18n/translations'
+import { tAvgPerMonth, tDataAsOf, tHabitOver, tHabitUnder, tTotalLastMonths } from '../../../i18n/translations'
 import { CategoryBar } from './CategoryBar'
 import { CategoryExpensesModal } from '../CategoryExpensesModal'
 
@@ -71,6 +71,7 @@ export function HabitsTab({ entriesByMonth, categoryBudgetsByMonth, categories }
               currency={row.currency}
               amount={row.avgMonthly}
               maxAmount={maxAvg}
+              displayAmount={tAvgPerMonth(lang, formatMoney(row.avgMonthly, row.currency))}
               onClick={() => setCategoryModalFor({ categoryId: row.categoryId })}
             />
           ))}
