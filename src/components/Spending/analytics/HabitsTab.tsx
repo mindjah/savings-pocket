@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
 import type { Category, CategoryBudget, SpendingEntry } from '../../../db/types'
-import { pad2, formatMoney } from '../../../lib/format'
+import { pad2, formatDate, formatMoney, todayIso } from '../../../lib/format'
 import { categoryRanking, spendingHabits } from '../../../lib/analytics'
 import { useFiatRates } from '../../../hooks/useFiatRates'
 import { useTranslation } from '../../../hooks/useTranslation'
-import { tHabitOver, tHabitUnder, tTotalLastMonths } from '../../../i18n/translations'
+import { tDataAsOf, tHabitOver, tHabitUnder, tTotalLastMonths } from '../../../i18n/translations'
 import { CategoryBar } from './CategoryBar'
 import { CategoryExpensesModal } from '../CategoryExpensesModal'
 
@@ -50,6 +50,10 @@ export function HabitsTab({ entriesByMonth, categoryBudgetsByMonth, categories }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div className="muted" style={{ fontSize: '0.78rem' }}>
+        {tDataAsOf(lang, formatDate(todayIso(), lang))}
+      </div>
+
       <div className="section-title">
         <h2>{t('Where you spend most (last 6 months)')}</h2>
       </div>

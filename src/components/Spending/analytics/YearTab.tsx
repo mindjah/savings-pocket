@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react'
 import type { Category, Currency, SpendingEntry, TotalBudget } from '../../../db/types'
 import { MONTH_NAMES } from '../../../lib/constants'
-import { formatMoneyCompact } from '../../../lib/format'
+import { formatDate, formatMoneyCompact, todayIso } from '../../../lib/format'
 import { categoryTotals, currencyTotals, mergeCategoryCurrencies, monthlyTotalsForYear } from '../../../lib/analytics'
 import { useFiatRates } from '../../../hooks/useFiatRates'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { CategoryBar } from './CategoryBar'
 import { CategoryExpensesModal } from '../CategoryExpensesModal'
-import { tTotalInYear } from '../../../i18n/translations'
+import { tDataAsOf, tTotalInYear } from '../../../i18n/translations'
 
 interface Props {
   entriesByMonth: Map<string, SpendingEntry[]>
@@ -74,6 +74,12 @@ export function YearTab({ entriesByMonth, totalBudgetsByMonth, categories }: Pro
           ›
         </button>
       </div>
+
+      {year === new Date().getFullYear() && (
+        <div className="muted" style={{ fontSize: '0.78rem' }}>
+          {tDataAsOf(lang, formatDate(todayIso(), lang))}
+        </div>
+      )}
 
       {currencies.length === 0 ? (
         <div className="empty-state">

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { Category, CategoryBudget, Currency, SpendingEntry, TotalBudget } from '../../../db/types'
 import { MONTH_NAMES } from '../../../lib/constants'
-import { formatMoney, pad2, todayIso } from '../../../lib/format'
+import { formatDate, formatMoney, pad2, todayIso } from '../../../lib/format'
 import { budgetComparisonForMonth, categoryTotals, compareCategoryTotals, currencyTotals, mergeCategoryCurrencies } from '../../../lib/analytics'
 import { budgetCardLevel, computeBudgetStatus } from '../../../lib/planning'
 import { useFiatRates } from '../../../hooks/useFiatRates'
@@ -9,7 +9,7 @@ import { useTranslation } from '../../../hooks/useTranslation'
 import { CategoryCompareBar } from './CategoryBar'
 import { BudgetStatusModal } from '../BudgetStatusModal'
 import { CategoryExpensesModal } from '../CategoryExpensesModal'
-import { tTotalInMonth } from '../../../i18n/translations'
+import { tDataAsOf, tTotalInMonth } from '../../../i18n/translations'
 
 interface Props {
   entriesByMonth: Map<string, SpendingEntry[]>
@@ -99,19 +99,19 @@ export function CompareTab({ entriesByMonth, categoryBudgetsByMonth, totalBudget
   // really the same status.
   const now = new Date()
   const realMonthPrefix = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`
+  // entriesA/entriesB (from entriesByMonth) are already filtered to what's
+  // actually happened by AnalyticsModal, so no extra date filter needed here.
   const levelA = useMemo(() => {
     if (!budgetA.hasBudget) return null
     const { dayOfMonth, daysInMonth: total } = monthProgress(monthA, realMonthPrefix, now)
-    const happenedEntriesA = entriesA.filter((e) => e.date <= todayIso())
-    const status = computeBudgetStatus(categoryBudgetsByMonth.get(monthA) ?? [], budgetA.totalBudget, happenedEntriesA, dayOfMonth, total, fx)
+    const status = computeBudgetStatus(categoryBudgetsByMonth.get(monthA) ?? [], budgetA.totalBudget, entriesA, dayOfMonth, total, fx)
     return status ? budgetCardLevel(status) : null
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [budgetA, monthA, categoryBudgetsByMonth, entriesA, fx])
   const levelB = useMemo(() => {
     if (!budgetB.hasBudget) return null
     const { dayOfMonth, daysInMonth: total } = monthProgress(monthB, realMonthPrefix, now)
-    const happenedEntriesB = entriesB.filter((e) => e.date <= todayIso())
-    const status = computeBudgetStatus(categoryBudgetsByMonth.get(monthB) ?? [], budgetB.totalBudget, happenedEntriesB, dayOfMonth, total, fx)
+    const status = computeBudgetStatus(categoryBudgetsByMonth.get(monthB) ?? [], budgetB.totalBudget, entriesB, dayOfMonth, total, fx)
     return status ? budgetCardLevel(status) : null
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [budgetB, monthB, categoryBudgetsByMonth, entriesB, fx])
@@ -163,6 +163,12 @@ export function CompareTab({ entriesByMonth, categoryBudgetsByMonth, totalBudget
           <input id="compareMonthB" type="month" value={monthB} onChange={(e) => setMonthB(e.target.value)} />
         </div>
       </div>
+
+      {(monthA === realMonthPrefix || monthB === realMonthPrefix) && (
+        <div className="muted" style={{ fontSize: '0.78rem' }}>
+          {tDataAsOf(lang, formatDate(todayIso(), lang))}
+        </div>
+      )}
 
       {currencies.length === 0 ? (
         <div className="empty-state">

@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import type { CategoryBudget, SpendingEntry, TotalBudget } from '../../db/types'
 import { monthOf } from '../../lib/analytics'
+import { todayIso } from '../../lib/format'
 import { Modal } from '../common/Modal'
 import { useTranslation } from '../../hooks/useTranslation'
 import { CompareTab } from './analytics/CompareTab'
@@ -30,11 +31,18 @@ export function AnalyticsModal({ onClose }: Props) {
   const { t } = useTranslation()
   const [tab, setTab] = useState<AnalyticsTab>('compare')
 
-  const entries = useLiveQuery(() => db.spendingEntries.toArray(), []) ?? []
+  const entriesRaw = useLiveQuery(() => db.spendingEntries.toArray(), []) ?? []
   const categories = useLiveQuery(() => db.categories.toArray(), []) ?? []
   const categoryBudgets = useLiveQuery(() => db.categoryBudgets.toArray(), []) ?? []
   const totalBudgets = useLiveQuery(() => db.totalBudgets.toArray(), []) ?? []
 
+  // Every Analytics number is meant to reflect what's actually happened —
+  // a future-dated entry hasn't been spent yet any more than a recurring
+  // expense that hasn't materialized has (see materializeRecurringExpenses
+  // and the identical filter in SpendingView/BudgetStatusModal). Filtering
+  // once here means every tab's totals/budget/category breakdown gets this
+  // for free, with no per-tab filtering to keep in sync.
+  const entries = useMemo(() => entriesRaw.filter((e) => e.date <= todayIso()), [entriesRaw])
   const entriesByMonth = useMemo(() => groupByMonth<SpendingEntry>(entries), [entries])
   const categoryBudgetsByMonth = useMemo(() => groupByMonth<CategoryBudget>(categoryBudgets), [categoryBudgets])
   const totalBudgetsByMonth = useMemo(() => groupByMonth<TotalBudget>(totalBudgets), [totalBudgets])
