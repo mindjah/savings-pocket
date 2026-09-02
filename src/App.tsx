@@ -3,6 +3,9 @@ import { NavBar, type Tab } from './components/Layout/NavBar'
 import { SavingsView } from './components/Savings/SavingsView'
 import { CryptoView } from './components/Crypto/CryptoView'
 import { SpendingView } from './components/Spending/SpendingView'
+import { PlanningScreen } from './components/Spending/PlanningModal'
+import { BudgetScreen } from './components/Spending/BudgetModal'
+import { AnalyticsScreen } from './components/Spending/AnalyticsModal'
 import { SettingsView } from './components/Settings/SettingsView'
 import { ToastProvider } from './hooks/useToast'
 import { HEADER_ACTIONS_ID, HEADER_TITLE_ID, HeaderTitlePortal } from './components/common/HeaderPortal'
@@ -13,6 +16,7 @@ import { useMetaSetting } from './hooks/useMetaSetting'
 import { useTranslation } from './hooks/useTranslation'
 import { useAutoBackup } from './hooks/useAutoBackup'
 import { useDriveStartupCheck } from './hooks/useDriveStartupCheck'
+import { useIsDesktop } from './hooks/useIsDesktop'
 import { connectDriveForAutoBackup, shouldOfferDriveReconnect } from './lib/googleDrive'
 import { GoogleDriveIcon } from './components/common/GoogleDriveIcon'
 
@@ -20,18 +24,31 @@ const TITLES: Record<Tab, string> = {
   savings: 'Savings',
   crypto: 'Crypto',
   spending: 'Spending',
+  planning: 'Planning sandbox',
+  budget: 'Manage budget',
+  analytics: 'Analytics',
   settings: 'Settings',
 }
+
+// Only reachable through the desktop sidebar (see NavBar's desktopOnly
+// flag) — on mobile they stay bottom sheets opened from Spending's own
+// Manage menu instead.
+const DESKTOP_ONLY_TABS: Tab[] = ['planning', 'budget', 'analytics']
 
 const STORAGE_KEY = 'savings-pocket:activeTab'
 // Quick app-switches (checking a notification, glancing at another app)
 // shouldn't force a re-auth — only re-lock once backgrounded this long.
 const RELOCK_AFTER_MS = 5 * 60 * 1000
 
-function readInitialTab(): Tab {
+function readInitialTab(isDesktop: boolean): Tab {
   const stored = localStorage.getItem(STORAGE_KEY)
-  if (stored === 'savings' || stored === 'crypto' || stored === 'spending' || stored === 'settings') {
-    return stored
+  const valid: Tab[] = ['savings', 'crypto', 'spending', 'planning', 'budget', 'analytics', 'settings']
+  if (stored && (valid as string[]).includes(stored)) {
+    const tab = stored as Tab
+    // A tab saved from a wider window shouldn't strand a phone-width reopen
+    // on a nav item that isn't there — same fallback as an unrecognized tab.
+    if (DESKTOP_ONLY_TABS.includes(tab) && !isDesktop) return 'spending'
+    return tab
   }
   return 'savings'
 }
@@ -49,13 +66,33 @@ export default function App() {
 // directly in App's own body would read the context's no-op default instead,
 // since App isn't itself a child of the ToastProvider it returns.
 function AppShell() {
-  const [tab, setTab] = useState<Tab>(readInitialTab)
+  const isDesktop = useIsDesktop()
+  const [tab, setTab] = useState<Tab>(() => readInitialTab(isDesktop))
   const { t } = useTranslation()
   const [faceIdEnabled] = useMetaSetting<boolean>('faceIdEnabled', false)
   const [unlocked, setUnlocked] = useState(false)
   const locked = faceIdEnabled && !unlocked
   const [autoBackupEnabled] = useMetaSetting<boolean>('autoBackupToGoogleDrive', false)
   const [showDriveReconnect, setShowDriveReconnect] = useState(false)
+
+  // A window resized down to phone width (or a desktop tab reopened on a
+  // phone via restored session state) shouldn't strand the user on a nav
+  // item the sidebar just removed — fall back to Spending, where these
+  // three screens are still reachable through the Manage menu.
+  useEffect(() => {
+    if (!isDesktop && DESKTOP_ONLY_TABS.includes(tab)) setTab('spending')
+  }, [isDesktop, tab])
+
+  // Whichever desktop-only screen (Planning sandbox/Manage budget/Analytics)
+  // is currently active reports its own unsaved-changes state here, so
+  // switching tabs away from it can warn first — the same protection its
+  // mobile bottom-sheet form already gets from tapping outside/the X
+  // button. Reset on every tab change so a freshly mounted screen starts
+  // clean rather than inheriting the previous one's leftover value.
+  const [activeScreenDirty, setActiveScreenDirty] = useState(false)
+  useEffect(() => {
+    setActiveScreenDirty(false)
+  }, [tab])
 
   useEffect(() => {
     materializeRecurringExpenses()
@@ -141,6 +178,9 @@ function AppShell() {
       window.scrollTo({ top: 0, behavior: 'smooth' })
       return
     }
+    if (DESKTOP_ONLY_TABS.includes(tab) && activeScreenDirty) {
+      if (!confirm(t('You have unsaved changes. Leave without saving?'))) return
+    }
     setTab(next)
     localStorage.setItem(STORAGE_KEY, next)
   }
@@ -167,6 +207,9 @@ function AppShell() {
         {tab === 'savings' && <SavingsView resetKey={savingsResetKey} />}
         {tab === 'crypto' && <CryptoView resetKey={cryptoResetKey} />}
         {tab === 'spending' && <SpendingView resetKey={spendingResetKey} />}
+        {tab === 'planning' && <PlanningScreen onDirtyChange={setActiveScreenDirty} />}
+        {tab === 'budget' && <BudgetScreen onDirtyChange={setActiveScreenDirty} />}
+        {tab === 'analytics' && <AnalyticsScreen />}
         {tab === 'settings' && <SettingsView resetKey={settingsResetKey} />}
       </main>
 

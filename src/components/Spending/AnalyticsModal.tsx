@@ -27,7 +27,11 @@ function groupByMonth<T extends { date?: string; month?: string }>(rows: T[]): M
   return map
 }
 
-export function AnalyticsModal({ onClose }: Props) {
+// Shared by both entry points below — a bottom sheet on mobile (opened from
+// Spending's Manage menu) and a full desktop-sidebar page (see NavBar's
+// desktopOnly tabs). Same data, same tabs; only the surrounding chrome
+// (Modal vs. a plain .view page) differs.
+function AnalyticsBody() {
   const { t } = useTranslation()
   const [tab, setTab] = useState<AnalyticsTab>('compare')
 
@@ -48,7 +52,7 @@ export function AnalyticsModal({ onClose }: Props) {
   const totalBudgetsByMonth = useMemo(() => groupByMonth<TotalBudget>(totalBudgets), [totalBudgets])
 
   return (
-    <Modal wide title={t('Analytics')} onClose={onClose}>
+    <>
       <div className="segmented">
         <button type="button" className={tab === 'compare' ? 'active' : ''} onClick={() => setTab('compare')}>
           {t('Compare months')}
@@ -82,6 +86,25 @@ export function AnalyticsModal({ onClose }: Props) {
           <HabitsTab entriesByMonth={entriesByMonth} categoryBudgetsByMonth={categoryBudgetsByMonth} categories={categories} />
         )}
       </div>
+    </>
+  )
+}
+
+export function AnalyticsModal({ onClose }: Props) {
+  const { t } = useTranslation()
+  return (
+    <Modal wide title={t('Analytics')} onClose={onClose}>
+      <AnalyticsBody />
     </Modal>
+  )
+}
+
+// Desktop-only full page (see NavBar) — same content as AnalyticsModal,
+// laid out like Spending/Savings/Settings instead of as a bottom sheet.
+export function AnalyticsScreen() {
+  return (
+    <div className="view boucoup-scope">
+      <AnalyticsBody />
+    </div>
   )
 }

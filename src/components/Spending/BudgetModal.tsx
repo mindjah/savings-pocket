@@ -302,7 +302,22 @@ function EditBudgetExpenseModal({ entry, categories, currencyOptions, existingPa
   )
 }
 
-export function BudgetModal({ onClose }: Props) {
+// Shared by both entry points below — a bottom sheet on mobile (opened from
+// Spending's Manage menu) and a full desktop-sidebar page (see NavBar's
+// desktopOnly tabs). Same content and state either way; only the
+// surrounding chrome (Modal vs. a plain .view page) differs.
+function BudgetInner({
+  onClose,
+  asScreen,
+  onDirtyChange,
+}: {
+  onClose?: () => void
+  asScreen?: boolean
+  // Desktop-only (see App.tsx): lets the nav bar warn before switching away
+  // from this page while it has unsaved changes, the same protection the
+  // mobile modal's own tap-outside/X-button already gets.
+  onDirtyChange?: (dirty: boolean) => void
+}) {
   const { t, lang } = useTranslation()
   const toast = useToast()
   const currencyOptions = CURRENCIES
@@ -330,6 +345,12 @@ export function BudgetModal({ onClose }: Props) {
   // closing the modal (or switching month) can warn instead of silently
   // discarding it.
   const [dirty, setDirty] = useState(false)
+
+  useEffect(() => {
+    onDirtyChange?.(dirty)
+    return () => onDirtyChange?.(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirty])
 
   useEffect(() => {
     let cancelled = false
@@ -560,20 +581,20 @@ export function BudgetModal({ onClose }: Props) {
       }
     })
     toast(t('Budget saved'))
-    onClose()
+    setDirty(false)
+    onClose?.()
   }
 
   function handleClose() {
     if (dirty && !confirm(t('You have unsaved changes. Close without saving?'))) return
-    onClose()
+    onClose?.()
   }
 
   if (!draftLoaded) return null
 
-  return (
+  const body = (
     <>
-      <Modal wide title={t('Manage budget')} onClose={handleClose}>
-        <div className="settings-row">
+      <div className="settings-row">
           <div style={{ flex: 1, minWidth: 0 }}>
             <div>{t('Enable budget tracking')}</div>
             <div className="muted">{t('Shows a spending-pace warning under Total spent on the Spending screen')}</div>
@@ -719,7 +740,18 @@ export function BudgetModal({ onClose }: Props) {
             </div>
           )}
         </div>
-      </Modal>
+    </>
+  )
+
+  return (
+    <>
+      {asScreen ? (
+        <div className="view boucoup-scope">{body}</div>
+      ) : (
+        <Modal wide title={t('Manage budget')} onClose={handleClose}>
+          {body}
+        </Modal>
+      )}
 
       {showAddTotal && (
         <AddTotalBudgetModal currencyOptions={currencyOptions} onAdd={addTotalBudget} onClose={() => setShowAddTotal(false)} />
@@ -773,4 +805,14 @@ export function BudgetModal({ onClose }: Props) {
         })()}
     </>
   )
+}
+
+export function BudgetModal({ onClose }: Props) {
+  return <BudgetInner onClose={onClose} />
+}
+
+// Desktop-only full page (see NavBar) — same content as BudgetModal, laid
+// out like Spending/Savings/Settings instead of as a bottom sheet.
+export function BudgetScreen({ onDirtyChange }: { onDirtyChange?: (dirty: boolean) => void }) {
+  return <BudgetInner asScreen onDirtyChange={onDirtyChange} />
 }
