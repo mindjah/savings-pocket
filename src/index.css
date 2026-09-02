@@ -360,6 +360,14 @@ h1, h2, h3, p {
   transition: transform 0.15s ease;
 }
 
+.entry-pin-badge {
+  position: absolute;
+  right: 14px;
+  bottom: 6px;
+  display: flex;
+  color: var(--accent);
+}
+
 .card-expand-toggle.open svg {
   transform: rotate(180deg);
 }

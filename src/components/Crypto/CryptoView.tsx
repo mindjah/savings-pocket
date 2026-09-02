@@ -151,14 +151,7 @@ export function CryptoView({ resetKey }: Props) {
                         )}
                       </span>
                     </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span className="badge">{entry.name}</span>
-                      {entry.pinned && (
-                        <span style={{ color: 'var(--accent)', display: 'flex' }} aria-label={t('Pinned')} title={t('Pinned')}>
-                          <PinIcon size={14} />
-                        </span>
-                      )}
-                    </span>
+                    <span className="badge">{entry.name}</span>
                   </div>
                   <div className="entry-sub">
                     {price
@@ -172,6 +165,11 @@ export function CryptoView({ resetKey }: Props) {
                     onViewHistory={() => setHistoryFor(entry)}
                     onSeeNote={entry.note ? () => setViewingNote(entry.note) : undefined}
                   />
+                  {entry.pinned && (
+                    <span className="entry-pin-badge" aria-label={t('Pinned')} title={t('Pinned')}>
+                      <PinIcon size={14} />
+                    </span>
+                  )}
                 </div>
               )
             })}
