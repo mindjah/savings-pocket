@@ -1220,9 +1220,6 @@ h1, h2, h3, p {
   color: inherit;
 }
 
-/* Mirrors .category-breakdown-row's own layout (swatch + 96px name column +
-   flexible bar + trailing amount) so its two labels land exactly above the
-   name and amount columns below. */
 .category-breakdown-header {
   display: flex;
   align-items: center;
@@ -1232,11 +1229,6 @@ h1, h2, h3, p {
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.02em;
-}
-
-.category-breakdown-header .swatch-spacer {
-  width: 16px;
-  flex-shrink: 0;
 }
 
 .category-breakdown-row .bar-track {

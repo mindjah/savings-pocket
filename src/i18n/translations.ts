@@ -525,10 +525,6 @@ export function tTotalInMonth(lang: Language, monthLabel: string): string {
   return lang === 'ru' ? `Всего за ${monthLabel}` : `Total in ${monthLabel}`
 }
 
-export function tAvgPerMonth(lang: Language, amountText: string): string {
-  return lang === 'ru' ? `В ср. ${amountText}/мес` : `Avg ${amountText}/mo`
-}
-
 export function tCopyBudgetConfirm(lang: Language, monthLabel: string): string {
   return lang === 'ru'
     ? `Это заменит ваш текущий (несохранённый) бюджет бюджетом за ${monthLabel}. Продолжить?`
