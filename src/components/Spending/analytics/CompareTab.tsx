@@ -105,18 +105,18 @@ export function CompareTab({ entriesByMonth, categoryBudgetsByMonth, totalBudget
         </div>
       ) : (
         <>
-          <div className="form-row">
-            <div className="compare-totals-col compare-totals-col-a">
+          <div className="form-row compare-totals-row">
+            <div className="total-chip compare-chip-a">
               {currencies.map((c) => (
-                <div className="total-chip compare-chip-a" key={c}>
+                <div className="chip-currency-row" key={c}>
                   <div className="muted">{c}</div>
                   <div className="amount">{formatMoney(totalsA[c] ?? 0, c)}</div>
                 </div>
               ))}
             </div>
-            <div className="compare-totals-col compare-totals-col-b">
+            <div className="total-chip compare-chip-b">
               {currencies.map((c) => (
-                <div className="total-chip compare-chip-b" key={c}>
+                <div className="chip-currency-row" key={c}>
                   <div className="muted">{c}</div>
                   <div className="amount">{formatMoney(totalsB[c] ?? 0, c)}</div>
                 </div>
