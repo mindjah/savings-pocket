@@ -70,6 +70,21 @@ export interface BudgetStatusResult {
   budgetedCategoryCount: number
 }
 
+export type BudgetCardLevel = 'green' | 'yellow' | 'orange' | 'red'
+
+// The 4-way color SpendingView's own budget-status button already shows
+// (its 3-way BudgetStatusLevel plus an "orange" reading for "total is fine
+// but at least one category individually isn't") — pulled out here so any
+// other surface showing budget status (Analytics' budget cards) reads the
+// exact same color for the exact same status, not just a similar one.
+export function budgetCardLevel(status: BudgetStatusResult): BudgetCardLevel {
+  const isOrange = status.level !== 'red' && status.overBudgetCategoryCount > 0
+  if (status.level === 'red') return 'red'
+  if (isOrange) return 'orange'
+  if (status.level === 'yellow') return 'yellow'
+  return 'green'
+}
+
 // The headline status compares ALL real spending this month (every category,
 // budgeted or not) against the per-currency total budget cap — that's the
 // number the user actually can't go over. overBudgetCategoryCount is a

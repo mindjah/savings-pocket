@@ -24,7 +24,7 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { tLimitsExceededInCategories } from '../../i18n/translations'
 import { EntryBadges } from '../common/EntryBadges'
 import { recurringPreviewDates } from '../../lib/recurring'
-import { computeBudgetStatus } from '../../lib/planning'
+import { budgetCardLevel, computeBudgetStatus } from '../../lib/planning'
 
 function daysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate()
@@ -324,25 +324,24 @@ export function SpendingView({ resetKey }: Props) {
       </div>
 
       {budgetStatus && (() => {
-        const hasCategoryIssue = budgetStatus.overBudgetCategoryCount > 0
-        const isOrange = budgetStatus.level !== 'red' && hasCategoryIssue
+        const level = budgetCardLevel(budgetStatus)
         const color =
-          budgetStatus.level === 'red'
+          level === 'red'
             ? 'var(--danger-strong)'
-            : isOrange
+            : level === 'orange'
               ? 'var(--warning-strong)'
-              : budgetStatus.level === 'yellow'
+              : level === 'yellow'
                 ? 'var(--warning)'
                 : 'var(--accent)'
         const text =
-          budgetStatus.level === 'red'
+          level === 'red'
             ? t('Spending over the budget')
-            : isOrange
+            : level === 'orange'
               ? tLimitsExceededInCategories(lang, budgetStatus.overBudgetCategoryCount)
-              : budgetStatus.level === 'yellow'
+              : level === 'yellow'
                 ? t('Spending close to budget')
                 : t('Spending according to budget')
-        const StatusIcon = budgetStatus.level === 'red' ? XMarkIcon : isOrange || budgetStatus.level === 'yellow' ? WarningIcon : CheckIcon
+        const StatusIcon = level === 'red' ? XMarkIcon : level === 'orange' || level === 'yellow' ? WarningIcon : CheckIcon
         return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <button

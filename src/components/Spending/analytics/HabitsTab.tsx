@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import type { Category, CategoryBudget, Currency, SpendingEntry } from '../../../db/types'
+import type { Category, CategoryBudget, SpendingEntry } from '../../../db/types'
 import { pad2, formatMoney } from '../../../lib/format'
 import { categoryRanking, spendingHabits } from '../../../lib/analytics'
+import { useFiatRates } from '../../../hooks/useFiatRates'
 import { useTranslation } from '../../../hooks/useTranslation'
 import { tHabitOver, tHabitUnder, tTotalLastMonths } from '../../../i18n/translations'
 import { CategoryBar } from './CategoryBar'
@@ -27,7 +28,8 @@ export function HabitsTab({ entriesByMonth, categoryBudgetsByMonth, categories }
   const { t, lang } = useTranslation()
   const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories])
   const recentMonths = useMemo(() => lastSixMonths(), [])
-  const [categoryModalFor, setCategoryModalFor] = useState<{ categoryId: number; currency: Currency } | null>(null)
+  const [categoryModalFor, setCategoryModalFor] = useState<{ categoryId: number } | null>(null)
+  const { rates: fx } = useFiatRates()
 
   const recentEntriesByMonth = useMemo(() => {
     const map = new Map<string, SpendingEntry[]>()
@@ -41,7 +43,7 @@ export function HabitsTab({ entriesByMonth, categoryBudgetsByMonth, categories }
     return map
   }, [categoryBudgetsByMonth, recentMonths])
 
-  const ranking = useMemo(() => categoryRanking(recentEntriesByMonth).slice(0, 8), [recentEntriesByMonth])
+  const ranking = useMemo(() => categoryRanking(recentEntriesByMonth, fx).slice(0, 8), [recentEntriesByMonth, fx])
   const maxAvg = ranking[0]?.avgMonthly ?? 0
 
   const insights = useMemo(() => spendingHabits(recentEntriesByMonth, recentBudgetsByMonth), [recentEntriesByMonth, recentBudgetsByMonth])
@@ -65,7 +67,7 @@ export function HabitsTab({ entriesByMonth, categoryBudgetsByMonth, categories }
               currency={row.currency}
               amount={row.avgMonthly}
               maxAmount={maxAvg}
-              onClick={() => setCategoryModalFor({ categoryId: row.categoryId, currency: row.currency })}
+              onClick={() => setCategoryModalFor({ categoryId: row.categoryId })}
             />
           ))}
         </div>
@@ -93,7 +95,7 @@ export function HabitsTab({ entriesByMonth, categoryBudgetsByMonth, categories }
                 className="card budget-summary-card"
                 type="button"
                 key={`${insight.categoryId}:${insight.currency}`}
-                onClick={() => setCategoryModalFor({ categoryId: insight.categoryId, currency: insight.currency })}
+                onClick={() => setCategoryModalFor({ categoryId: insight.categoryId })}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                   <span className="swatch" style={{ background: category?.color ?? '#888' }} />
@@ -112,7 +114,6 @@ export function HabitsTab({ entriesByMonth, categoryBudgetsByMonth, categories }
       {categoryModalFor && (
         <CategoryExpensesModal
           categoryId={categoryModalFor.categoryId}
-          currency={categoryModalFor.currency}
           categoryName={categoryMap.get(categoryModalFor.categoryId)?.name ?? t('Unknown')}
           categoryColor={categoryMap.get(categoryModalFor.categoryId)?.color ?? '#888'}
           monthPrefix={recentMonths}
