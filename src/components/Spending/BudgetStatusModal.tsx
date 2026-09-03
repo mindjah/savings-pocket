@@ -4,7 +4,7 @@ import { db } from '../../db/db'
 import type { Currency } from '../../db/types'
 import { formatMoney, pad2, todayIso } from '../../lib/format'
 import { MONTH_NAMES } from '../../lib/constants'
-import { categoryPaceLevel } from '../../lib/planning'
+import { budgetCardLevel, categoryPaceLevel, computeBudgetStatus, monthProgress } from '../../lib/planning'
 import type { BudgetStatusLevel } from '../../lib/planning'
 import { convertFiat } from '../../lib/fxRates'
 import { useFiatRates } from '../../hooks/useFiatRates'
@@ -190,14 +190,13 @@ export function BudgetStatusModal({ onClose, monthPrefix: monthPrefixProp }: Pro
   const realCurrentMonthPrefix = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`
   const monthPrefix = monthPrefixProp ?? realCurrentMonthPrefix
   const [monthYear, monthNum] = monthPrefix.split('-').map(Number)
-  const daysInMonth = new Date(monthYear, monthNum, 0).getDate()
   // Pace (how much of the budget "should" be used by now) only means
   // anything for the month actually in progress — a fully past month is
   // simply over or under its budget (elapsed 1, no partial-pace yellow), and
   // a not-yet-started future month hasn't spent anything against it yet
-  // (elapsed 0).
-  const elapsedFraction =
-    monthPrefix < realCurrentMonthPrefix ? 1 : monthPrefix > realCurrentMonthPrefix ? 0 : now.getDate() / daysInMonth
+  // (elapsed 0). Same generalization CompareTab/YearTab/SpendingView use.
+  const { dayOfMonth, daysInMonth } = monthProgress(monthPrefix, realCurrentMonthPrefix, now)
+  const elapsedFraction = dayOfMonth / daysInMonth
   const budgets = useLiveQuery(() => db.categoryBudgets.where('month').equals(monthPrefix).toArray(), [monthPrefix]) ?? []
   const totalBudgetRows = useLiveQuery(() => db.totalBudgets.where('month').equals(monthPrefix).toArray(), [monthPrefix]) ?? []
   const totalBudgetLimit = useMemo(() => {
@@ -216,6 +215,25 @@ export function BudgetStatusModal({ onClose, monthPrefix: monthPrefixProp }: Pro
     () => spendingThisMonthRaw.filter((e) => e.date <= todayIso()),
     [spendingThisMonthRaw],
   )
+
+  // The exact same computation the colorful status button on the Spending
+  // screen itself is built from — used below to explain that button's
+  // yellow here, not just judge each category in isolation. A pooled
+  // total can already be pacing hot even while every individual category
+  // still has too few of its own discretionary payments to trip its own
+  // "at least 2" gate (see categoryPaceLevel) — once the total says
+  // something's wrong, categories should show their raw pace instead of
+  // silently staying green and leaving the button's warning unexplained.
+  // Only the pure pace signal (yellow) needs this — orange/red are already
+  // driven by a specific category actually being over budget, which shows
+  // up on its own regardless of the gate, so bypassing it for every other
+  // category too would just be noise.
+  const overallBudgetStatus = useMemo(
+    () => computeBudgetStatus(budgets, totalBudgetLimit, spendingThisMonth, dayOfMonth, daysInMonth, fx),
+    [budgets, totalBudgetLimit, spendingThisMonth, dayOfMonth, daysInMonth, fx],
+  )
+  const overallPaceLevel = overallBudgetStatus ? budgetCardLevel(overallBudgetStatus) : 'green'
+  const explainOverallPace = overallPaceLevel === 'yellow'
 
   // Shared per-category-per-currency base data, used both by the row lists
   // and by the per-currency donut summaries below.
@@ -320,7 +338,10 @@ export function BudgetStatusModal({ onClose, monthPrefix: monthPrefixProp }: Pro
               entry.budget,
               elapsedFraction,
               fixedActualByKey.get(entry.key) ?? 0,
-              discretionaryCountByKey.get(entry.key) ?? 0,
+              // Once the overall total is already pacing hot, stop
+              // requiring 2+ discretionary payments before a category can
+              // show yellow — see explainOverallPace above.
+              explainOverallPace ? 2 : (discretionaryCountByKey.get(entry.key) ?? 0),
             ),
           }
         })
@@ -381,7 +402,7 @@ export function BudgetStatusModal({ onClose, monthPrefix: monthPrefixProp }: Pro
       .sort((a, b) => b.actual - a.actual)
 
     return { budgetedRows, otherRows }
-  }, [budgetByKey, actualByKey, fixedActualByKey, discretionaryCountByKey, elapsedFraction, spilloverInfo, fx])
+  }, [budgetByKey, actualByKey, fixedActualByKey, discretionaryCountByKey, elapsedFraction, spilloverInfo, fx, explainOverallPace])
 
   // One donut per currency that has a total budget — each one's own ring,
   // sized down and laid out two-per-row once there's more than one.
