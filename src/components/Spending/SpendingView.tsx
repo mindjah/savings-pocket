@@ -104,17 +104,25 @@ export function SpendingView({ resetKey }: Props) {
   // date -> currency -> total
   const totalsByDay = useMemo(() => {
     const map = new Map<string, Map<Currency, number>>()
+    const datesWithRealEntries = new Set<string>()
     for (const e of entries ?? []) {
+      datesWithRealEntries.add(e.date)
       const dayMap = map.get(e.date) ?? new Map<Currency, number>()
       dayMap.set(e.currency, (dayMap.get(e.currency) ?? 0) + e.amount)
       map.set(e.date, dayMap)
     }
     // Skipped wherever a real entry already exists for that date (that's
-    // what materializes a preview into an actual total).
+    // what materializes a preview into an actual total) — checked against
+    // real entries only, not the map being built here, so two different
+    // recurring expenses previewing the same date both still add in (the
+    // old `map.has(date)` check let whichever was processed first claim the
+    // date and silently dropped the other).
     for (const { r, dates } of recurringPreviews) {
       for (const date of dates) {
-        if (map.has(date)) continue
-        map.set(date, new Map([[r.currency, r.amount]]))
+        if (datesWithRealEntries.has(date)) continue
+        const dayMap = map.get(date) ?? new Map<Currency, number>()
+        dayMap.set(r.currency, (dayMap.get(r.currency) ?? 0) + r.amount)
+        map.set(date, dayMap)
       }
     }
     return map
