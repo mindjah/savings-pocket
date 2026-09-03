@@ -7,13 +7,20 @@ interface SingleProps {
   amount: number
   maxAmount: number
   onClick?: () => void
+  // Overrides the amount/maxAmount ratio below — for a ranking that mixes
+  // currencies (the habits tab's "where you spend most"), amount/maxAmount
+  // are both native-currency (for correct display) but bar width needs a
+  // real (fx-converted) comparison instead, or a small-numbered currency's
+  // bar looks nearly empty next to a big-numbered one it's actually a
+  // meaningful fraction of.
+  pct?: number
 }
 
 // One category's total this period — same visual language (and, via
 // onClick, the same tap-to-see-expenses behavior) as SpendingView's own
 // "By category" row, reused here for the year tab's full-year breakdown.
-export function CategoryBar({ category, currency, amount, maxAmount, onClick }: SingleProps) {
-  const pct = maxAmount > 0 ? (amount / maxAmount) * 100 : 0
+export function CategoryBar({ category, currency, amount, maxAmount, onClick, pct: pctOverride }: SingleProps) {
+  const pct = pctOverride ?? (maxAmount > 0 ? (amount / maxAmount) * 100 : 0)
   return (
     <button className="category-breakdown-row" type="button" onClick={onClick}>
       <span className="swatch" style={{ background: category?.color ?? '#888' }} />
