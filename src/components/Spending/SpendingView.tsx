@@ -104,22 +104,24 @@ export function SpendingView({ resetKey }: Props) {
   // date -> currency -> total
   const totalsByDay = useMemo(() => {
     const map = new Map<string, Map<Currency, number>>()
-    const datesWithRealEntries = new Set<string>()
+    // Which (recurringExpenseId, date) pairs are already real rows — a
+    // brand-new recurring's first occurrence materializes immediately
+    // regardless of date (see DayEntriesModal), so its preview for that
+    // same date must be skipped or it'd double count. Keyed by recurring
+    // id, not just date: an unrelated entry (different category, a plain
+    // manual expense, another recurring series) landing on the same
+    // calendar date must NOT suppress this preview — only that series' own
+    // materialized occurrence should.
+    const materializedRecurringDates = new Set<string>()
     for (const e of entries ?? []) {
-      datesWithRealEntries.add(e.date)
+      if (e.recurringExpenseId != null) materializedRecurringDates.add(`${e.recurringExpenseId}:${e.date}`)
       const dayMap = map.get(e.date) ?? new Map<Currency, number>()
       dayMap.set(e.currency, (dayMap.get(e.currency) ?? 0) + e.amount)
       map.set(e.date, dayMap)
     }
-    // Skipped wherever a real entry already exists for that date (that's
-    // what materializes a preview into an actual total) — checked against
-    // real entries only, not the map being built here, so two different
-    // recurring expenses previewing the same date both still add in (the
-    // old `map.has(date)` check let whichever was processed first claim the
-    // date and silently dropped the other).
     for (const { r, dates } of recurringPreviews) {
       for (const date of dates) {
-        if (datesWithRealEntries.has(date)) continue
+        if (materializedRecurringDates.has(`${r.id}:${date}`)) continue
         const dayMap = map.get(date) ?? new Map<Currency, number>()
         dayMap.set(r.currency, (dayMap.get(r.currency) ?? 0) + r.amount)
         map.set(date, dayMap)
@@ -225,8 +227,12 @@ export function SpendingView({ resetKey }: Props) {
   // in different currencies never get visually compared against each other.
   const breakdown = useMemo(() => {
     const map = new Map<string, { categoryId: number; currency: Currency; total: number }>()
-    const datesWithRealEntries = new Set((entries ?? []).map((e) => e.date))
+    // Keyed by recurring id + date, not just date — see totalsByDay's own
+    // materializedRecurringDates for why an unrelated entry sharing the
+    // same calendar date must not suppress this preview.
+    const materializedRecurringDates = new Set<string>()
     for (const e of entries ?? []) {
+      if (e.recurringExpenseId != null) materializedRecurringDates.add(`${e.recurringExpenseId}:${e.date}`)
       // "Total spent" only counts what's actually happened by today, same
       // cutoff as the currency chips above.
       if (totalsMode === 'spent' && e.date > todayStr) continue
@@ -247,7 +253,7 @@ export function SpendingView({ resetKey }: Props) {
       for (const { r, dates } of recurringPreviews) {
         for (const date of dates) {
           if (!date.startsWith(monthPrefix)) continue
-          if (datesWithRealEntries.has(date)) continue
+          if (materializedRecurringDates.has(`${r.id}:${date}`)) continue
           const key = `${r.categoryId}:${r.currency}`
           const existing = map.get(key)
           map.set(key, { categoryId: r.categoryId, currency: r.currency, total: (existing?.total ?? 0) + r.amount })
