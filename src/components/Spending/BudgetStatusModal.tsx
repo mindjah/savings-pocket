@@ -4,7 +4,7 @@ import { db } from '../../db/db'
 import type { Currency } from '../../db/types'
 import { formatMoney, pad2, todayIso } from '../../lib/format'
 import { MONTH_NAMES } from '../../lib/constants'
-import { budgetCardLevel, categoryPaceLevel, computeBudgetStatus, monthProgress } from '../../lib/planning'
+import { categoryPaceLevel, monthProgress } from '../../lib/planning'
 import type { BudgetStatusLevel } from '../../lib/planning'
 import { convertFiat } from '../../lib/fxRates'
 import { useFiatRates } from '../../hooks/useFiatRates'
@@ -216,25 +216,6 @@ export function BudgetStatusModal({ onClose, monthPrefix: monthPrefixProp }: Pro
     [spendingThisMonthRaw],
   )
 
-  // The exact same computation the colorful status button on the Spending
-  // screen itself is built from — used below to explain that button's
-  // yellow here, not just judge each category in isolation. A pooled
-  // total can already be pacing hot even while every individual category
-  // still has too few of its own discretionary payments to trip its own
-  // "at least 2" gate (see categoryPaceLevel) — once the total says
-  // something's wrong, categories should show their raw pace instead of
-  // silently staying green and leaving the button's warning unexplained.
-  // Only the pure pace signal (yellow) needs this — orange/red are already
-  // driven by a specific category actually being over budget, which shows
-  // up on its own regardless of the gate, so bypassing it for every other
-  // category too would just be noise.
-  const overallBudgetStatus = useMemo(
-    () => computeBudgetStatus(budgets, totalBudgetLimit, spendingThisMonth, dayOfMonth, daysInMonth, fx),
-    [budgets, totalBudgetLimit, spendingThisMonth, dayOfMonth, daysInMonth, fx],
-  )
-  const overallPaceLevel = overallBudgetStatus ? budgetCardLevel(overallBudgetStatus) : 'green'
-  const explainOverallPace = overallPaceLevel === 'yellow'
-
   // Shared per-category-per-currency base data, used both by the row lists
   // and by the per-currency donut summaries below.
   const { budgetByKey, actualByKey, fixedActualByKey, discretionaryCountByKey } = useMemo(() => {
@@ -338,10 +319,7 @@ export function BudgetStatusModal({ onClose, monthPrefix: monthPrefixProp }: Pro
               entry.budget,
               elapsedFraction,
               fixedActualByKey.get(entry.key) ?? 0,
-              // Once the overall total is already pacing hot, stop
-              // requiring 2+ discretionary payments before a category can
-              // show yellow — see explainOverallPace above.
-              explainOverallPace ? 2 : (discretionaryCountByKey.get(entry.key) ?? 0),
+              discretionaryCountByKey.get(entry.key) ?? 0,
             ),
           }
         })
@@ -402,7 +380,7 @@ export function BudgetStatusModal({ onClose, monthPrefix: monthPrefixProp }: Pro
       .sort((a, b) => b.actual - a.actual)
 
     return { budgetedRows, otherRows }
-  }, [budgetByKey, actualByKey, fixedActualByKey, discretionaryCountByKey, elapsedFraction, spilloverInfo, fx, explainOverallPace])
+  }, [budgetByKey, actualByKey, fixedActualByKey, discretionaryCountByKey, elapsedFraction, spilloverInfo, fx])
 
   // One donut per currency that has a total budget — each one's own ring,
   // sized down and laid out two-per-row once there's more than one.
