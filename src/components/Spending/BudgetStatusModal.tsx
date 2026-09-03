@@ -217,7 +217,7 @@ export function BudgetStatusModal({ onClose, monthPrefix: monthPrefixProp }: Pro
 
   // Shared per-category-per-currency base data, used both by the row lists
   // and by the per-currency donut summaries below.
-  const { budgetByKey, actualByKey } = useMemo(() => {
+  const { budgetByKey, actualByKey, fixedActualByKey, discretionaryCountByKey } = useMemo(() => {
     const budgetByKey = new Map<string, { categoryId: number; currency: Currency; budget: number }>()
     budgets.forEach((b) => {
       const key = `${b.categoryId}:${b.currency}`
@@ -226,11 +226,20 @@ export function BudgetStatusModal({ onClose, monthPrefix: monthPrefixProp }: Pro
       else budgetByKey.set(key, { categoryId: b.categoryId, currency: b.currency, budget: b.amount })
     })
     const actualByKey = new Map<string, number>()
+    // A recurring-linked entry is a known lump sum, not discretionary
+    // spending that trickles in over the month — see categoryPaceLevel.
+    const fixedActualByKey = new Map<string, number>()
+    const discretionaryCountByKey = new Map<string, number>()
     spendingThisMonth.forEach((e) => {
       const key = `${e.categoryId}:${e.currency}`
       actualByKey.set(key, (actualByKey.get(key) ?? 0) + e.amount)
+      if (e.recurringExpenseId != null) {
+        fixedActualByKey.set(key, (fixedActualByKey.get(key) ?? 0) + e.amount)
+      } else {
+        discretionaryCountByKey.set(key, (discretionaryCountByKey.get(key) ?? 0) + 1)
+      }
     })
-    return { budgetByKey, actualByKey }
+    return { budgetByKey, actualByKey, fixedActualByKey, discretionaryCountByKey }
   }, [budgets, spendingThisMonth])
 
   // The plan's main currency: whichever total-budget currency has the
@@ -304,7 +313,13 @@ export function BudgetStatusModal({ onClose, monthPrefix: monthPrefixProp }: Pro
             budget: entry.budget,
             actual,
             spilloverLines,
-            level: categoryPaceLevel(actual, entry.budget, elapsedFraction),
+            level: categoryPaceLevel(
+              actual,
+              entry.budget,
+              elapsedFraction,
+              fixedActualByKey.get(entry.key) ?? 0,
+              discretionaryCountByKey.get(entry.key) ?? 0,
+            ),
           }
         })
 
@@ -364,7 +379,7 @@ export function BudgetStatusModal({ onClose, monthPrefix: monthPrefixProp }: Pro
       .sort((a, b) => b.actual - a.actual)
 
     return { budgetedRows, otherRows }
-  }, [budgetByKey, actualByKey, elapsedFraction, spilloverInfo, fx])
+  }, [budgetByKey, actualByKey, fixedActualByKey, discretionaryCountByKey, elapsedFraction, spilloverInfo, fx])
 
   // One donut per currency that has a total budget — each one's own ring,
   // sized down and laid out two-per-row once there's more than one.
