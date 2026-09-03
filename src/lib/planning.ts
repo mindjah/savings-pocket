@@ -128,13 +128,16 @@ export function budgetCardLevel(status: BudgetStatusResult): BudgetCardLevel {
   return 'green'
 }
 
-// The headline status compares ALL real spending this month (every category,
-// budgeted or not) against the per-currency total budget cap — that's the
-// number the user actually can't go over. overBudgetCategoryCount is a
-// secondary signal surfaced alongside it: even while under the total, an
-// individual category can already have blown past its own line item — and
-// once that's true for half or more of the budgeted categories, the overall
-// level escalates to red regardless of the total-budget pace.
+// Red is a plain over/under check: ALL real spending this month (every
+// category, budgeted or not) against the per-currency total budget cap —
+// that's the number the user actually can't go over — or, regardless of the
+// total, half or more of the budgeted categories individually blown past
+// their own line item. Yellow is different: rather than its own pooled
+// pace check (many one-off purchases spread across different categories
+// add up to a "fast" total that isn't really anyone's fast pace), it's
+// true only when at least one specific category is itself genuinely
+// pacing fast on its own terms (see categoryPaceLevel) — so Budget status
+// always has a category to point to when the headline button is yellow.
 export function computeBudgetStatus(
   budgets: CategoryBudget[],
   totalBudgets: Partial<Record<Currency, number>>,
@@ -149,21 +152,14 @@ export function computeBudgetStatus(
   const elapsedFraction = dayOfMonth / daysInMonth
 
   const actualAllByCurrency = new Map<Currency, number>()
-  // A recurring-linked entry is a known lump sum, not discretionary
-  // spending that trickles in over the month — see categoryPaceLevel.
-  const fixedActualAllByCurrency = new Map<Currency, number>()
-  const discretionaryCountAllByCurrency = new Map<Currency, number>()
   spendingThisMonth.forEach((e) => {
     actualAllByCurrency.set(e.currency, (actualAllByCurrency.get(e.currency) ?? 0) + e.amount)
-    if (e.recurringExpenseId != null) {
-      fixedActualAllByCurrency.set(e.currency, (fixedActualAllByCurrency.get(e.currency) ?? 0) + e.amount)
-    } else {
-      discretionaryCountAllByCurrency.set(e.currency, (discretionaryCountAllByCurrency.get(e.currency) ?? 0) + 1)
-    }
   })
 
-  // Overall pace: every total-budget currency is converted into whichever
-  // one has the largest REAL (converted) amount and pooled together, then
+  // Whether the total itself has been blown — a plain over/under check, no
+  // pace involved (going over is over regardless of how fast or slow it
+  // happened). Every total-budget currency is converted into whichever one
+  // has the largest REAL (converted) amount and pooled together, then
   // compared against ALL spending this month (any currency) converted the
   // same way — total budgets in different currencies are one combined pool
   // for this headline check, even though the donuts below keep showing each
@@ -181,28 +177,15 @@ export function computeBudgetStatus(
       (sum, [currency, amount]) => sum + (currency === refCurrency ? amount : convertFiat(amount, currency, refCurrency, fx)),
       0,
     )
-    const totalFixedActualConverted = Array.from(fixedActualAllByCurrency.entries()).reduce(
-      (sum, [currency, amount]) => sum + (currency === refCurrency ? amount : convertFiat(amount, currency, refCurrency, fx)),
-      0,
-    )
-    const totalDiscretionaryCount = Array.from(discretionaryCountAllByCurrency.values()).reduce((sum, n) => sum + n, 0)
-    level = categoryPaceLevel(totalActualConverted, totalBudgetConverted, elapsedFraction, totalFixedActualConverted, totalDiscretionaryCount)
+    if (totalBudgetConverted > 0 && totalActualConverted > totalBudgetConverted) level = 'red'
   } else {
     // Exchange rates not loaded yet — fall back to judging each currency's
     // own total independently rather than guessing at a combined figure.
     for (const [currency, budgetAmount] of totalEntries) {
-      const lvl = categoryPaceLevel(
-        actualAllByCurrency.get(currency) ?? 0,
-        budgetAmount,
-        elapsedFraction,
-        fixedActualAllByCurrency.get(currency) ?? 0,
-        discretionaryCountAllByCurrency.get(currency) ?? 0,
-      )
-      if (lvl === 'red') {
+      if (budgetAmount > 0 && (actualAllByCurrency.get(currency) ?? 0) > budgetAmount) {
         level = 'red'
         break
       }
-      if (lvl === 'yellow') level = 'yellow'
     }
   }
 
@@ -218,23 +201,58 @@ export function computeBudgetStatus(
     budgetByCategoryCurrency.set(b.categoryId, byCurrency)
   })
   const actualByCategoryCurrency = new Map<number, Map<Currency, number>>()
+  // A recurring-linked entry is a known lump sum, not discretionary
+  // spending that trickles in over the month — see categoryPaceLevel.
+  const fixedActualByCategoryCurrency = new Map<number, Map<Currency, number>>()
+  const discretionaryCountByCategoryCurrency = new Map<number, Map<Currency, number>>()
   spendingThisMonth.forEach((e) => {
     const byCurrency = budgetByCategoryCurrency.get(e.categoryId)
     if (!byCurrency || !byCurrency.has(e.currency)) return
     const actualByCurrency = actualByCategoryCurrency.get(e.categoryId) ?? new Map<Currency, number>()
     actualByCurrency.set(e.currency, (actualByCurrency.get(e.currency) ?? 0) + e.amount)
     actualByCategoryCurrency.set(e.categoryId, actualByCurrency)
+    if (e.recurringExpenseId != null) {
+      const fixedByCurrency = fixedActualByCategoryCurrency.get(e.categoryId) ?? new Map<Currency, number>()
+      fixedByCurrency.set(e.currency, (fixedByCurrency.get(e.currency) ?? 0) + e.amount)
+      fixedActualByCategoryCurrency.set(e.categoryId, fixedByCurrency)
+    } else {
+      const countByCurrency = discretionaryCountByCategoryCurrency.get(e.categoryId) ?? new Map<Currency, number>()
+      countByCurrency.set(e.currency, (countByCurrency.get(e.currency) ?? 0) + 1)
+      discretionaryCountByCategoryCurrency.set(e.categoryId, countByCurrency)
+    }
   })
+
+  // The headline pace signal (yellow) isn't its own pooled-total check
+  // anymore — a total that's merely the sum of many one-off purchases
+  // spread across different categories has no real "pace" behind it any
+  // more than a single one-off does (see categoryPaceLevel's own 2+
+  // payment rule). Yellow now means a SPECIFIC category is genuinely
+  // pacing fast on its own terms, so Budget status always has a category
+  // to point to when the headline button is yellow.
+  let anyCategoryPacingFast = false
 
   let overBudgetCategoryCount = 0
   budgetByCategoryCurrency.forEach((byCurrency, categoryId) => {
     const actualByCurrency = actualByCategoryCurrency.get(categoryId)
+    const fixedByCurrency = fixedActualByCategoryCurrency.get(categoryId)
+    const countByCurrency = discretionaryCountByCategoryCurrency.get(categoryId)
     const currencies = Array.from(byCurrency.keys())
     if (currencies.length === 1) {
       let over = false
       byCurrency.forEach((budgetAmount, currency) => {
         const actual = actualByCurrency?.get(currency) ?? 0
         if (budgetAmount > 0 && actual / budgetAmount > 1) over = true
+        if (
+          categoryPaceLevel(
+            actual,
+            budgetAmount,
+            elapsedFraction,
+            fixedByCurrency?.get(currency) ?? 0,
+            countByCurrency?.get(currency) ?? 0,
+          ) === 'yellow'
+        ) {
+          anyCategoryPacingFast = true
+        }
       })
       if (over) overBudgetCategoryCount++
       return
@@ -251,18 +269,31 @@ export function computeBudgetStatus(
     )
     let totalBudget = 0
     let totalActual = 0
+    let totalFixedActual = 0
+    let totalDiscretionaryCount = 0
     byCurrency.forEach((budgetAmount, currency) => {
       totalBudget += currency === refCurrency ? budgetAmount : convertFiat(budgetAmount, currency, refCurrency, fx)
     })
     actualByCurrency?.forEach((actualAmount, currency) => {
       totalActual += currency === refCurrency ? actualAmount : convertFiat(actualAmount, currency, refCurrency, fx)
     })
+    fixedByCurrency?.forEach((amount, currency) => {
+      totalFixedActual += currency === refCurrency ? amount : convertFiat(amount, currency, refCurrency, fx)
+    })
+    countByCurrency?.forEach((n) => {
+      totalDiscretionaryCount += n
+    })
     if (totalBudget > 0 && totalActual / totalBudget > 1) overBudgetCategoryCount++
+    if (categoryPaceLevel(totalActual, totalBudget, elapsedFraction, totalFixedActual, totalDiscretionaryCount) === 'yellow') {
+      anyCategoryPacingFast = true
+    }
   })
   const budgetedCategoryCount = budgetByCategoryCurrency.size
 
   if (budgetedCategoryCount > 0 && overBudgetCategoryCount / budgetedCategoryCount >= 0.5) {
     level = 'red'
+  } else if (level !== 'red' && anyCategoryPacingFast) {
+    level = 'yellow'
   }
 
   return { level, overBudgetCategoryCount, budgetedCategoryCount }
