@@ -12,6 +12,7 @@ import { Modal } from '../common/Modal'
 import { useTranslation } from '../../hooks/useTranslation'
 import { tSpentConvertedFrom, tOverspentButOverallFine } from '../../i18n/translations'
 import { BudgetIcon } from '../common/BudgetIcon'
+import { CategoryExpensesModal } from './CategoryExpensesModal'
 
 interface Props {
   onClose: () => void
@@ -181,6 +182,7 @@ export function BudgetStatusModal({ onClose, monthPrefix: monthPrefixProp }: Pro
   const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories])
   const { rates: fx } = useFiatRates()
   const [unbudgetedInfoOpen, setUnbudgetedInfoOpen] = useState(false)
+  const [categoryModalFor, setCategoryModalFor] = useState<number | null>(null)
 
   // Budgets are scoped by exact calendar month (see BudgetModal) — defaults
   // to the real current month, but Analytics passes a specific browsed one.
@@ -519,6 +521,7 @@ export function BudgetStatusModal({ onClose, monthPrefix: monthPrefixProp }: Pro
   const donutSize = currencySummaries.length > 1 ? 148 : 200
 
   return (
+    <>
     <Modal
       wide
       title={
@@ -562,7 +565,12 @@ export function BudgetStatusModal({ onClose, monthPrefix: monthPrefixProp }: Pro
               {budgetedRows.map((r) => {
                 const cat = categoryMap.get(r.categoryId)
                 return (
-                  <div className="list-frame-row" key={r.categoryId}>
+                  <button
+                    className="list-frame-row as-button"
+                    key={r.categoryId}
+                    type="button"
+                    onClick={() => setCategoryModalFor(r.categoryId)}
+                  >
                     <span className="swatch" style={{ background: cat?.color ?? '#888' }} />
                     <div style={{ flex: 1 }}>
                       <div>{cat?.name ?? t('Unknown')}</div>
@@ -599,7 +607,7 @@ export function BudgetStatusModal({ onClose, monthPrefix: monthPrefixProp }: Pro
                         </>
                       )}
                     </div>
-                  </div>
+                  </button>
                 )
               })}
             </div>
@@ -635,11 +643,16 @@ export function BudgetStatusModal({ onClose, monthPrefix: monthPrefixProp }: Pro
                 {otherRows.map((r) => {
                   const cat = categoryMap.get(r.categoryId)
                   return (
-                    <div className="list-frame-row" key={`${r.categoryId}:${r.currency}`}>
+                    <button
+                      className="list-frame-row as-button"
+                      key={`${r.categoryId}:${r.currency}`}
+                      type="button"
+                      onClick={() => setCategoryModalFor(r.categoryId)}
+                    >
                       <span className="swatch" style={{ background: cat?.color ?? '#888' }} />
                       <div style={{ flex: 1 }}>{cat?.name ?? t('Unknown')}</div>
                       <strong>{formatMoney(r.actual, r.currency)}</strong>
-                    </div>
+                    </button>
                   )
                 })}
               </div>
@@ -648,5 +661,17 @@ export function BudgetStatusModal({ onClose, monthPrefix: monthPrefixProp }: Pro
         </>
       )}
     </Modal>
+
+    {categoryModalFor != null && (
+      <CategoryExpensesModal
+        categoryId={categoryModalFor}
+        categoryName={categoryMap.get(categoryModalFor)?.name ?? t('Unknown')}
+        categoryColor={categoryMap.get(categoryModalFor)?.color ?? '#888'}
+        monthPrefix={monthPrefix}
+        readOnly
+        onClose={() => setCategoryModalFor(null)}
+      />
+    )}
+    </>
   )
 }
