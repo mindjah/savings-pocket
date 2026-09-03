@@ -72,10 +72,32 @@ export type BudgetStatusLevel = 'green' | 'yellow' | 'red'
 // Compares "fraction of a budget already spent" against "fraction of the
 // month already elapsed": spending noticeably faster than the calendar is
 // moving is the yellow warning sign, before it tips over into red at 100%.
-export function categoryPaceLevel(actual: number, budget: number, elapsedFraction: number): BudgetStatusLevel {
+//
+// Pace only means anything for spending that actually trickles in over the
+// month — a recurring expense (rent, a subscription) is known in full
+// upfront and always lands in one lump sum on its due date, so comparing
+// it against elapsed-days-so-far is comparing apples to a calendar. Its
+// amount is carved out of both actual and budget (fixedActual) before the
+// pace math runs, leaving only the discretionary remainder to be paced.
+// And pace itself needs at least two discretionary payments to mean
+// anything — a single non-recurring purchase has no "pace" to be ahead
+// of, so discretionaryCount below 2 skips straight to green (unless
+// already over budget, which is unconditional regardless of how many
+// payments made it happen).
+export function categoryPaceLevel(
+  actual: number,
+  budget: number,
+  elapsedFraction: number,
+  fixedActual: number,
+  discretionaryCount: number,
+): BudgetStatusLevel {
   if (budget <= 0) return 'green'
-  const usedFraction = actual / budget
-  if (usedFraction > 1) return 'red'
+  if (actual / budget > 1) return 'red'
+  const discretionaryBudget = budget - fixedActual
+  if (discretionaryBudget <= 0) return 'green'
+  if (discretionaryCount < 2) return 'green'
+  const discretionaryActual = actual - fixedActual
+  const usedFraction = discretionaryActual / discretionaryBudget
   if (usedFraction > elapsedFraction + 0.15) return 'yellow'
   return 'green'
 }
@@ -127,8 +149,17 @@ export function computeBudgetStatus(
   const elapsedFraction = dayOfMonth / daysInMonth
 
   const actualAllByCurrency = new Map<Currency, number>()
+  // A recurring-linked entry is a known lump sum, not discretionary
+  // spending that trickles in over the month — see categoryPaceLevel.
+  const fixedActualAllByCurrency = new Map<Currency, number>()
+  const discretionaryCountAllByCurrency = new Map<Currency, number>()
   spendingThisMonth.forEach((e) => {
     actualAllByCurrency.set(e.currency, (actualAllByCurrency.get(e.currency) ?? 0) + e.amount)
+    if (e.recurringExpenseId != null) {
+      fixedActualAllByCurrency.set(e.currency, (fixedActualAllByCurrency.get(e.currency) ?? 0) + e.amount)
+    } else {
+      discretionaryCountAllByCurrency.set(e.currency, (discretionaryCountAllByCurrency.get(e.currency) ?? 0) + 1)
+    }
   })
 
   // Overall pace: every total-budget currency is converted into whichever
@@ -150,12 +181,23 @@ export function computeBudgetStatus(
       (sum, [currency, amount]) => sum + (currency === refCurrency ? amount : convertFiat(amount, currency, refCurrency, fx)),
       0,
     )
-    level = categoryPaceLevel(totalActualConverted, totalBudgetConverted, elapsedFraction)
+    const totalFixedActualConverted = Array.from(fixedActualAllByCurrency.entries()).reduce(
+      (sum, [currency, amount]) => sum + (currency === refCurrency ? amount : convertFiat(amount, currency, refCurrency, fx)),
+      0,
+    )
+    const totalDiscretionaryCount = Array.from(discretionaryCountAllByCurrency.values()).reduce((sum, n) => sum + n, 0)
+    level = categoryPaceLevel(totalActualConverted, totalBudgetConverted, elapsedFraction, totalFixedActualConverted, totalDiscretionaryCount)
   } else {
     // Exchange rates not loaded yet — fall back to judging each currency's
     // own total independently rather than guessing at a combined figure.
     for (const [currency, budgetAmount] of totalEntries) {
-      const lvl = categoryPaceLevel(actualAllByCurrency.get(currency) ?? 0, budgetAmount, elapsedFraction)
+      const lvl = categoryPaceLevel(
+        actualAllByCurrency.get(currency) ?? 0,
+        budgetAmount,
+        elapsedFraction,
+        fixedActualAllByCurrency.get(currency) ?? 0,
+        discretionaryCountAllByCurrency.get(currency) ?? 0,
+      )
       if (lvl === 'red') {
         level = 'red'
         break
