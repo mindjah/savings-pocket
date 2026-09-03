@@ -260,6 +260,15 @@ export interface CategoryRankingRow {
   categoryId: number
   currency: Currency
   avgMonthly: number
+  // Real (fx-converted) USD value of avgMonthly — rows can land on
+  // different ref currencies (see mergeCategoryCurrencies), so a UI
+  // comparing two rows' relative size (e.g. a bar chart's width) needs
+  // this, not the raw avgMonthly, or a small EUR row looks nearly empty
+  // next to a big RUB one it's actually a meaningful fraction of. Falls
+  // back to raw avgMonthly if fx isn't loaded yet (matches the sort
+  // below's own fallback — still wrong across currencies, but no worse
+  // than before, and self-corrects once rates load).
+  avgMonthlyUsd: number
 }
 
 // Highest-to-lowest average monthly spend per category — a category spent
@@ -284,15 +293,14 @@ export function categoryRanking(entriesByMonth: Map<string, SpendingEntry[]>, fx
   })
   const merged = mergeCategoryCurrencies(totals, fx)
   return merged
-    .map((row) => ({ categoryId: row.categoryId, currency: row.currency, avgMonthly: row.amount / entriesByMonth.size }))
-    .sort((a, b) => {
-      // Different rows can land on different ref currencies (each merged
-      // independently to whichever currency it was spent most in) — compare
-      // by real USD value, not raw amount, or a big RUB figure can rank
-      // below a small EUR one. Falls back to raw amount if fx isn't loaded
-      // yet (still wrong across currencies, but no worse than before).
-      const bVal = fx ? convertFiat(b.avgMonthly, b.currency, 'USD', fx) : b.avgMonthly
-      const aVal = fx ? convertFiat(a.avgMonthly, a.currency, 'USD', fx) : a.avgMonthly
-      return bVal - aVal
+    .map((row) => {
+      const avgMonthly = row.amount / entriesByMonth.size
+      return {
+        categoryId: row.categoryId,
+        currency: row.currency,
+        avgMonthly,
+        avgMonthlyUsd: fx ? convertFiat(avgMonthly, row.currency, 'USD', fx) : avgMonthly,
+      }
     })
+    .sort((a, b) => b.avgMonthlyUsd - a.avgMonthlyUsd)
 }

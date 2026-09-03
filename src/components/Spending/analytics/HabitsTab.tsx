@@ -44,7 +44,12 @@ export function HabitsTab({ entriesByMonth, categoryBudgetsByMonth, categories }
   }, [categoryBudgetsByMonth, recentMonths])
 
   const ranking = useMemo(() => categoryRanking(recentEntriesByMonth, fx).slice(0, 8), [recentEntriesByMonth, fx])
-  const maxAvg = ranking[0]?.avgMonthly ?? 0
+  // Bar width has to compare real (fx-converted) value, not each row's own
+  // native-currency avgMonthly — otherwise a small-numbered currency (e.g.
+  // 50 EUR) looks like an empty sliver next to a big-numbered one (25000
+  // RUB) it's actually a meaningful fraction of. avgMonthly itself stays
+  // native-currency for the row's own displayed amount.
+  const maxAvgUsd = Math.max(0, ...ranking.map((r) => r.avgMonthlyUsd))
 
   const insights = useMemo(() => spendingHabits(recentEntriesByMonth, recentBudgetsByMonth), [recentEntriesByMonth, recentBudgetsByMonth])
 
@@ -75,7 +80,8 @@ export function HabitsTab({ entriesByMonth, categoryBudgetsByMonth, categories }
               category={categoryMap.get(row.categoryId)}
               currency={row.currency}
               amount={row.avgMonthly}
-              maxAmount={maxAvg}
+              maxAmount={maxAvgUsd}
+              pct={maxAvgUsd > 0 ? (row.avgMonthlyUsd / maxAvgUsd) * 100 : 0}
               onClick={() => setCategoryModalFor({ categoryId: row.categoryId })}
             />
           ))}
