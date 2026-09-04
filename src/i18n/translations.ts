@@ -397,6 +397,11 @@ export const RU: Record<string, string> = {
   'Used to unlock if Face ID ever fails. 4–6 digits.':
     'Используется для разблокировки, если Face ID не сработает. 4–6 цифр.',
   Passcode: 'Код',
+  'Blur balances': 'Скрывать суммы',
+  'Hide amounts on the Savings screen until you tap the eye icon':
+    'Скрывать суммы на экране «Сбережения», пока не нажмёте на иконку глаза',
+  'Show balances': 'Показать суммы',
+  'Hide balances': 'Скрыть суммы',
   'Confirm passcode': 'Подтвердите код',
   'Save passcode': 'Сохранить код',
   'Passcode set': 'Код сохранён',
