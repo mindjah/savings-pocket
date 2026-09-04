@@ -153,10 +153,24 @@ export function SettingsView({ resetKey }: Props) {
   const backupStatusText =
     lastBackup == null ? t('Never backed up') : `${t('Last backup')} ${formatDateOrTime(lastBackup.at, lang)}`
   const backupStatusBadge = (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: backupStatusColor, fontSize: '0.8rem', fontWeight: 600 }}>
-      {/* Wraps at its own width (about half the screen), not at whatever's
-          left over after the "Settings" title — see .app-header-actions. */}
-      <span style={{ textAlign: 'right', maxWidth: '50vw' }}>{backupStatusText}</span>
+    // Right-docked against the header's own right padding (16px, see
+    // .app-header) and capped so the whole badge — icon included — never
+    // grows past the screen's own horizontal middle, wrapping there
+    // instead of getting close to the title on the left. Not just the
+    // text span: the cap has to cover the icon+gap too, or a short second
+    // line could still poke past center once the icon's width is added.
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        color: backupStatusColor,
+        fontSize: '0.8rem',
+        fontWeight: 600,
+        maxWidth: 'calc(50vw - 16px)',
+      }}
+    >
+      <span style={{ textAlign: 'right' }}>{backupStatusText}</span>
       {lastBackup?.method === 'manual' ? <ManualSyncIcon size={24} /> : <CloudSyncIcon size={24} />}
     </span>
   )
