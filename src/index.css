@@ -148,6 +148,13 @@ h1, h2, h3, p {
 .app-header-actions {
   display: flex;
   align-items: center;
+  /* Without this, a long action (e.g. Settings' Russian backup status text)
+     got crushed down to whatever was left after the title's own width —
+     wrapping almost immediately instead of using its own fair share of the
+     header. Content that should wrap at a specific point (see
+     .backup-status-text below) now controls that itself via max-width,
+     rather than the flex layout deciding it by accident. */
+  flex-shrink: 0;
 }
 
 .btn.header-action-desktop {
