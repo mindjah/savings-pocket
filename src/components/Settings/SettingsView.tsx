@@ -154,7 +154,9 @@ export function SettingsView({ resetKey }: Props) {
     lastBackup == null ? t('Never backed up') : `${t('Last backup')} ${formatDateOrTime(lastBackup.at, lang)}`
   const backupStatusBadge = (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: backupStatusColor, fontSize: '0.8rem', fontWeight: 600 }}>
-      {backupStatusText}
+      {/* Wraps at its own width (about half the screen), not at whatever's
+          left over after the "Settings" title — see .app-header-actions. */}
+      <span style={{ textAlign: 'right', maxWidth: '50vw' }}>{backupStatusText}</span>
       {lastBackup?.method === 'manual' ? <ManualSyncIcon size={24} /> : <CloudSyncIcon size={24} />}
     </span>
   )
