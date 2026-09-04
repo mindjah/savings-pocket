@@ -107,6 +107,7 @@ export function SettingsView({ resetKey }: Props) {
   const [showPasscodeSetup, setShowPasscodeSetup] = useState(false)
   const passcodeRec = useLiveQuery(() => db.meta.get('faceIdPasscodeHash'), [])
   const passcodeSet = typeof passcodeRec?.value === 'string' && passcodeRec.value.length > 0
+  const [blurBalances, setBlurBalances] = useMetaSetting<boolean>('blurBalances', false)
 
   // resetKey bumps when the user re-taps the already-active Settings nav tab —
   // close any open popup/hint, skipping the very first render (that's not a re-tap).
@@ -280,6 +281,24 @@ export function SettingsView({ resetKey }: Props) {
             </button>
           </div>
         )}
+
+        <div className="settings-row">
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div>{t('Blur balances')}</div>
+            <div className="muted">{t('Hide amounts on the Savings screen until you tap the eye icon')}</div>
+          </div>
+          <label className="switch" style={{ flexShrink: 0 }}>
+            <input
+              type="checkbox"
+              checked={blurBalances}
+              onChange={(e) => setBlurBalances(e.target.checked)}
+              aria-label={t('Blur balances')}
+            />
+            <span className="switch-track">
+              <span className="switch-thumb" />
+            </span>
+          </label>
+        </div>
       </div>
 
       <div className="section-title">

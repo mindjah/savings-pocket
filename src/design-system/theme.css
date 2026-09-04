@@ -389,7 +389,8 @@
   color: rgba(255, 255, 255, 0.78);
 }
 
-.boucoup-scope .net-worth-card .card-expand-toggle {
+.boucoup-scope .net-worth-card .card-expand-toggle,
+.boucoup-scope .net-worth-card .net-worth-eye-toggle {
   color: rgba(255, 255, 255, 0.78);
 }
 

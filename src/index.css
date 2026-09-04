@@ -374,6 +374,33 @@ h1, h2, h3, p {
   transform: rotate(180deg);
 }
 
+.net-worth-eye-toggle {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  border: none;
+  background: none;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 4px;
+}
+
+/* Blurs every balance on the Savings screen (Settings > Security > "Blur
+   balances", or the eye icon on the net worth card) — scoped to a class on
+   the screen's own root so it never reaches .entry-amount/.total-chip
+   elsewhere in the app (Crypto, Spending) that happen to share the same
+   class names. */
+.balances-blurred .net-worth-amount,
+.balances-blurred .net-worth-breakdown-amount,
+.balances-blurred .total-chip .amount,
+.balances-blurred .entry-amount {
+  filter: blur(8px);
+  user-select: none;
+}
+
 .section-title h2 {
   font-size: 1rem;
   font-weight: 700;

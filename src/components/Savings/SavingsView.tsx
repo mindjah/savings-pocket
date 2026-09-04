@@ -43,6 +43,7 @@ export function SavingsView({ resetKey }: Props) {
     }
     setSubTab('mine')
   }, [resetKey])
+  const [blurBalances] = useMetaSetting<boolean>('blurBalances', false)
   const [savingsCurrencies] = useMetaSetting<Currency[]>('enabledSavingsCurrencies', DEFAULT_SAVINGS_CURRENCIES)
   const [trackingMode] = useMetaSetting<SavingsTrackingMode>('savingsTrackingMode', 'manual')
   const [defaultPockets] = useMetaSetting<Partial<Record<Currency, number>>>('defaultSavingsPocketByCurrency', {})
@@ -152,7 +153,7 @@ export function SavingsView({ resetKey }: Props) {
   }
 
   return (
-    <div className="view boucoup-scope">
+    <div className={`view boucoup-scope${blurBalances ? ' balances-blurred' : ''}`}>
       <HeaderPortal>
         <button className="btn btn-accent-text" onClick={() => setShowRates(true)} type="button">
           {t('Exchange rates')}
