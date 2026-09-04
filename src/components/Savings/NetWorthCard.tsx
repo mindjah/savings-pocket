@@ -8,22 +8,29 @@ import { ChevronDownIcon } from '../common/ChevronDownIcon'
 import { EyeIcon } from '../common/EyeIcon'
 import { EyeOffIcon } from '../common/EyeOffIcon'
 
-export function NetWorthCard() {
+interface Props {
+  // Whether balances are blurred right now on this screen — starts from
+  // Settings > Security's persisted default (see SavingsView), but tapping
+  // the eye button below only flips this in-memory copy for the current
+  // visit, never the saved setting itself. Leaving and coming back to
+  // Savings (or reloading) always starts from the saved default again.
+  blurBalances: boolean
+  onToggleBlur: () => void
+}
+
+export function NetWorthCard({ blurBalances, onToggleBlur }: Props) {
   const { t } = useTranslation()
   const [displayCurrency] = useMetaSetting<Currency>('netWorthCurrency', 'EUR')
   const [includeCreditsInNetWorth] = useMetaSetting<boolean>('includeCreditsInNetWorth', false)
   const { breakdown, loading, stale, error } = useNetWorth(displayCurrency, includeCreditsInNetWorth)
   const [expanded, setExpanded] = useState(false)
-  // Same switch as Settings > Security "Blur balances" — this button is
-  // just a quick way to flip it without leaving the Savings screen.
-  const [blurBalances, setBlurBalances] = useMetaSetting<boolean>('blurBalances', false)
 
   return (
     <div className="card net-worth-card">
       <button
         className="net-worth-eye-toggle"
         type="button"
-        onClick={() => setBlurBalances(!blurBalances)}
+        onClick={onToggleBlur}
         aria-label={t(blurBalances ? 'Show balances' : 'Hide balances')}
       >
         {blurBalances ? <EyeOffIcon size={18} /> : <EyeIcon size={18} />}

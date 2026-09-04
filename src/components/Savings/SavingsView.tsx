@@ -43,7 +43,15 @@ export function SavingsView({ resetKey }: Props) {
     }
     setSubTab('mine')
   }, [resetKey])
-  const [blurBalances] = useMetaSetting<boolean>('blurBalances', false)
+  // Settings > Security's persisted default — only Settings' own toggle
+  // writes to it. The net worth card's eye button flips the local copy
+  // below instead, so tapping it only shows/hides balances for the current
+  // visit; it never changes what you'll see next time you open the app.
+  const [blurBalancesDefault] = useMetaSetting<boolean>('blurBalances', false)
+  const [blurBalances, setBlurBalances] = useState(blurBalancesDefault)
+  useEffect(() => {
+    setBlurBalances(blurBalancesDefault)
+  }, [blurBalancesDefault])
   const [savingsCurrencies] = useMetaSetting<Currency[]>('enabledSavingsCurrencies', DEFAULT_SAVINGS_CURRENCIES)
   const [trackingMode] = useMetaSetting<SavingsTrackingMode>('savingsTrackingMode', 'manual')
   const [defaultPockets] = useMetaSetting<Partial<Record<Currency, number>>>('defaultSavingsPocketByCurrency', {})
@@ -166,7 +174,7 @@ export function SavingsView({ resetKey }: Props) {
         </button>
       </div>
 
-      <NetWorthCard />
+      <NetWorthCard blurBalances={blurBalances} onToggleBlur={() => setBlurBalances((b) => !b)} />
 
       <div className="segmented">
         <button type="button" className={subTab === 'mine' ? 'active' : ''} onClick={() => setSubTab('mine')}>
