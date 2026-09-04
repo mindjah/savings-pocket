@@ -395,6 +395,26 @@ h1, h2, h3, p {
   padding: 4px;
 }
 
+/* Always present on the Savings screen (regardless of blur state) so the
+   browser has a compositor layer ready for these elements before the
+   filter actually changes — toggling `filter` on with nothing priming it
+   first is what leaves a stale, sharp-edged raster of the old (unblurred)
+   state on some mobile WebKit builds, only fixed by an unrelated repaint
+   like scrolling. transition turns the flip into an animated repaint
+   instead of one instant paint. translateZ(0) is the classic stronger
+   promotion hint for this exact artifact on iOS Safari, most needed here
+   because .total-chip .amount and .entry-amount repaint as many small
+   elements at once (currency chips, pocket rows), unlike the single big
+   .net-worth-amount block where the glitch isn't visible. */
+.savings-view .net-worth-amount,
+.savings-view .net-worth-breakdown-amount,
+.savings-view .total-chip .amount,
+.savings-view .entry-amount {
+  will-change: filter;
+  transition: filter 0.15s ease;
+  transform: translateZ(0);
+}
+
 /* Blurs every balance on the Savings screen (Settings > Security > "Blur
    balances", or the eye icon on the net worth card) — scoped to a class on
    the screen's own root so it never reaches .entry-amount/.total-chip
