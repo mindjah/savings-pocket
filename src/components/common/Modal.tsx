@@ -19,6 +19,11 @@ interface ModalProps {
   // was in the middle of entering — the same protection either way, so
   // tapping outside can't be used to bypass the warning the X button gives.
   hasUnsavedChanges?: boolean
+  // Renders as a centered dialog (all 4 corners rounded, no bottom-sheet
+  // drag grabber) instead of a bottom sheet, even on mobile — for a
+  // lightweight, quick-in-quick-out surface (e.g. Search) rather than one
+  // that reads as "a screen of its own" the way every other sheet does.
+  popup?: boolean
 }
 
 // How many Modals are currently mounted (a bottom sheet opened from within
@@ -138,7 +143,7 @@ function useAvailableHeight(): number | null {
   return available
 }
 
-export function Modal({ title, onClose, children, wide, hasUnsavedChanges }: ModalProps) {
+export function Modal({ title, onClose, children, wide, hasUnsavedChanges, popup }: ModalProps) {
   const { t } = useTranslation()
   useBodyScrollLock()
   const keyboardShiftInset = useKeyboardShiftInset()
@@ -176,29 +181,33 @@ export function Modal({ title, onClose, children, wide, hasUnsavedChanges }: Mod
   // no stacking context, no background of its own to collide with
   // .modal-overlay's — while CSS custom properties and inherited
   // properties (color, font-family) still cascade through it normally.
+  // A popup dialog isn't anchored to any screen edge — its own background
+  // reaching down to the keyboard the way a bottom sheet's does would look
+  // like a shape-shifting mistake, not "expanding." It only needs a
+  // lowered ceiling so it doesn't overflow past the now-smaller visible
+  // area, same as before this force-height fix existed for sheets.
+  const modalSizeStyle =
+    availableHeight == null
+      ? undefined
+      : popup
+        ? { maxHeight: availableHeight * 0.9 }
+        : { height: availableHeight * 0.9, maxHeight: availableHeight * 0.9 }
+
   return createPortal(
     <div className="boucoup-scope" style={{ display: 'contents' }}>
-      <div className="modal-overlay" style={{ paddingBottom: keyboardShiftInset }} onClick={requestClose}>
+      <div
+        className={`modal-overlay${popup ? ' modal-overlay-popup' : ''}`}
+        style={{ paddingBottom: keyboardShiftInset }}
+        onClick={requestClose}
+      >
         <div
-          className={`modal${wide ? ' modal-wide' : ''}`}
-          // With the keyboard open, the sheet needs to actually FILL the
-          // space above it (height, not just a lowered max-height ceiling)
-          // — capping only the ceiling still lets the sheet shrink to fit
-          // its own content, leaving a gap between its (short) bottom edge
-          // and the keyboard where the overlay's translucent tint shows
-          // the app underneath instead of the sheet's own background. A
-          // forced height makes that gap part of the sheet itself. Sized
-          // from availableHeight (the actual current visible height), NOT
-          // keyboardShiftInset — a browser that resizes the layout
-          // viewport for the keyboard on its own needs no shift (that's
-          // already ~0) but the sheet's content-based shrink is the same
-          // bug either way.
-          style={availableHeight != null ? { height: availableHeight * 0.9, maxHeight: availableHeight * 0.9 } : undefined}
+          className={`modal${wide ? ' modal-wide' : ''}${popup ? ' modal-popup' : ''}`}
+          style={modalSizeStyle}
           onClick={(e) => e.stopPropagation()}
           role="dialog"
           aria-modal="true"
         >
-          <div className="modal-grabber" aria-hidden="true" />
+          {!popup && <div className="modal-grabber" aria-hidden="true" />}
           <div className="modal-header">
             <h2>{title}</h2>
             <button className="btn btn-ghost btn-icon" onClick={requestClose} aria-label={t('Close')}>

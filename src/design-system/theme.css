@@ -193,9 +193,13 @@
     animation: sheetSlideUp 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
-  /* Popups — currency dropdown, per-entry action menu */
+  /* Popups — currency dropdown, per-entry action menu, and a Modal
+     rendered with popup (a centered dialog, not a bottom sheet) —
+     .modal-popup comes after .modal above so it wins the tie (same
+     specificity) and overrides the sheet's slide-up with this instead. */
   .boucoup-scope .currency-dropdown-panel,
-  .boucoup-scope .entry-menu-options {
+  .boucoup-scope .entry-menu-options,
+  .boucoup-scope .modal-popup {
     animation: panelFadeIn 0.16s ease both;
   }
 
