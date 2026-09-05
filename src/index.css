@@ -788,6 +788,11 @@ h1, h2, h3, p {
   justify-content: center;
   z-index: 30;
   padding: 0;
+  /* The backdrop itself has nothing to scroll — without this, a touch
+     drag starting on it can still register as a native pan/scroll
+     gesture on some mobile browsers despite the body/html lock in
+     Modal's useBodyScrollLock. */
+  touch-action: none;
 }
 
 .modal {
