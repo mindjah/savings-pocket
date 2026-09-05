@@ -20,8 +20,12 @@ export interface SavingsEntry {
 
 // One step in a savingsHistory row's edit trail — recorded when the
 // spending entry that caused the debit gets edited afterward (see
-// updateAutoDebit). previousAmount/newAmount here are the pocket's balance
-// just before/after THIS specific edit, not the row's original debit.
+// updateAutoDebit). previousAmount/newAmount here are the EXPENSE's own
+// amount just before/after THIS specific edit (e.g. "was €10, became
+// €100") — deliberately NOT the pocket's balance, which the row's own
+// previousAmount/newAmount already capture once, correctly, as a frozen
+// snapshot from creation (see SavingsHistory below and
+// autoDebit.ts's currentDebitedAmount).
 export interface SavingsHistoryEdit {
   date: string
   previousAmount: number
@@ -32,6 +36,14 @@ export interface SavingsHistoryEdit {
 export interface SavingsHistory {
   id?: number
   entryId: number
+  // The pocket's real balance just before/after this row's own operation,
+  // captured ONCE at creation and never rewritten afterward — for a
+  // 'spending' row with edits, this stays a true point-in-time snapshot
+  // (previousAmount - newAmount is the expense's ORIGINAL amount) even
+  // once other unrelated activity (a deposit, another debit) touches the
+  // same pocket in between edits. The expense's CURRENT amount (after any
+  // edits) lives in the last edits[] step instead — see
+  // autoDebit.ts's currentDebitedAmount.
   previousAmount: number
   newAmount: number
   date: string
