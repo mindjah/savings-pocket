@@ -33,6 +33,7 @@ interface ModalProps {
 // instead of the inner modal's unmount prematurely re-enabling scroll
 // while the outer one is still open.
 let openModalCount = 0
+let visualViewportUnlock: (() => void) | null = null
 
 // Locks background scroll for as long as any Modal is open — without this,
 // a touch-scroll gesture starting on the (non-scrollable) overlay can
@@ -53,6 +54,22 @@ function useBodyScrollLock() {
       document.body.style.left = '0'
       document.body.style.right = '0'
       document.body.style.overflow = 'hidden'
+      // <html> too — some mobile browsers scroll the root element instead
+      // of (or in addition to) <body>.
+      document.documentElement.style.overflow = 'hidden'
+
+      // Even with the above, iOS Safari can still PAN the visual viewport
+      // itself (a distinct mechanism from document/body scroll) once a
+      // keyboard is involved — a position: fixed overlay tracks that pan,
+      // so it (and the "page" behind it) visually drags around under a
+      // swipe despite scroll being otherwise fully locked. Snapping back
+      // to (0, 0) the instant any such pan is detected cancels it out.
+      const vv = window.visualViewport
+      function snapBack() {
+        if (window.scrollX !== 0 || window.scrollY !== 0) window.scrollTo(0, 0)
+      }
+      vv?.addEventListener('scroll', snapBack)
+      visualViewportUnlock = () => vv?.removeEventListener('scroll', snapBack)
     }
     return () => {
       openModalCount -= 1
@@ -63,6 +80,9 @@ function useBodyScrollLock() {
         document.body.style.left = ''
         document.body.style.right = ''
         document.body.style.overflow = ''
+        document.documentElement.style.overflow = ''
+        visualViewportUnlock?.()
+        visualViewportUnlock = null
         window.scrollTo(0, restoreY)
       }
     }
