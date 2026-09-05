@@ -64,6 +64,11 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
   const [recurring, setRecurring] = useState(false)
   const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>('monthly')
   const [intervalDays, setIntervalDays] = useState('30')
+  // The entry's own date, only while editing — separate from `date` above
+  // (which is this whole view's day, e.g. what "+" was tapped for/which
+  // day's overview is showing) so changing it doesn't also change which
+  // day's list is being browsed.
+  const [editDate, setEditDate] = useState(initialDate)
   // Keep an entry's own currency selectable even if it was later disabled in Settings.
   const currencyOptions = CURRENCIES.filter((c) => spendingCurrencies.includes(c.code) || c.code === currency)
 
@@ -110,6 +115,7 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
     setRecurring(false)
     setRecurrenceType('monthly')
     setIntervalDays('30')
+    setEditDate(initialDate)
     refreshDebitDefault(defaultCurrency, null)
   }
 
@@ -124,7 +130,10 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
     setAmount(String(entry.amount))
     setCurrency(entry.currency)
     setNote(entry.note)
-    setFormOpen(true)
+    setEditDate(entry.date)
+    setRecurring(false)
+    setRecurrenceType('monthly')
+    setIntervalDays('30')
     refreshDebitDefault(entry.currency, entry.debitedFromPocketId ?? null)
   }
 
@@ -141,7 +150,7 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
     const parsed = roundFiat(parseAmount(amount), currency)
     if (categoryId === '' || Number.isNaN(parsed) || parsed <= 0) return
     if (mode === 'auto' && (pocketsForCurrency.length === 0 || debitPocketId === '')) return
-    if (editingId == null && !recurringValid) return
+    if (!recurringValid) return
 
     const categoryName = categoryMap.get(categoryId)?.name ?? 'expense'
     const comment = `Spent on ${categoryName}${note.trim() ? ` — ${note.trim()}` : ''}`
@@ -150,19 +159,52 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
       const id = editingId
       // A future-dated expense isn't charged yet, same as when adding one —
       // null here makes updateAutoDebit reverse any existing debit without
-      // re-applying it.
+      // re-applying it (and, the other way round, an entry that WAS future
+      // and just got moved to today/the past has no existing debit for
+      // updateAutoDebit to adjust, so it applies a fresh one instead — see
+      // its own fallback branch).
       const newPocketId =
-        mode === 'auto' && debitPocketId !== '' && date <= todayIso() ? (debitPocketId as number) : null
-      await db.transaction('rw', db.spendingEntries, db.savingsEntries, db.savingsHistory, async () => {
-        await updateAutoDebit(id, newPocketId, parsed, comment)
-        await db.spendingEntries.update(id, {
-          categoryId,
-          amount: parsed,
-          currency,
-          note: note.trim(),
-          debitedFromPocketId: mode === 'auto' ? (debitPocketId as number) : undefined,
-        })
-      })
+        mode === 'auto' && debitPocketId !== '' && editDate <= todayIso() ? (debitPocketId as number) : null
+      await db.transaction(
+        'rw',
+        db.spendingEntries,
+        db.savingsEntries,
+        db.savingsHistory,
+        db.recurringExpenses,
+        async () => {
+          await updateAutoDebit(id, newPocketId, parsed, comment)
+          await db.spendingEntries.update(id, {
+            categoryId,
+            amount: parsed,
+            currency,
+            note: note.trim(),
+            date: editDate,
+            debitedFromPocketId: mode === 'auto' ? (debitPocketId as number) : undefined,
+          })
+          // Only offered for an entry that wasn't already part of a
+          // recurring series (see the form's own showRecurring check) —
+          // turns this one-off expense into the first occurrence of a new
+          // series, the same as checking "Repeat" while adding one.
+          if (recurring) {
+            const intervalDaysValue = recurrenceType === 'custom' ? Math.round(parsedIntervalDays) : undefined
+            const nextDate =
+              editDate <= todayIso() ? computeNextDate(editDate, recurrenceType, intervalDaysValue) : editDate
+            const recurringId = await db.recurringExpenses.add({
+              categoryId,
+              amount: parsed,
+              currency,
+              note: note.trim(),
+              recurrenceType,
+              intervalDays: intervalDaysValue,
+              nextDate,
+              active: true,
+              debitedFromPocketId: mode === 'auto' && debitPocketId !== '' ? (debitPocketId as number) : undefined,
+              createdAt: new Date().toISOString(),
+            })
+            await db.spendingEntries.update(id, { recurringExpenseId: recurringId })
+          }
+        },
+      )
       toast(t('Spending entry updated'))
       handleCancel()
     } else {
@@ -283,10 +325,21 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
   }
 
   const blockedNoPocket = mode === 'auto' && pocketsForCurrency.length === 0
+  const editingEntry = editingId != null ? entries?.find((e) => e.id === editingId) : undefined
+  // The date this save is actually happening for — the entry's own (editable)
+  // date while editing, or this view's day while adding.
+  const effectiveDate = editingId != null ? editDate : date
+  // Only offered for an entry not already part of a recurring series —
+  // converting one occurrence of an existing series is a different thing
+  // (skipPlanned/the series' own schedule) than turning a one-off expense
+  // into a new series.
+  const showRecurringOption = editingId == null || editingEntry?.recurringExpenseId == null
   // Recurring and future-dated expenses need a note — they're the ones you
   // won't have fresh context on later, so the note is what makes "what was
   // this again?" answerable when it actually shows up in the calendar.
-  const noteRequired = editingId == null && (recurring || date > todayIso())
+  // Applies the same way whether adding or editing — moving an existing
+  // expense's date into the future has the same "won't remember why" gap.
+  const noteRequired = recurring || effectiveDate > todayIso()
   const noteMissing = noteRequired && note.trim().length === 0
 
   // Auto-debit floor check — mirrors Transfer's "can't go below zero" rule
@@ -295,8 +348,7 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
   // the time it fires the balance may no longer look like this). Credits
   // have no floor, same as everywhere else.
   const selectedPocket = pocketsForCurrency.find((p) => p.id === debitPocketId)
-  const editingEntry = editingId != null ? entries?.find((e) => e.id === editingId) : undefined
-  const willDebitNow = mode === 'auto' && debitPocketId !== '' && date <= todayIso()
+  const willDebitNow = mode === 'auto' && debitPocketId !== '' && effectiveDate <= todayIso()
   const parsedForDebitCheck = roundFiat(parseAmount(amount), currency)
   let projectedPocketBalance: number | null = null
   if (willDebitNow && selectedPocket && selectedPocket.kind !== 'credit') {
@@ -315,25 +367,165 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
     roundFiat(parseAmount(amount), currency) > 0 &&
     !blockedNoPocket &&
     (mode !== 'auto' || debitPocketId !== '') &&
-    (editingId != null || recurringValid) &&
+    recurringValid &&
     (!noteRequired || note.trim().length > 0) &&
     !wouldGoNegative
 
-  // Only the open add/edit form counts as "unsaved" — browsing to a
-  // different date via the Date field above it is navigation, not data
-  // entry. Adding: anything typed at all. Editing: the fields have
-  // actually diverged from the entry being edited.
-  const formDirty = formOpen
-    ? editingId != null
-      ? editingEntry != null &&
-        (categoryId !== editingEntry.categoryId ||
-          amount !== String(editingEntry.amount) ||
-          currency !== editingEntry.currency ||
-          note !== editingEntry.note)
-      : categoryId !== '' || amount !== '' || note.trim() !== ''
-    : false
+  // Only the open add form counts as "unsaved" — anything typed at all.
+  const addFormDirty = formOpen && (categoryId !== '' || amount !== '' || note.trim() !== '')
+  // The edit modal's own dirty check: the fields have actually diverged
+  // from the entry being edited (including its date, and turning on the
+  // new "make recurring" option, both editable now).
+  const editFormDirty =
+    editingId != null &&
+    editingEntry != null &&
+    (categoryId !== editingEntry.categoryId ||
+      amount !== String(editingEntry.amount) ||
+      currency !== editingEntry.currency ||
+      note !== editingEntry.note ||
+      editDate !== editingEntry.date ||
+      recurring)
+
+  // Shared between the inline "add" form (below, in the day's own overview)
+  // and the separate "edit" sheet (rendered further down) — the fields
+  // themselves are identical; only whether a date field shows, and whether
+  // "Repeat this expense" is offered, differ between the two.
+  function renderFormFields(dateField: { value: string; onChange: (v: string) => void } | null, showRecurring: boolean) {
+    return (
+      <>
+        {dateField && (
+          <div className="form-group">
+            <label htmlFor="entryDate">{t('Date')}</label>
+            <input id="entryDate" type="date" value={dateField.value} onChange={(e) => dateField.onChange(e.target.value)} />
+          </div>
+        )}
+        <div className="form-group">
+          <label htmlFor="spendCategory">{t('Category')}</label>
+          <select
+            id="spendCategory"
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : '')}
+          >
+            <option value="">{t('Select…')}</option>
+            {activeCategories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="form-row">
+          <div className="form-group">
+            <label htmlFor="spendAmount">{t('Amount')}</label>
+            <input
+              id="spendAmount"
+              type="text"
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0.00"
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="spendCurrency">{t('Currency')}</label>
+            <select id="spendCurrency" value={currency} onChange={(e) => handleCurrencyChange(e.target.value as Currency)}>
+              {currencyOptions.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.symbol} {c.code}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="form-group">
+          <label htmlFor="spendNote">
+            {t('Note')}
+            {noteRequired ? ' *' : ''}
+          </label>
+          <input
+            id="spendNote"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder={noteRequired ? '' : t('Optional')}
+            style={noteMissing ? { borderColor: 'var(--danger-strong)' } : undefined}
+          />
+          {noteMissing && (
+            <span style={{ fontSize: '0.78rem', color: 'var(--danger-strong)' }}>
+              {recurring ? t('Mandatory for recurring') : t('Mandatory')}
+            </span>
+          )}
+        </div>
+
+        {mode === 'auto' &&
+          (blockedNoPocket ? (
+            <div className="muted" style={{ color: 'var(--danger-strong)' }}>
+              {tNoPocketWarning(lang, currency)}
+            </div>
+          ) : (
+            <div className="form-group">
+              <label htmlFor="debitPocket">{t('Debit from')}</label>
+              <select id="debitPocket" value={debitPocketId} onChange={(e) => setDebitPocketId(e.target.value ? Number(e.target.value) : '')}>
+                {pocketsForCurrency.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.location} — {formatMoney(p.amount, p.currency)}
+                  </option>
+                ))}
+              </select>
+              {wouldGoNegative && projectedPocketBalance != null && (
+                <div className="muted" style={{ color: 'var(--danger-strong)' }}>
+                  {selectedPocket?.location} → {formatMoney(projectedPocketBalance, currency)}
+                  {t(" — can't go below zero")}
+                </div>
+              )}
+            </div>
+          ))}
+
+        {showRecurring && (
+          <>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} style={{ width: 'auto' }} />
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                {t('Repeat this expense')}
+                <RecurringIcon size={21} />
+              </span>
+            </label>
+
+            {recurring && (
+              <>
+                <div className="segmented">
+                  <button type="button" className={recurrenceType === 'monthly' ? 'active' : ''} onClick={() => setRecurrenceType('monthly')}>
+                    {t('Monthly')}
+                  </button>
+                  <button type="button" className={recurrenceType === 'annually' ? 'active' : ''} onClick={() => setRecurrenceType('annually')}>
+                    {t('Annually')}
+                  </button>
+                  <button type="button" className={recurrenceType === 'custom' ? 'active' : ''} onClick={() => setRecurrenceType('custom')}>
+                    {t('Every X days')}
+                  </button>
+                </div>
+                {recurrenceType === 'custom' && (
+                  <div className="form-group">
+                    <label htmlFor="intervalDays">{t('Repeats every (days)')}</label>
+                    <input
+                      id="intervalDays"
+                      type="text"
+                      inputMode="numeric"
+                      value={intervalDays}
+                      onChange={(e) => setIntervalDays(e.target.value)}
+                      placeholder={t('e.g. 14')}
+                    />
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
+      </>
+    )
+  }
 
   return (
+    <>
     <Modal
       title={
         <span style={{ display: 'inline-flex', alignItems: 'flex-end', gap: 8 }}>
@@ -342,12 +534,14 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
         </span>
       }
       onClose={onClose}
-      hasUnsavedChanges={formDirty}
+      hasUnsavedChanges={addFormDirty}
     >
-      <div className="form-group">
-        <label htmlFor="spendDate">{t('Date')}</label>
-        <input id="spendDate" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-      </div>
+      {quickAdd && (
+        <div className="form-group">
+          <label htmlFor="spendDate">{t('Date')}</label>
+          <input id="spendDate" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </div>
+      )}
 
       {!quickAdd && (
         <div className="section-title">
@@ -438,174 +632,44 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
             </div>
           )}
 
-          {!formOpen && editingId == null && (
+          {!formOpen && (
             <button className="btn btn-primary btn-block" onClick={() => setFormOpen(true)} type="button">
               {t('+ Add expense')}
             </button>
           )}
 
-          {(formOpen || editingId != null) && (
-          <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div className="form-group">
-              <label htmlFor="spendCategory">{t('Category')}</label>
-              <select
-                id="spendCategory"
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : '')}
-              >
-                <option value="">{t('Select…')}</option>
-                {activeCategories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="spendAmount">{t('Amount')}</label>
-                <input
-                  id="spendAmount"
-                  type="text"
-                  inputMode="decimal"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="spendCurrency">{t('Currency')}</label>
-                <select
-                  id="spendCurrency"
-                  value={currency}
-                  onChange={(e) => handleCurrencyChange(e.target.value as Currency)}
-                >
-                  {currencyOptions.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.symbol} {c.code}
-                    </option>
-                  ))}
-                </select>
+          {formOpen && (
+            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {renderFormFields(null, true)}
+              <div className="modal-actions">
+                <button className="btn" onClick={handleCancel} type="button">
+                  {t('Cancel')}
+                </button>
+                <button className="btn btn-primary" onClick={handleSave} disabled={!valid} type="button">
+                  {t('Add expense')}
+                </button>
               </div>
             </div>
-            <div className="form-group">
-              <label htmlFor="spendNote">
-                {t('Note')}
-                {noteRequired ? ' *' : ''}
-              </label>
-              <input
-                id="spendNote"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder={noteRequired ? '' : t('Optional')}
-                style={noteMissing ? { borderColor: 'var(--danger-strong)' } : undefined}
-              />
-              {noteMissing && (
-                <span style={{ fontSize: '0.78rem', color: 'var(--danger-strong)' }}>
-                  {recurring ? t('Mandatory for recurring') : t('Mandatory')}
-                </span>
-              )}
-            </div>
-
-            {mode === 'auto' && (
-              blockedNoPocket ? (
-                <div className="muted" style={{ color: 'var(--danger-strong)' }}>
-                  {tNoPocketWarning(lang, currency)}
-                </div>
-              ) : (
-                <div className="form-group">
-                  <label htmlFor="debitPocket">{t('Debit from')}</label>
-                  <select
-                    id="debitPocket"
-                    value={debitPocketId}
-                    onChange={(e) => setDebitPocketId(e.target.value ? Number(e.target.value) : '')}
-                  >
-                    {pocketsForCurrency.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.location} — {formatMoney(p.amount, p.currency)}
-                      </option>
-                    ))}
-                  </select>
-                  {wouldGoNegative && projectedPocketBalance != null && (
-                    <div className="muted" style={{ color: 'var(--danger-strong)' }}>
-                      {selectedPocket?.location} → {formatMoney(projectedPocketBalance, currency)}
-                      {t(" — can't go below zero")}
-                    </div>
-                  )}
-                </div>
-              )
-            )}
-
-            {editingId == null && (
-              <>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={recurring}
-                    onChange={(e) => setRecurring(e.target.checked)}
-                    style={{ width: 'auto' }}
-                  />
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                    {t('Repeat this expense')}
-                    <RecurringIcon size={21} />
-                  </span>
-                </label>
-
-                {recurring && (
-                  <>
-                    <div className="segmented">
-                      <button
-                        type="button"
-                        className={recurrenceType === 'monthly' ? 'active' : ''}
-                        onClick={() => setRecurrenceType('monthly')}
-                      >
-                        {t('Monthly')}
-                      </button>
-                      <button
-                        type="button"
-                        className={recurrenceType === 'annually' ? 'active' : ''}
-                        onClick={() => setRecurrenceType('annually')}
-                      >
-                        {t('Annually')}
-                      </button>
-                      <button
-                        type="button"
-                        className={recurrenceType === 'custom' ? 'active' : ''}
-                        onClick={() => setRecurrenceType('custom')}
-                      >
-                        {t('Every X days')}
-                      </button>
-                    </div>
-                    {recurrenceType === 'custom' && (
-                      <div className="form-group">
-                        <label htmlFor="intervalDays">{t('Repeats every (days)')}</label>
-                        <input
-                          id="intervalDays"
-                          type="text"
-                          inputMode="numeric"
-                          value={intervalDays}
-                          onChange={(e) => setIntervalDays(e.target.value)}
-                          placeholder={t('e.g. 14')}
-                        />
-                      </div>
-                    )}
-                  </>
-                )}
-              </>
-            )}
-
-            <div className="modal-actions">
-              <button className="btn" onClick={handleCancel} type="button">
-                {t('Cancel')}
-              </button>
-              <button className="btn btn-primary" onClick={handleSave} disabled={!valid} type="button">
-                {editingId != null ? t('Save') : t('Add expense')}
-              </button>
-            </div>
-          </div>
           )}
         </>
       )}
     </Modal>
+
+    {editingId != null && (
+      <Modal title={t('Edit expense')} onClose={handleCancel} hasUnsavedChanges={editFormDirty}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {renderFormFields({ value: editDate, onChange: setEditDate }, showRecurringOption)}
+          <div className="modal-actions">
+            <button className="btn" onClick={handleCancel} type="button">
+              {t('Cancel')}
+            </button>
+            <button className="btn btn-primary" onClick={handleSave} disabled={!valid} type="button">
+              {t('Save')}
+            </button>
+          </div>
+        </div>
+      </Modal>
+    )}
+    </>
   )
 }
