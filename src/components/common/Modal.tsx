@@ -19,6 +19,13 @@ interface ModalProps {
   // was in the middle of entering — the same protection either way, so
   // tapping outside can't be used to bypass the warning the X button gives.
   hasUnsavedChanges?: boolean
+  // Renders as a centered dialog (all 4 corners rounded, no bottom-sheet
+  // drag grabber, fade+scale entrance) instead of a bottom sheet, even on
+  // mobile — for a lightweight, quick-in-quick-out surface (Search) rather
+  // than one that reads as "a screen of its own" the way every other
+  // sheet does. Purely a styling variant — everything else about Modal
+  // (scroll lock, Escape/tap-outside close) stays identical either way.
+  popup?: boolean
 }
 
 // How many Modals are currently mounted (a bottom sheet opened from within
@@ -45,7 +52,7 @@ function useBodyScrollLock() {
   }, [])
 }
 
-export function Modal({ title, onClose, children, wide, hasUnsavedChanges }: ModalProps) {
+export function Modal({ title, onClose, children, wide, hasUnsavedChanges, popup }: ModalProps) {
   const { t } = useTranslation()
   useBodyScrollLock()
 
@@ -83,9 +90,14 @@ export function Modal({ title, onClose, children, wide, hasUnsavedChanges }: Mod
   // properties (color, font-family) still cascade through it normally.
   return createPortal(
     <div className="boucoup-scope" style={{ display: 'contents' }}>
-      <div className="modal-overlay" onClick={requestClose}>
-        <div className={`modal${wide ? ' modal-wide' : ''}`} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
-          <div className="modal-grabber" aria-hidden="true" />
+      <div className={`modal-overlay${popup ? ' modal-overlay-popup' : ''}`} onClick={requestClose}>
+        <div
+          className={`modal${wide ? ' modal-wide' : ''}${popup ? ' modal-popup' : ''}`}
+          onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+        >
+          {!popup && <div className="modal-grabber" aria-hidden="true" />}
           <div className="modal-header">
             <h2>{title}</h2>
             <button className="btn btn-ghost btn-icon" onClick={requestClose} aria-label={t('Close')}>
