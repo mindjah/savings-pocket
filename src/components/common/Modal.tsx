@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from '../../hooks/useTranslation'
@@ -52,9 +52,116 @@ function useBodyScrollLock() {
   }, [])
 }
 
+// Extra lock used ONLY by the `popup` variant (Search), layered on top of
+// (not replacing) useBodyScrollLock above — bottom sheets never call this,
+// so they're unaffected by any of it. Kept as its own ref-counted pair
+// rather than folded into useBodyScrollLock so the two can never interact.
+//
+// Plain `overflow: hidden` on <body> is well-known to not fully stop
+// touch-scroll/pan on iOS Safari, especially once a focused input's
+// on-screen keyboard is involved — iOS can still pan the VISUAL viewport
+// itself (a mechanism distinct from document/body scroll), dragging a
+// position: fixed popup around along with the page underneath despite the
+// body lock. Also locks <html> (some mobile browsers scroll the root
+// element instead of/in addition to body) and snaps any such pan back to
+// (0, 0) the instant it's detected.
+let openPopupCount = 0
+
+function usePopupHardenedLock(active: boolean) {
+  useEffect(() => {
+    if (!active) return
+    openPopupCount += 1
+    if (openPopupCount === 1) document.documentElement.style.overflow = 'hidden'
+
+    const vv = window.visualViewport
+    function snapBack() {
+      if (window.scrollX !== 0 || window.scrollY !== 0) window.scrollTo(0, 0)
+    }
+    vv?.addEventListener('scroll', snapBack)
+
+    return () => {
+      vv?.removeEventListener('scroll', snapBack)
+      openPopupCount -= 1
+      if (openPopupCount === 0) document.documentElement.style.overflow = ''
+    }
+  }, [active])
+}
+
+// On a browser where the on-screen keyboard doesn't resize the layout
+// viewport on its own, `.modal-overlay`'s `position: fixed; inset: 0`
+// still sizes against the full, un-shrunk layout viewport while only the
+// VISUAL viewport shrinks — so a popup centered within that full box can
+// still land partly behind the keyboard even with its own height capped
+// (see usePopupAvailableHeight). The gap between the two is exactly how
+// much the overlay's own box needs shrunk from the bottom so centering
+// happens against the space actually above the keyboard instead. Used
+// only by the `popup` variant.
+function usePopupKeyboardShiftInset(active: boolean): number {
+  const [inset, setInset] = useState(0)
+
+  useEffect(() => {
+    if (!active) return
+    const vv = window.visualViewport
+    if (!vv) return
+    function update() {
+      const covered = window.innerHeight - vv!.height - vv!.offsetTop
+      setInset(covered > 0 ? covered : 0)
+    }
+    update()
+    vv.addEventListener('resize', update)
+    vv.addEventListener('scroll', update)
+    return () => {
+      vv.removeEventListener('resize', update)
+      vv.removeEventListener('scroll', update)
+    }
+  }, [active])
+
+  return active ? inset : 0
+}
+
+// Whatever the mechanism, the browser's currently visible height (the
+// space actually available above any on-screen keyboard) — visualViewport
+// when it exists, innerHeight otherwise. Compared against a baseline
+// captured when the popup first mounted (before its autofocused input had
+// a chance to open a keyboard) to tell "a keyboard opened" apart from
+// "this browser just doesn't have a small screen to begin with." Used
+// only by the `popup` variant — bottom sheets don't call this either.
+function usePopupAvailableHeight(active: boolean): number | null {
+  const [available, setAvailable] = useState<number | null>(null)
+  const baselineRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (!active) return
+    const vv = window.visualViewport
+    function currentHeight() {
+      return vv ? vv.height : window.innerHeight
+    }
+    if (baselineRef.current == null) baselineRef.current = currentHeight()
+
+    function update() {
+      const height = currentHeight()
+      setAvailable(baselineRef.current! - height > 40 ? height : null)
+    }
+    update()
+    vv?.addEventListener('resize', update)
+    vv?.addEventListener('scroll', update)
+    window.addEventListener('resize', update)
+    return () => {
+      vv?.removeEventListener('resize', update)
+      vv?.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+    }
+  }, [active])
+
+  return active ? available : null
+}
+
 export function Modal({ title, onClose, children, wide, hasUnsavedChanges, popup }: ModalProps) {
   const { t } = useTranslation()
   useBodyScrollLock()
+  usePopupHardenedLock(!!popup)
+  const popupKeyboardShiftInset = usePopupKeyboardShiftInset(!!popup)
+  const popupAvailableHeight = usePopupAvailableHeight(!!popup)
 
   function requestClose() {
     if (hasUnsavedChanges && !confirm(t('You have unsaved changes. Close without saving?'))) return
@@ -90,9 +197,19 @@ export function Modal({ title, onClose, children, wide, hasUnsavedChanges, popup
   // properties (color, font-family) still cascade through it normally.
   return createPortal(
     <div className="boucoup-scope" style={{ display: 'contents' }}>
-      <div className={`modal-overlay${popup ? ' modal-overlay-popup' : ''}`} onClick={requestClose}>
+      <div
+        className={`modal-overlay${popup ? ' modal-overlay-popup' : ''}`}
+        style={popup ? { paddingBottom: popupKeyboardShiftInset } : undefined}
+        onClick={requestClose}
+      >
         <div
           className={`modal${wide ? ' modal-wide' : ''}${popup ? ' modal-popup' : ''}`}
+          // Only for the popup variant: cap the dialog's height to
+          // whatever's actually visible above an on-screen keyboard, once
+          // one is open — a floating dialog reaching down to the keyboard
+          // like a bottom sheet fills to it would look like a mistake, so
+          // this only lowers the ceiling, never forces a fixed height.
+          style={popup && popupAvailableHeight != null ? { maxHeight: popupAvailableHeight * 0.9 } : undefined}
           onClick={(e) => e.stopPropagation()}
           role="dialog"
           aria-modal="true"

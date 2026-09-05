@@ -814,12 +814,37 @@ h1, h2, h3, p {
 .modal-overlay-popup {
   align-items: center;
   padding: 0 20px;
+  /* The backdrop itself has nothing to scroll — without this, a touch
+     drag starting on it can still register as a native pan/scroll
+     gesture on some mobile browsers despite the lock in
+     usePopupHardenedLock. Scoped to the popup-only overlay class, not
+     the shared .modal-overlay, so bottom sheets are unaffected. */
+  touch-action: none;
 }
 
 .modal-popup {
   border-radius: var(--radius-lg);
   width: min(100%, 420px);
   padding: 20px;
+}
+
+/* Popup-only: on a browser where the keyboard doesn't resize the layout
+   viewport on its own, Modal sets .modal-overlay-popup's paddingBottom
+   and .modal-popup's max-height to keep the dialog clear of it (see
+   usePopupKeyboardShiftInset/usePopupAvailableHeight) — animate both so
+   it reads as smoothly recentering instead of visibly snapping once the
+   keyboard finishes opening. Scoped to the popup-only classes, not the
+   shared .modal-overlay/.modal, so bottom sheets are untouched. Gated
+   behind prefers-reduced-motion like every other bit of motion in the
+   app (see theme.css). */
+@media (prefers-reduced-motion: no-preference) {
+  .modal-overlay-popup {
+    transition: padding-bottom 0.25s ease;
+  }
+
+  .modal-popup {
+    transition: max-height 0.25s ease;
+  }
 }
 
 @media (min-width: 640px) {
