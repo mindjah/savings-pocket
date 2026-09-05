@@ -818,7 +818,9 @@ h1, h2, h3, p {
   }
 
   .modal {
-    transition: max-height 0.25s ease;
+    transition:
+      max-height 0.25s ease,
+      height 0.25s ease;
   }
 }
 
