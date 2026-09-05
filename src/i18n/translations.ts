@@ -322,6 +322,12 @@ export const RU: Record<string, string> = {
   'Spending close to budget': 'Расходы близки к бюджету',
   'Spending over the budget': 'Расходы превышают бюджет',
 
+  // Search expenses
+  'Search expenses': 'Поиск расходов',
+  'Search by amount, currency, category, or note': 'Поиск по сумме, валюте, категории или заметке',
+  'Start typing to search your expenses.': 'Начните вводить текст, чтобы найти расходы.',
+  'No matching expenses found.': 'Ничего не найдено.',
+
   // Recurring expenses
   'Manage recurring expenses': 'Управление регулярными расходами',
   'No recurring expenses yet. Turn on "Repeat" when adding an expense to create one.':
@@ -496,6 +502,34 @@ function ruCategoryWordPrepositional(n: number): string {
 export function tLimitsExceededInCategories(lang: Language, n: number): string {
   if (lang === 'ru') return `Лимиты превышены в ${n} ${ruCategoryWordPrepositional(n)}`
   return `Limits exceeded in ${n} categor${n === 1 ? 'y' : 'ies'}`
+}
+
+// Explains what the 4-way budget status color (matching SpendingView's own
+// button) means, shown above the category list in Budget status so it's
+// clear WHY the status is what it is, not just that it is.
+export function tBudgetStatusExplanation(
+  lang: Language,
+  level: 'green' | 'yellow' | 'orange' | 'red',
+  overBudgetCategoryCount: number,
+): string {
+  if (level === 'red') {
+    return lang === 'ru'
+      ? 'Общий бюджет за этот месяц превышен.'
+      : "You've spent over your total budget for this month."
+  }
+  if (level === 'orange') {
+    return lang === 'ru'
+      ? `Общий бюджет пока в норме, но лимит превышен в ${overBudgetCategoryCount} ${ruCategoryWordPrepositional(overBudgetCategoryCount)} — см. ниже.`
+      : `Your total budget is still fine, but the limit's exceeded in ${overBudgetCategoryCount} categor${overBudgetCategoryCount === 1 ? 'y' : 'ies'} — see below.`
+  }
+  if (level === 'yellow') {
+    return lang === 'ru'
+      ? 'Общий бюджет в норме, но в одной из категорий расходы идут быстрее, чем прошла часть месяца — см. ниже, какая именно.'
+      : "You're on budget overall, but spending in one category is pacing faster than the month has elapsed — see below which one."
+  }
+  return lang === 'ru'
+    ? 'Расходы соответствуют бюджету и темпу трат по категориям.'
+    : "You're on budget, and pace looks fine across your categories."
 }
 
 export function tSpentConvertedFrom(lang: Language, amountText: string): string {
