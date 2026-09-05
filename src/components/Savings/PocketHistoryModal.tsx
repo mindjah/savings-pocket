@@ -3,7 +3,6 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import type { Currency } from '../../db/types'
 import { formatDateTime, formatMoney } from '../../lib/format'
-import { currentDebitedAmount } from '../../lib/autoDebit'
 import { Modal } from '../common/Modal'
 import { useTranslation } from '../../hooks/useTranslation'
 
@@ -45,23 +44,16 @@ export function PocketHistoryModal({ entryId, currency, onClose }: Props) {
       ) : (
         <div className="history-list">
           {rows.map((h) => {
-            const edited = (h.edits?.length ?? 0) > 0
-            // For a 'manual' row (never edited), or a 'spending' row that
-            // was never edited either, previousAmount/newAmount are still
-            // exactly what they always were: the pocket's real balance
-            // before/after this one operation — show that pocket-balance
-            // pair directly, same as before edits existed as a concept.
-            //
-            // Once a spending row HAS been edited, previousAmount/newAmount
-            // stay frozen at creation (see SavingsHistory's own comment) —
-            // showing them here would only be the ORIGINAL amount, not
-            // what this expense currently costs. Show the expense's own
-            // amount transition (was €10, now €90) instead, which is both
-            // always accurate (independent of any other activity on this
-            // pocket in between edits) and matches what changed.
-            const originalAmount = h.previousAmount - h.newAmount
-            const currentAmount = currentDebitedAmount(h)
-            const delta = edited ? -currentAmount : h.newAmount - h.previousAmount
+            // previousAmount/newAmount are always the pocket's real balance
+            // just before/after this row's OWN operation (the deposit, or
+            // the expense as first created) — frozen at that moment forever
+            // and never rewritten by a later edit (see SavingsHistory's own
+            // comment), so this stays accurate no matter what else happens
+            // to the pocket afterward. A later edit's effect on the EXPENSE
+            // itself (not the pocket) is shown separately in the trail
+            // below — showing it here too would just repeat the same
+            // "10 → 90" the trail already shows.
+            const delta = h.newAmount - h.previousAmount
             return (
               <div className={`history-item${h.reversed ? ' history-item-reversed' : ''}`} key={h.id}>
                 <div className="entry-top">
@@ -72,9 +64,7 @@ export function PocketHistoryModal({ entryId, currency, onClose }: Props) {
                   </span>
                 </div>
                 <div className="muted">
-                  {edited
-                    ? `${formatMoney(originalAmount, currency)} → ${formatMoney(currentAmount, currency)}`
-                    : `${formatMoney(h.previousAmount, currency)} → ${formatMoney(h.newAmount, currency)}`}
+                  {formatMoney(h.previousAmount, currency)} → {formatMoney(h.newAmount, currency)}
                 </div>
                 {h.comment && <div className="entry-note">{h.comment}</div>}
                 {h.reversed && (
