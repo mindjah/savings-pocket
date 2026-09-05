@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from '../../hooks/useTranslation'
@@ -64,13 +64,20 @@ function useBodyScrollLock() {
   }, [])
 }
 
-// On mobile, opening the on-screen keyboard shrinks the VISUAL viewport but
-// not the LAYOUT viewport that `.modal-overlay`'s `position: fixed; inset:
-// 0` sizes itself against — so a focused input near the top of a bottom
-// sheet can end up sitting underneath the keyboard instead of above it.
-// Tracks how much of the layout viewport is currently covered by the
-// keyboard (0 when it's closed), via the VisualViewport API.
-function useKeyboardInset(): number {
+// On a browser where the on-screen keyboard doesn't resize the layout
+// viewport on its own (`.modal-overlay`'s `position: fixed; inset: 0`
+// still sizes against the full, un-shrunk layout viewport while only the
+// VISUAL viewport shrinks), the gap between the two is exactly how much
+// the sheet needs shifted up to clear the keyboard.
+//
+// On a browser that DOES resize the layout viewport for the keyboard
+// (see index.html's `interactive-widget=resizes-content`), that gap is
+// already ~0 — `.modal-overlay` is naturally sized correctly with no
+// shift needed. But the sheet's own height still separately shrinks to
+// fit its content either way, which is the OTHER half of this bug (see
+// forcedHeight below) — so this being ~0 there doesn't mean nothing needs
+// fixing, just that no shift does.
+function useKeyboardShiftInset(): number {
   const [inset, setInset] = useState(0)
 
   useEffect(() => {
@@ -92,10 +99,50 @@ function useKeyboardInset(): number {
   return inset
 }
 
+// Whatever the mechanism, the browser's currently visible height (the
+// space actually available above any on-screen keyboard) — visualViewport
+// when it exists, innerHeight otherwise. Compared against a baseline
+// captured when the sheet first mounted (before its autofocused input had
+// a chance to open a keyboard) to tell "a keyboard opened" apart from
+// "this browser just doesn't have a small screen to begin with."
+function useAvailableHeight(): number | null {
+  const [available, setAvailable] = useState<number | null>(null)
+  const baselineRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    const vv = window.visualViewport
+    function currentHeight() {
+      return vv ? vv.height : window.innerHeight
+    }
+    if (baselineRef.current == null) baselineRef.current = currentHeight()
+
+    function update() {
+      const height = currentHeight()
+      // A meaningful shrink vs. this sheet's own baseline is treated as
+      // "something (a keyboard) is now covering part of the screen" —
+      // small fluctuations (browser chrome show/hide) stay under this and
+      // don't trigger it.
+      setAvailable(baselineRef.current! - height > 40 ? height : null)
+    }
+    update()
+    vv?.addEventListener('resize', update)
+    vv?.addEventListener('scroll', update)
+    window.addEventListener('resize', update)
+    return () => {
+      vv?.removeEventListener('resize', update)
+      vv?.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+    }
+  }, [])
+
+  return available
+}
+
 export function Modal({ title, onClose, children, wide, hasUnsavedChanges }: ModalProps) {
   const { t } = useTranslation()
   useBodyScrollLock()
-  const keyboardInset = useKeyboardInset()
+  const keyboardShiftInset = useKeyboardShiftInset()
+  const availableHeight = useAvailableHeight()
 
   function requestClose() {
     if (hasUnsavedChanges && !confirm(t('You have unsaved changes. Close without saving?'))) return
@@ -131,7 +178,7 @@ export function Modal({ title, onClose, children, wide, hasUnsavedChanges }: Mod
   // properties (color, font-family) still cascade through it normally.
   return createPortal(
     <div className="boucoup-scope" style={{ display: 'contents' }}>
-      <div className="modal-overlay" style={{ paddingBottom: keyboardInset }} onClick={requestClose}>
+      <div className="modal-overlay" style={{ paddingBottom: keyboardShiftInset }} onClick={requestClose}>
         <div
           className={`modal${wide ? ' modal-wide' : ''}`}
           // With the keyboard open, the sheet needs to actually FILL the
@@ -140,8 +187,13 @@ export function Modal({ title, onClose, children, wide, hasUnsavedChanges }: Mod
           // its own content, leaving a gap between its (short) bottom edge
           // and the keyboard where the overlay's translucent tint shows
           // the app underneath instead of the sheet's own background. A
-          // forced height makes that gap part of the sheet itself.
-          style={keyboardInset > 0 ? { height: `calc(90dvh - ${keyboardInset}px)`, maxHeight: `calc(90dvh - ${keyboardInset}px)` } : undefined}
+          // forced height makes that gap part of the sheet itself. Sized
+          // from availableHeight (the actual current visible height), NOT
+          // keyboardShiftInset — a browser that resizes the layout
+          // viewport for the keyboard on its own needs no shift (that's
+          // already ~0) but the sheet's content-based shrink is the same
+          // bug either way.
+          style={availableHeight != null ? { height: availableHeight * 0.9, maxHeight: availableHeight * 0.9 } : undefined}
           onClick={(e) => e.stopPropagation()}
           role="dialog"
           aria-modal="true"
