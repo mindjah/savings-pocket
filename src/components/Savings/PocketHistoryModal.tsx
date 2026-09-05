@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import type { Currency } from '../../db/types'
 import { formatDateTime, formatMoney } from '../../lib/format'
+import { currentDebitedAmount } from '../../lib/autoDebit'
 import { Modal } from '../common/Modal'
 import { useTranslation } from '../../hooks/useTranslation'
 
@@ -44,16 +45,20 @@ export function PocketHistoryModal({ entryId, currency, onClose }: Props) {
       ) : (
         <div className="history-list">
           {rows.map((h) => {
-            // previousAmount/newAmount are always the pocket's real balance
-            // just before/after this row's OWN operation (the deposit, or
-            // the expense as first created) — frozen at that moment forever
-            // and never rewritten by a later edit (see SavingsHistory's own
-            // comment), so this stays accurate no matter what else happens
-            // to the pocket afterward. A later edit's effect on the EXPENSE
-            // itself (not the pocket) is shown separately in the trail
-            // below — showing it here too would just repeat the same
-            // "10 → 90" the trail already shows.
-            const delta = h.newAmount - h.previousAmount
+            // previousAmount is the pocket's real balance just before this
+            // row's own operation ever happened — frozen forever (see
+            // SavingsHistory's own comment), a stable baseline to measure
+            // against regardless of later edits. The "after" side, for a
+            // 'spending' row, is recalculated from that same baseline using
+            // the expense's CURRENT amount (post-edit) rather than the
+            // stored newAmount, which only ever reflects what it was at
+            // creation — so the headline always shows what this expense
+            // currently does to the pocket, not a stale original. (A
+            // 'manual' row is never edited, so this is a no-op for it —
+            // newAmount already IS current.)
+            const currentAmount = currentDebitedAmount(h)
+            const displayedNewAmount = h.previousAmount - currentAmount
+            const delta = displayedNewAmount - h.previousAmount
             return (
               <div className={`history-item${h.reversed ? ' history-item-reversed' : ''}`} key={h.id}>
                 <div className="entry-top">
@@ -64,7 +69,7 @@ export function PocketHistoryModal({ entryId, currency, onClose }: Props) {
                   </span>
                 </div>
                 <div className="muted">
-                  {formatMoney(h.previousAmount, currency)} → {formatMoney(h.newAmount, currency)}
+                  {formatMoney(h.previousAmount, currency)} → {formatMoney(displayedNewAmount, currency)}
                 </div>
                 {h.comment && <div className="entry-note">{h.comment}</div>}
                 {h.reversed && (
