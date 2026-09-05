@@ -33,14 +33,33 @@ let openModalCount = 0
 // a touch-scroll gesture starting on the (non-scrollable) overlay can
 // still chain through to the page underneath on mobile, letting you scroll
 // the screen behind a bottom sheet that's supposed to be the only
-// interactive thing on screen.
+// interactive thing on screen. Plain `overflow: hidden` on <body> alone is
+// well-known to NOT stop this on iOS Safari (it still allows the page to
+// pan/rubber-band, especially once a focused input's on-screen keyboard is
+// involved) — pinning the body in place with position: fixed is the
+// standard, more robust fix, restoring the exact scroll position on close.
 function useBodyScrollLock() {
   useEffect(() => {
     openModalCount += 1
-    if (openModalCount === 1) document.body.style.overflow = 'hidden'
+    if (openModalCount === 1) {
+      const scrollY = window.scrollY
+      document.body.style.position = 'fixed'
+      document.body.style.top = `-${scrollY}px`
+      document.body.style.left = '0'
+      document.body.style.right = '0'
+      document.body.style.overflow = 'hidden'
+    }
     return () => {
       openModalCount -= 1
-      if (openModalCount === 0) document.body.style.overflow = ''
+      if (openModalCount === 0) {
+        const restoreY = -parseInt(document.body.style.top || '0', 10)
+        document.body.style.position = ''
+        document.body.style.top = ''
+        document.body.style.left = ''
+        document.body.style.right = ''
+        document.body.style.overflow = ''
+        window.scrollTo(0, restoreY)
+      }
     }
   }, [])
 }
