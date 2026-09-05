@@ -140,6 +140,7 @@ export const RU: Record<string, string> = {
   'No manual changes logged yet.': 'Ручных изменений пока нет.',
   'No spending debited from this pocket yet.': 'Списаний расходов с этой копилки пока нет.',
   'Deleted — this spending no longer counts': 'Удалено — этот расход больше не учитывается',
+  Edited: 'Изменено',
   'Amount history': 'История сумм',
   'No changes logged yet.': 'Изменений пока нет.',
 

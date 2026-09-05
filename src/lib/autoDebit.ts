@@ -57,11 +57,14 @@ export async function applyAutoDebit(pocketId: number, amount: number, spendingE
 // Applies an edited spending entry's auto-debit. When the debit still lands
 // on the same pocket, this adjusts that pocket's balance by the delta
 // between the old and new amounts and edits the SAME savingsHistory row in
-// place (new amount + comment, but its original date is untouched) — so an
-// edited expense keeps showing as one note in the pocket's history instead
-// of a new one dated at the edit time. Falls back to reverse-then-(re)apply
-// (which does create/remove a row) when there's no existing row to adjust,
-// or the debit is moving to a different pocket, or being turned off.
+// place — but rather than silently overwriting its amount, it appends a
+// step to that row's edit trail (date + before/after), so the pocket's
+// history still shows one note for this expense while revealing exactly
+// how it changed over time ("was X, edited to Y, edited to Z"), not just
+// its latest value. Falls back to reverse-then-(re)apply (which does
+// create/remove a row, with no trail — it's a different pocket's history)
+// when there's no existing row to adjust, the debit is moving to a
+// different pocket, or it's being turned off.
 export async function updateAutoDebit(
   spendingEntryId: number,
   newPocketId: number | null,
@@ -80,13 +83,22 @@ export async function updateAutoDebit(
 
   const pocket = await db.savingsEntries.get(history.entryId)
   if (!pocket) return
+  const updatedNewAmount = roundFiat(history.previousAmount - newAmount, pocket.currency)
+  // Nothing actually changed (e.g. the form was saved without editing
+  // amount or note) — skip logging a no-op edit step.
+  if (updatedNewAmount === history.newAmount && newComment === history.comment) return
+
   const oldDebitedAmount = history.previousAmount - history.newAmount
   await db.savingsEntries.update(history.entryId, {
     amount: roundFiat(pocket.amount + oldDebitedAmount - newAmount, pocket.currency),
     updatedAt: new Date().toISOString(),
   })
   await db.savingsHistory.update(history.id!, {
-    newAmount: roundFiat(history.previousAmount - newAmount, pocket.currency),
+    newAmount: updatedNewAmount,
     comment: newComment,
+    edits: [
+      ...(history.edits ?? []),
+      { date: new Date().toISOString(), previousAmount: history.newAmount, newAmount: updatedNewAmount, comment: newComment },
+    ],
   })
 }
