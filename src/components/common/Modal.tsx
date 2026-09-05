@@ -134,13 +134,14 @@ export function Modal({ title, onClose, children, wide, hasUnsavedChanges }: Mod
       <div className="modal-overlay" style={{ paddingBottom: keyboardInset }} onClick={requestClose}>
         <div
           className={`modal${wide ? ' modal-wide' : ''}`}
-          // The sheet's own max-height (90dvh, from CSS) is measured
-          // against the full layout viewport — with the keyboard open and
-          // the overlay's own box already shrunk via paddingBottom above,
-          // the sheet still needs its OWN ceiling lowered too, or it'll
-          // simply overflow upward past the now-smaller visible area
-          // instead of scrolling internally.
-          style={keyboardInset > 0 ? { maxHeight: `calc(90dvh - ${keyboardInset}px)` } : undefined}
+          // With the keyboard open, the sheet needs to actually FILL the
+          // space above it (height, not just a lowered max-height ceiling)
+          // — capping only the ceiling still lets the sheet shrink to fit
+          // its own content, leaving a gap between its (short) bottom edge
+          // and the keyboard where the overlay's translucent tint shows
+          // the app underneath instead of the sheet's own background. A
+          // forced height makes that gap part of the sheet itself.
+          style={keyboardInset > 0 ? { height: `calc(90dvh - ${keyboardInset}px)`, maxHeight: `calc(90dvh - ${keyboardInset}px)` } : undefined}
           onClick={(e) => e.stopPropagation()}
           role="dialog"
           aria-modal="true"
