@@ -805,6 +805,23 @@ h1, h2, h3, p {
   gap: 14px;
 }
 
+/* On a browser where the on-screen keyboard doesn't resize the layout
+   viewport on its own, Modal sets .modal-overlay's paddingBottom and
+   .modal's max-height to keep the sheet above it (see useKeyboardInset) —
+   animate both so the sheet reads as smoothly expanding into the
+   freed-up space instead of visibly snapping/jumping once the keyboard
+   finishes opening. Gated behind prefers-reduced-motion like every other
+   bit of motion in the app (see theme.css). */
+@media (prefers-reduced-motion: no-preference) {
+  .modal-overlay {
+    transition: padding-bottom 0.25s ease;
+  }
+
+  .modal {
+    transition: max-height 0.25s ease;
+  }
+}
+
 @media (min-width: 640px) {
   .modal-overlay {
     align-items: center;
