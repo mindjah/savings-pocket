@@ -596,7 +596,9 @@ export function BudgetStatusModal({ onClose, monthPrefix: monthPrefixProp }: Pro
                     fontSize: '0.85rem',
                   }}
                 >
-                  <StatusIcon size={14} />
+                  <span style={{ flexShrink: 0 }}>
+                    <StatusIcon size={14} />
+                  </span>
                   <span>{tBudgetStatusExplanation(lang, cardLevel, budgetStatus!.overBudgetCategoryCount)}</span>
                 </div>
               )
