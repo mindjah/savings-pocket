@@ -205,6 +205,7 @@ export const RU: Record<string, string> = {
   'Debit from': 'Списать с',
   '+ Add expense': '+ Добавить расход',
   'Add expense': 'Добавить расход',
+  'Edit expense': 'Изменить расход',
   'Repeat this expense': 'Повторять этот расход',
   Monthly: 'Ежемесячно',
   Annually: 'Ежегодно',
