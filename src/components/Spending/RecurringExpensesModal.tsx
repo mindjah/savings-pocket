@@ -180,9 +180,9 @@ export function RecurringExpensesModal({ onClose }: Props) {
                     <span className="swatch" style={{ background: cat?.color ?? '#888' }} />
                     <div style={{ flex: 1 }}>
                       <div>
-                        {cat?.name ?? t('Unknown')} — {formatMoney(r.amount, r.currency)}
+                        {r.note || t('Unknown')} — {formatMoney(r.amount, r.currency)}
                       </div>
-                      {r.note && <div style={{ fontSize: '0.82rem' }}>{r.note}</div>}
+                      <div style={{ fontSize: '0.82rem' }}>{cat?.name ?? t('Unknown')}</div>
                       <div className="muted">
                         {recurrenceLabel(r.recurrenceType, r.intervalDays, lang)} · {t('Next:')}{' '}
                         {formatDate(recurringPreviewDates(r, 1)[0], lang)}
