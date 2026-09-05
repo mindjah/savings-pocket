@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from '../../hooks/useTranslation'
@@ -45,9 +45,38 @@ function useBodyScrollLock() {
   }, [])
 }
 
+// On mobile, opening the on-screen keyboard shrinks the VISUAL viewport but
+// not the LAYOUT viewport that `.modal-overlay`'s `position: fixed; inset:
+// 0` sizes itself against — so a focused input near the top of a bottom
+// sheet can end up sitting underneath the keyboard instead of above it.
+// Tracks how much of the layout viewport is currently covered by the
+// keyboard (0 when it's closed), via the VisualViewport API.
+function useKeyboardInset(): number {
+  const [inset, setInset] = useState(0)
+
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    function update() {
+      const covered = window.innerHeight - vv!.height - vv!.offsetTop
+      setInset(covered > 0 ? covered : 0)
+    }
+    update()
+    vv.addEventListener('resize', update)
+    vv.addEventListener('scroll', update)
+    return () => {
+      vv.removeEventListener('resize', update)
+      vv.removeEventListener('scroll', update)
+    }
+  }, [])
+
+  return inset
+}
+
 export function Modal({ title, onClose, children, wide, hasUnsavedChanges }: ModalProps) {
   const { t } = useTranslation()
   useBodyScrollLock()
+  const keyboardInset = useKeyboardInset()
 
   function requestClose() {
     if (hasUnsavedChanges && !confirm(t('You have unsaved changes. Close without saving?'))) return
@@ -83,8 +112,20 @@ export function Modal({ title, onClose, children, wide, hasUnsavedChanges }: Mod
   // properties (color, font-family) still cascade through it normally.
   return createPortal(
     <div className="boucoup-scope" style={{ display: 'contents' }}>
-      <div className="modal-overlay" onClick={requestClose}>
-        <div className={`modal${wide ? ' modal-wide' : ''}`} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+      <div className="modal-overlay" style={{ paddingBottom: keyboardInset }} onClick={requestClose}>
+        <div
+          className={`modal${wide ? ' modal-wide' : ''}`}
+          // The sheet's own max-height (90dvh, from CSS) is measured
+          // against the full layout viewport — with the keyboard open and
+          // the overlay's own box already shrunk via paddingBottom above,
+          // the sheet still needs its OWN ceiling lowered too, or it'll
+          // simply overflow upward past the now-smaller visible area
+          // instead of scrolling internally.
+          style={keyboardInset > 0 ? { maxHeight: `calc(90dvh - ${keyboardInset}px)` } : undefined}
+          onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+        >
           <div className="modal-grabber" aria-hidden="true" />
           <div className="modal-header">
             <h2>{title}</h2>
