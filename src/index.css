@@ -805,6 +805,23 @@ h1, h2, h3, p {
   gap: 14px;
 }
 
+/* A Modal rendered with `popup` — a centered dialog rather than a bottom
+   sheet, even on mobile (e.g. Search: quick in, quick out, not "a screen
+   of its own"). align-items: center on the overlay does the centering;
+   this just gives the sheet itself a comfortable fixed-ish width instead
+   of spanning edge-to-edge, and rounds all 4 corners instead of only the
+   top 2. */
+.modal-overlay-popup {
+  align-items: center;
+  padding: 0 20px;
+}
+
+.modal-popup {
+  border-radius: var(--radius-lg);
+  width: min(100%, 420px);
+  padding: 20px;
+}
+
 @media (min-width: 640px) {
   .modal-overlay {
     align-items: center;

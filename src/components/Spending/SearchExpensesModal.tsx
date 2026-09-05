@@ -35,7 +35,7 @@ export function SearchExpensesModal({ onClose }: Props) {
   }, [entries, categoryMap, query])
 
   return (
-    <Modal title={t('Search expenses')} onClose={onClose}>
+    <Modal title={t('Search expenses')} onClose={onClose} popup>
       <div className="form-group" style={{ marginBottom: 16 }}>
         <input
           type="text"
