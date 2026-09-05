@@ -788,11 +788,6 @@ h1, h2, h3, p {
   justify-content: center;
   z-index: 30;
   padding: 0;
-  /* The backdrop itself has nothing to scroll — without this, a touch
-     drag starting on it can still register as a native pan/scroll
-     gesture on some mobile browsers despite the body/html lock in
-     Modal's useBodyScrollLock. */
-  touch-action: none;
 }
 
 .modal {
@@ -808,42 +803,6 @@ h1, h2, h3, p {
   display: flex;
   flex-direction: column;
   gap: 14px;
-}
-
-/* A Modal rendered with `popup` — a centered dialog rather than a bottom
-   sheet, even on mobile (e.g. Search: quick in, quick out, not "a screen
-   of its own"). align-items: center on the overlay does the centering;
-   this just gives the sheet itself a comfortable fixed-ish width instead
-   of spanning edge-to-edge, and rounds all 4 corners instead of only the
-   top 2. */
-.modal-overlay-popup {
-  align-items: center;
-  padding: 0 20px;
-}
-
-.modal-popup {
-  border-radius: var(--radius-lg);
-  width: min(100%, 420px);
-  padding: 20px;
-}
-
-/* On a browser where the on-screen keyboard doesn't resize the layout
-   viewport on its own, Modal sets .modal-overlay's paddingBottom and
-   .modal's max-height to keep the sheet above it (see useKeyboardInset) —
-   animate both so the sheet reads as smoothly expanding into the
-   freed-up space instead of visibly snapping/jumping once the keyboard
-   finishes opening. Gated behind prefers-reduced-motion like every other
-   bit of motion in the app (see theme.css). */
-@media (prefers-reduced-motion: no-preference) {
-  .modal-overlay {
-    transition: padding-bottom 0.25s ease;
-  }
-
-  .modal {
-    transition:
-      max-height 0.25s ease,
-      height 0.25s ease;
-  }
 }
 
 @media (min-width: 640px) {
