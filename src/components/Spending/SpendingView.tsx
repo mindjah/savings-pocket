@@ -15,6 +15,7 @@ import { AnalyticsModal } from './AnalyticsModal'
 import { PlanningModal } from './PlanningModal'
 import { BudgetModal } from './BudgetModal'
 import { BudgetStatusModal } from './BudgetStatusModal'
+import { SearchExpensesModal } from './SearchExpensesModal'
 import { HeaderPortal, HeaderTitlePortal } from '../common/HeaderPortal'
 import { ManageIcon } from '../common/ManageIcon'
 import { CheckIcon } from '../common/CheckIcon'
@@ -23,6 +24,7 @@ import { XMarkIcon } from '../common/XMarkIcon'
 import { useTranslation } from '../../hooks/useTranslation'
 import { tLimitsExceededInCategories } from '../../i18n/translations'
 import { EntryBadges } from '../common/EntryBadges'
+import { SearchIcon } from '../common/SearchIcon'
 import { recurringPreviewDates } from '../../lib/recurring'
 import { budgetCardLevel, computeBudgetStatus } from '../../lib/planning'
 
@@ -54,6 +56,7 @@ export function SpendingView({ resetKey }: Props) {
   const [showPlanning, setShowPlanning] = useState(false)
   const [managingBudget, setManagingBudget] = useState(false)
   const [showBudgetStatus, setShowBudgetStatus] = useState(false)
+  const [showSearch, setShowSearch] = useState(false)
   const [categoryModalFor, setCategoryModalFor] = useState<{ categoryId: number; currency: Currency } | null>(null)
   const [totalsMode, setTotalsMode] = useState<'spent' | 'scheduled'>('spent')
 
@@ -337,60 +340,74 @@ export function SpendingView({ resetKey }: Props) {
         ))}
       </div>
 
-      {budgetStatus && (() => {
-        const level = budgetCardLevel(budgetStatus)
-        const color =
-          level === 'red'
-            ? 'var(--danger-strong)'
-            : level === 'orange'
-              ? 'var(--warning-strong)'
-              : level === 'yellow'
-                ? 'var(--warning)'
-                : 'var(--accent)'
-        const text =
-          level === 'red'
-            ? t('Spending over the budget')
-            : level === 'orange'
-              ? tLimitsExceededInCategories(lang, budgetStatus.overBudgetCategoryCount)
-              : level === 'yellow'
-                ? t('Spending close to budget')
-                : t('Spending according to budget')
-        const StatusIcon = level === 'red' ? XMarkIcon : level === 'orange' || level === 'yellow' ? WarningIcon : CheckIcon
-        return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button
-            className="btn-ghost budget-status-text"
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: 0,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 5,
-              width: 'fit-content',
-              fontSize: '0.82rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              color,
-            }}
-            onClick={() => setShowBudgetStatus(true)}
-            type="button"
-          >
-            <StatusIcon size={13} />
-            {text}
-          </button>
-          <button
-            className="btn btn-ghost btn-icon"
-            onClick={() => setShowBudgetStatus(true)}
-            aria-label={t('Budget status')}
-            type="button"
-            style={{ padding: 2, fontSize: '0.9rem', flexShrink: 0 }}
-          >
-            ⓘ
-          </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+          {budgetStatus &&
+            (() => {
+              const level = budgetCardLevel(budgetStatus)
+              const color =
+                level === 'red'
+                  ? 'var(--danger-strong)'
+                  : level === 'orange'
+                    ? 'var(--warning-strong)'
+                    : level === 'yellow'
+                      ? 'var(--warning)'
+                      : 'var(--accent)'
+              const text =
+                level === 'red'
+                  ? t('Spending over the budget')
+                  : level === 'orange'
+                    ? tLimitsExceededInCategories(lang, budgetStatus.overBudgetCategoryCount)
+                    : level === 'yellow'
+                      ? t('Spending close to budget')
+                      : t('Spending according to budget')
+              const StatusIcon = level === 'red' ? XMarkIcon : level === 'orange' || level === 'yellow' ? WarningIcon : CheckIcon
+              return (
+                <>
+                  <button
+                    className="btn-ghost budget-status-text"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      width: 'fit-content',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      color,
+                    }}
+                    onClick={() => setShowBudgetStatus(true)}
+                    type="button"
+                  >
+                    <StatusIcon size={13} />
+                    {text}
+                  </button>
+                  <button
+                    className="btn btn-ghost btn-icon"
+                    onClick={() => setShowBudgetStatus(true)}
+                    aria-label={t('Budget status')}
+                    type="button"
+                    style={{ padding: 2, fontSize: '0.9rem', flexShrink: 0, color }}
+                  >
+                    ⓘ
+                  </button>
+                </>
+              )
+            })()}
         </div>
-        )
-      })()}
+        <button
+          className="btn btn-ghost btn-icon"
+          onClick={() => setShowSearch(true)}
+          aria-label={t('Search expenses')}
+          type="button"
+          style={{ padding: 2, flexShrink: 0 }}
+        >
+          <SearchIcon size={18} />
+        </button>
+      </div>
 
       <div className="card">
         <div className="calendar-header">
@@ -547,6 +564,7 @@ export function SpendingView({ resetKey }: Props) {
       {managingBudget && <BudgetModal onClose={() => setManagingBudget(false)} />}
 
       {showBudgetStatus && <BudgetStatusModal monthPrefix={monthPrefix} onClose={() => setShowBudgetStatus(false)} />}
+      {showSearch && <SearchExpensesModal onClose={() => setShowSearch(false)} />}
 
       {categoryModalFor && (
         <CategoryExpensesModal

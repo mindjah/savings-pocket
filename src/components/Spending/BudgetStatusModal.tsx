@@ -4,14 +4,17 @@ import { db } from '../../db/db'
 import type { Currency } from '../../db/types'
 import { formatMoney, pad2, todayIso } from '../../lib/format'
 import { MONTH_NAMES } from '../../lib/constants'
-import { categoryPaceLevel, monthProgress } from '../../lib/planning'
-import type { BudgetStatusLevel } from '../../lib/planning'
+import { budgetCardLevel, categoryPaceLevel, computeBudgetStatus, monthProgress } from '../../lib/planning'
+import type { BudgetCardLevel, BudgetStatusLevel } from '../../lib/planning'
 import { convertFiat } from '../../lib/fxRates'
 import { useFiatRates } from '../../hooks/useFiatRates'
 import { Modal } from '../common/Modal'
 import { useTranslation } from '../../hooks/useTranslation'
-import { tSpentConvertedFrom, tOverspentButOverallFine } from '../../i18n/translations'
+import { tSpentConvertedFrom, tOverspentButOverallFine, tBudgetStatusExplanation } from '../../i18n/translations'
 import { BudgetIcon } from '../common/BudgetIcon'
+import { CheckIcon } from '../common/CheckIcon'
+import { WarningIcon } from '../common/WarningIcon'
+import { XMarkIcon } from '../common/XMarkIcon'
 import { CategoryExpensesModal } from './CategoryExpensesModal'
 
 interface Props {
@@ -25,6 +28,15 @@ interface Props {
 const LEVEL_COLOR: Record<BudgetStatusLevel, string> = {
   green: 'var(--accent)',
   yellow: 'var(--warning)',
+  red: 'var(--danger-strong)',
+}
+
+// Same 4-way mapping as SpendingView's own status button, so the
+// explanation shown here always reads as the same color as that button.
+const CARD_LEVEL_COLOR: Record<BudgetCardLevel, string> = {
+  green: 'var(--accent)',
+  yellow: 'var(--warning)',
+  orange: 'var(--warning-strong)',
   red: 'var(--danger-strong)',
 }
 
@@ -516,6 +528,16 @@ export function BudgetStatusModal({ onClose, monthPrefix: monthPrefixProp }: Pro
     return Array.from(byCurrency.entries()).map(([currency, amount]) => ({ currency, amount }))
   }, [currencySummaries, otherRows])
 
+  // The same 4-way headline status SpendingView's own button already shows
+  // (its "i" icon and this modal should always agree on what color/text the
+  // current status is), recomputed here from the exact same inputs already
+  // gathered above for the per-category rows/donuts.
+  const budgetStatus = useMemo(
+    () => computeBudgetStatus(budgets, totalBudgetLimit, spendingThisMonth, dayOfMonth, daysInMonth, fx),
+    [budgets, totalBudgetLimit, spendingThisMonth, dayOfMonth, daysInMonth, fx],
+  )
+  const cardLevel = budgetStatus ? budgetCardLevel(budgetStatus) : null
+
   const hasAnything = budgetedRows.length > 0 || otherRows.length > 0
   const donutSize = currencySummaries.length > 1 ? 148 : 200
 
@@ -559,6 +581,27 @@ export function BudgetStatusModal({ onClose, monthPrefix: monthPrefixProp }: Pro
         </div>
       ) : (
         <>
+          {cardLevel &&
+            (() => {
+              const StatusIcon = cardLevel === 'red' ? XMarkIcon : cardLevel === 'orange' || cardLevel === 'yellow' ? WarningIcon : CheckIcon
+              return (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 6,
+                    marginBottom: 16,
+                    color: CARD_LEVEL_COLOR[cardLevel],
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  <StatusIcon size={14} />
+                  <span>{tBudgetStatusExplanation(lang, cardLevel, budgetStatus!.overBudgetCategoryCount)}</span>
+                </div>
+              )
+            })()}
+
           {budgetedRows.length > 0 && (
             <div className="list-frame">
               {budgetedRows.map((r) => {
