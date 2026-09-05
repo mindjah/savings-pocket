@@ -18,6 +18,17 @@ export interface SavingsEntry {
   purpose?: PocketPurpose
 }
 
+// One step in a savingsHistory row's edit trail — recorded when the
+// spending entry that caused the debit gets edited afterward (see
+// updateAutoDebit). previousAmount/newAmount here are the pocket's balance
+// just before/after THIS specific edit, not the row's original debit.
+export interface SavingsHistoryEdit {
+  date: string
+  previousAmount: number
+  newAmount: number
+  comment: string
+}
+
 export interface SavingsHistory {
   id?: number
   entryId: number
@@ -32,6 +43,11 @@ export interface SavingsHistory {
   // so the history keeps a full trail rather than making the deletion
   // invisible. Shown struck through rather than removed from the list.
   reversed?: boolean
+  // Every later edit of the spending entry that caused this debit, in
+  // order — so the pocket's history keeps showing this as ONE note (see
+  // updateAutoDebit) while still revealing the full "was X, edited to Y,
+  // edited to Z" trail rather than silently overwriting the amount.
+  edits?: SavingsHistoryEdit[]
 }
 
 export interface CryptoEntry {

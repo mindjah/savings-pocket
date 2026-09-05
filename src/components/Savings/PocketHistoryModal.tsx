@@ -61,6 +61,26 @@ export function PocketHistoryModal({ entryId, currency, onClose }: Props) {
                 {h.reversed && (
                   <div className="muted history-item-reversed-label">{t('Deleted — this spending no longer counts')}</div>
                 )}
+                {h.edits && h.edits.length > 0 && (
+                  <div className="history-item-edit-trail">
+                    {h.edits.map((edit, i) => {
+                      const previousComment = i === 0 ? h.comment : h.edits![i - 1].comment
+                      return (
+                        <div className="history-item-edit" key={i}>
+                          <div className="entry-top">
+                            <span className="muted">
+                              {t('Edited')} · {formatDateTime(edit.date, lang)}
+                            </span>
+                          </div>
+                          <div className="muted">
+                            {formatMoney(edit.previousAmount, currency)} → {formatMoney(edit.newAmount, currency)}
+                          </div>
+                          {edit.comment && edit.comment !== previousComment && <div className="entry-note">{edit.comment}</div>}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             )
           })}
