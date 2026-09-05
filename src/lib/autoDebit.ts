@@ -53,3 +53,40 @@ export async function applyAutoDebit(pocketId: number, amount: number, spendingE
     spendingEntryId,
   })
 }
+
+// Applies an edited spending entry's auto-debit. When the debit still lands
+// on the same pocket, this adjusts that pocket's balance by the delta
+// between the old and new amounts and edits the SAME savingsHistory row in
+// place (new amount + comment, but its original date is untouched) — so an
+// edited expense keeps showing as one note in the pocket's history instead
+// of a new one dated at the edit time. Falls back to reverse-then-(re)apply
+// (which does create/remove a row) when there's no existing row to adjust,
+// or the debit is moving to a different pocket, or being turned off.
+export async function updateAutoDebit(
+  spendingEntryId: number,
+  newPocketId: number | null,
+  newAmount: number,
+  newComment: string,
+): Promise<void> {
+  const history = await db.savingsHistory.where('spendingEntryId').equals(spendingEntryId).first()
+
+  if (!history || newPocketId == null || history.entryId !== newPocketId) {
+    await reverseAutoDebit(spendingEntryId)
+    if (newPocketId != null) {
+      await applyAutoDebit(newPocketId, newAmount, spendingEntryId, newComment)
+    }
+    return
+  }
+
+  const pocket = await db.savingsEntries.get(history.entryId)
+  if (!pocket) return
+  const oldDebitedAmount = history.previousAmount - history.newAmount
+  await db.savingsEntries.update(history.entryId, {
+    amount: roundFiat(pocket.amount + oldDebitedAmount - newAmount, pocket.currency),
+    updatedAt: new Date().toISOString(),
+  })
+  await db.savingsHistory.update(history.id!, {
+    newAmount: roundFiat(history.previousAmount - newAmount, pocket.currency),
+    comment: newComment,
+  })
+}

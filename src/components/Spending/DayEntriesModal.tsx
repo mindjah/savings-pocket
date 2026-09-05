@@ -4,7 +4,7 @@ import { db } from '../../db/db'
 import type { Currency, RecurrenceType, RecurringExpense, SavingsTrackingMode, SpendingEntry } from '../../db/types'
 import { CURRENCIES, DEFAULT_SPENDING_CURRENCIES } from '../../lib/constants'
 import { formatDate, formatMoney, parseAmount, roundFiat, todayIso } from '../../lib/format'
-import { applyAutoDebit, reverseAutoDebit } from '../../lib/autoDebit'
+import { applyAutoDebit, reverseAutoDebit, updateAutoDebit } from '../../lib/autoDebit'
 import { computeNextDate, recurringPreviewDates } from '../../lib/recurring'
 import { Modal } from '../common/Modal'
 import { useToast } from '../../hooks/useToast'
@@ -148,10 +148,13 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
 
     if (editingId != null) {
       const id = editingId
+      // A future-dated expense isn't charged yet, same as when adding one —
+      // null here makes updateAutoDebit reverse any existing debit without
+      // re-applying it.
+      const newPocketId =
+        mode === 'auto' && debitPocketId !== '' && date <= todayIso() ? (debitPocketId as number) : null
       await db.transaction('rw', db.spendingEntries, db.savingsEntries, db.savingsHistory, async () => {
-        // Always reverse first — if the date moved into the future, this
-        // correctly un-charges it since the block below won't re-apply.
-        await reverseAutoDebit(id)
+        await updateAutoDebit(id, newPocketId, parsed, comment)
         await db.spendingEntries.update(id, {
           categoryId,
           amount: parsed,
@@ -159,9 +162,6 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
           note: note.trim(),
           debitedFromPocketId: mode === 'auto' ? (debitPocketId as number) : undefined,
         })
-        if (mode === 'auto' && debitPocketId !== '' && date <= todayIso()) {
-          await applyAutoDebit(debitPocketId as number, parsed, id, comment)
-        }
       })
       toast(t('Spending entry updated'))
       handleCancel()
