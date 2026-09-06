@@ -103,20 +103,21 @@ function usePopupKeyboardShiftInset(active: boolean): number {
     if (!active) return
     const vv = window.visualViewport
     if (!vv) return
-    // The keyboard's OWN slide-up animation fires many intermediate
-    // resize/scroll events on visualViewport (not just one at the end) —
-    // reacting to every one of them restarts this popup-only style's CSS
-    // transition mid-flight, competing with the popup's own opening
-    // animation for the main thread and reading as choppy on real mobile
-    // hardware. Settling only once the events stop for a beat avoids that
-    // without meaningfully delaying the final result.
+    // The keyboard's OWN slide-up animation (typically ~250-300ms end to
+    // end) fires many intermediate resize/scroll events on visualViewport
+    // throughout that whole time, not just one at the end — reacting to
+    // each one snaps this popup-only style repeatedly in quick succession,
+    // which reads as flickery even without an animation to interrupt.
+    // 200ms comfortably outlasts the gaps between those intermediate
+    // events, so this settles to a single snap once the keyboard's own
+    // motion is actually done, not partway through it.
     let timer: ReturnType<typeof setTimeout> | null = null
     function update() {
       if (timer) clearTimeout(timer)
       timer = setTimeout(() => {
         const covered = window.innerHeight - vv!.height - vv!.offsetTop
         setInset(covered > 0 ? covered : 0)
-      }, 60)
+      }, 200)
     }
     update()
     vv.addEventListener('resize', update)
@@ -150,18 +151,16 @@ function usePopupAvailableHeight(active: boolean): number | null {
     }
     if (baselineRef.current == null) baselineRef.current = currentHeight()
 
-    // Same reasoning as usePopupKeyboardShiftInset's own debounce — the
-    // keyboard's slide-up fires many intermediate viewport events, and
-    // reacting to each one restarts this max-height's CSS transition
-    // mid-flight, competing with the popup's opening animation and
-    // reading as choppy on real mobile hardware.
+    // Same reasoning and 200ms as usePopupKeyboardShiftInset's own
+    // debounce above — settle once the keyboard's whole slide-up is
+    // actually done, not once per intermediate event along the way.
     let timer: ReturnType<typeof setTimeout> | null = null
     function update() {
       if (timer) clearTimeout(timer)
       timer = setTimeout(() => {
         const height = currentHeight()
         setAvailable(baselineRef.current! - height > 40 ? height : null)
-      }, 60)
+      }, 200)
     }
     update()
     vv?.addEventListener('resize', update)
