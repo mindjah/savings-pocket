@@ -69,6 +69,7 @@ export function RecurringExpensesModal({ onClose }: Props) {
       note: note.trim(),
       recurrenceType,
       intervalDays: recurrenceType === 'custom' ? Math.round(parsedInterval) : undefined,
+      updatedAt: new Date().toISOString(),
     })
     toast(t('Recurring expense updated'))
     setEditingId(null)
@@ -77,7 +78,7 @@ export function RecurringExpensesModal({ onClose }: Props) {
   async function stopRecurring(r: RecurringExpense) {
     if (!r.id) return
     if (!confirm(t('Stop this expense from recurring? Past expenses will not be affected.'))) return
-    await db.recurringExpenses.update(r.id, { active: false })
+    await db.recurringExpenses.update(r.id, { active: false, updatedAt: new Date().toISOString() })
     toast(t('Recurring expense stopped'))
     if (editingId === r.id) setEditingId(null)
   }

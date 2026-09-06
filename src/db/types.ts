@@ -112,6 +112,7 @@ export interface Category {
   color: string
   archived: boolean
   createdAt: string
+  updatedAt: string
 }
 
 export interface SpendingEntry {
@@ -122,6 +123,7 @@ export interface SpendingEntry {
   currency: Currency
   note: string
   createdAt: string
+  updatedAt: string
   debitedFromPocketId?: number
   recurringExpenseId?: number
 }
@@ -144,6 +146,7 @@ export interface RecurringExpense {
   // row) so the series doesn't quietly recreate them once the date arrives.
   skippedDates?: string[]
   createdAt: string
+  updatedAt: string
 }
 
 // Planning sandbox — forward-looking "can I afford this" scratchpads, fully
@@ -169,6 +172,7 @@ export interface PlannedIncome {
   amount: number
   currency: Currency
   createdAt: string
+  updatedAt: string
 }
 
 export interface PlannedExpense {
@@ -179,6 +183,7 @@ export interface PlannedExpense {
   currency: Currency
   note: string
   createdAt: string
+  updatedAt: string
 }
 
 // A standing monthly spending target per category, scoped to one specific
