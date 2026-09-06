@@ -96,6 +96,12 @@ export async function materializeRecurringExpenses(): Promise<void> {
         if (futureLinkedDates.length === 0) continue
         const earliest = futureLinkedDates.reduce((min, d) => (d < min ? d : min))
         if (earliest < r.nextDate) {
+          // Deliberately NOT bumping updatedAt here or below (nextDate's own
+          // cursor advance) — this is purely automatic bookkeeping derived
+          // from real dates and the series' own already-backed-up rule, not
+          // a user edit. Treating it as "recent activity" would make
+          // hasUnsyncedLocalChanges fire a conflict warning on every app
+          // open with a due recurring expense, training users to ignore it.
           await db.recurringExpenses.update(r.id!, { nextDate: earliest })
           r.nextDate = earliest
         }
@@ -114,13 +120,15 @@ export async function materializeRecurringExpenses(): Promise<void> {
           if (!existingDates.has(cursor) && !skippedDates.has(cursor)) {
             const categoryName = categoryMap.get(r.categoryId)?.name ?? 'expense'
             const comment = `Spent on ${categoryName}${r.note.trim() ? ` — ${r.note.trim()}` : ''} (recurring)`
+            const materializedAt = new Date().toISOString()
             const newId = await db.spendingEntries.add({
               categoryId: r.categoryId,
               amount: r.amount,
               currency: r.currency,
               note: r.note,
               date: cursor,
-              createdAt: new Date().toISOString(),
+              createdAt: materializedAt,
+              updatedAt: materializedAt,
               recurringExpenseId: r.id,
             })
             if (mode === 'auto' && r.debitedFromPocketId != null) {
@@ -130,6 +138,8 @@ export async function materializeRecurringExpenses(): Promise<void> {
           }
           cursor = computeNextDate(cursor, r.recurrenceType, r.intervalDays)
         }
+        // See the comment above on nextDate's other cursor advance — same
+        // reasoning, deliberately not bumping updatedAt here either.
         await db.recurringExpenses.update(r.id!, { nextDate: cursor })
       }
     },

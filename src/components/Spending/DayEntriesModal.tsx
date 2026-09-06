@@ -154,6 +154,7 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
 
     const categoryName = categoryMap.get(categoryId)?.name ?? 'expense'
     const comment = `Spent on ${categoryName}${note.trim() ? ` — ${note.trim()}` : ''}`
+    const now = new Date().toISOString()
 
     if (editingId != null) {
       const id = editingId
@@ -179,6 +180,7 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
             currency,
             note: note.trim(),
             date: editDate,
+            updatedAt: now,
             debitedFromPocketId: mode === 'auto' ? (debitPocketId as number) : undefined,
           })
           // Only offered for an entry that wasn't already part of a
@@ -199,9 +201,10 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
               nextDate,
               active: true,
               debitedFromPocketId: mode === 'auto' && debitPocketId !== '' ? (debitPocketId as number) : undefined,
-              createdAt: new Date().toISOString(),
+              createdAt: now,
+              updatedAt: now,
             })
-            await db.spendingEntries.update(id, { recurringExpenseId: recurringId })
+            await db.spendingEntries.update(id, { recurringExpenseId: recurringId, updatedAt: now })
           }
         },
       )
@@ -221,7 +224,8 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
             currency,
             note: note.trim(),
             date,
-            createdAt: new Date().toISOString(),
+            createdAt: now,
+            updatedAt: now,
           })
           if (mode === 'auto' && debitPocketId !== '') {
             // A future-dated expense isn't charged yet — the pocket is
@@ -250,9 +254,10 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
               nextDate,
               active: true,
               debitedFromPocketId: mode === 'auto' && debitPocketId !== '' ? (debitPocketId as number) : undefined,
-              createdAt: new Date().toISOString(),
+              createdAt: now,
+              updatedAt: now,
             })
-            await db.spendingEntries.update(newId, { recurringExpenseId: recurringId })
+            await db.spendingEntries.update(newId, { recurringExpenseId: recurringId, updatedAt: now })
           }
         },
       )
@@ -280,7 +285,10 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
         if (entry.recurringExpenseId != null && entry.date > todayIso()) {
           const r = await db.recurringExpenses.get(entry.recurringExpenseId)
           if (r) {
-            await db.recurringExpenses.update(r.id!, { skippedDates: [...(r.skippedDates ?? []), entry.date] })
+            await db.recurringExpenses.update(r.id!, {
+              skippedDates: [...(r.skippedDates ?? []), entry.date],
+              updatedAt: new Date().toISOString(),
+            })
           }
         }
       },
@@ -296,13 +304,15 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
     // Carries the recurring template's pocket forward (same as the due-date
     // catch-up in materializeRecurringExpenses) so materializePendingAutoDebits
     // still charges it once this now-real, still-future entry's date arrives.
+    const now = new Date().toISOString()
     const base = {
       categoryId: r.categoryId,
       amount: r.amount,
       currency: r.currency,
       note: r.note,
       date,
-      createdAt: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
       recurringExpenseId: r.id,
       debitedFromPocketId: r.debitedFromPocketId,
     }
@@ -321,7 +331,7 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
   async function skipPlanned(r: RecurringExpense) {
     if (!r.id) return
     if (!confirm(t('Skip this occurrence? The recurring expense will continue on its normal schedule after this date.'))) return
-    await db.recurringExpenses.update(r.id, { skippedDates: [...(r.skippedDates ?? []), date] })
+    await db.recurringExpenses.update(r.id, { skippedDates: [...(r.skippedDates ?? []), date], updatedAt: new Date().toISOString() })
   }
 
   const blockedNoPocket = mode === 'auto' && pocketsForCurrency.length === 0

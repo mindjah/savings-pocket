@@ -135,6 +135,24 @@ class AppDB extends Dexie {
         }
         await tx.table('meta').delete('totalBudgetLimit')
       })
+
+    // categories/spendingEntries/recurringExpenses/plannedIncome/
+    // plannedExpenses predate updatedAt — without it, editing an existing
+    // row (as opposed to creating a new one) was invisible to
+    // hasUnsyncedLocalChanges' conflict check, so a Drive restore could
+    // silently discard an edit with no warning. Backfill existing rows to
+    // their own createdAt (the most truthful value available for rows that
+    // have never actually been edited since).
+    this.version(8).upgrade(async (tx) => {
+      for (const table of ['categories', 'spendingEntries', 'recurringExpenses', 'plannedIncome', 'plannedExpenses']) {
+        await tx
+          .table(table)
+          .toCollection()
+          .modify((row) => {
+            if (!row.updatedAt) row.updatedAt = row.createdAt
+          })
+      }
+    })
   }
 }
 

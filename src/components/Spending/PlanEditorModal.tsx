@@ -443,12 +443,15 @@ function PlanEditorInner({
   const [editingExpenseId, setEditingExpenseId] = useState<number | null>(null)
 
   function addIncome(source: string, amount: number, currency: Currency) {
-    setDraftIncome((prev) => [...prev, { id: nextTempId(), planId, source, amount, currency, createdAt: new Date().toISOString() }])
+    const now = new Date().toISOString()
+    setDraftIncome((prev) => [...prev, { id: nextTempId(), planId, source, amount, currency, createdAt: now, updatedAt: now }])
     setDirty(true)
   }
 
   function updateIncome(id: number, source: string, amount: number, currency: Currency) {
-    setDraftIncome((prev) => (prev.map((i) => (i.id === id ? { ...i, source, amount, currency } : i))))
+    setDraftIncome((prev) =>
+      prev.map((i) => (i.id === id ? { ...i, source, amount, currency, updatedAt: new Date().toISOString() } : i)),
+    )
     setDirty(true)
   }
 
@@ -459,15 +462,18 @@ function PlanEditorInner({
   }
 
   function addExpense(categoryId: number, amount: number, currency: Currency, note: string) {
+    const now = new Date().toISOString()
     setDraftExpenses((prev) => [
       ...prev,
-      { id: nextTempId(), planId, categoryId, amount, currency, note, createdAt: new Date().toISOString() },
+      { id: nextTempId(), planId, categoryId, amount, currency, note, createdAt: now, updatedAt: now },
     ])
     setDirty(true)
   }
 
   function updateExpense(id: number, categoryId: number, amount: number, currency: Currency, note: string) {
-    setDraftExpenses((prev) => prev.map((e) => (e.id === id ? { ...e, categoryId, amount, currency, note } : e)))
+    setDraftExpenses((prev) =>
+      prev.map((e) => (e.id === id ? { ...e, categoryId, amount, currency, note, updatedAt: new Date().toISOString() } : e)),
+    )
     setDirty(true)
   }
 
@@ -532,6 +538,7 @@ function PlanEditorInner({
           amount: i.amount,
           currency: i.currency,
           createdAt: i.createdAt,
+          updatedAt: nowIso,
         })
       }
       for (const e of draftExpenses) {
@@ -542,6 +549,7 @@ function PlanEditorInner({
           currency: e.currency,
           note: e.note,
           createdAt: e.createdAt,
+          updatedAt: nowIso,
         })
       }
       await db.plans.update(planId, { updatedAt: nowIso })

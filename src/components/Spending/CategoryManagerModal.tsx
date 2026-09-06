@@ -98,7 +98,8 @@ export function CategoryManagerModal({ onClose }: Props) {
   async function addCategory() {
     const trimmed = name.trim()
     if (!trimmed) return
-    await db.categories.add({ name: trimmed, color, archived: false, createdAt: new Date().toISOString() })
+    const now = new Date().toISOString()
+    await db.categories.add({ name: trimmed, color, archived: false, createdAt: now, updatedAt: now })
     toast(t('Category added'))
     setName('')
     setColor(CATEGORY_COLORS[0])
@@ -106,7 +107,7 @@ export function CategoryManagerModal({ onClose }: Props) {
 
   async function toggleArchive(cat: Category) {
     if (!cat.id) return
-    await db.categories.update(cat.id, { archived: !cat.archived })
+    await db.categories.update(cat.id, { archived: !cat.archived, updatedAt: new Date().toISOString() })
   }
 
   // Returns whether the category was actually deleted — blocked (existing
@@ -125,7 +126,7 @@ export function CategoryManagerModal({ onClose }: Props) {
   }
 
   async function saveEdit(id: number, name: string, color: string) {
-    await db.categories.update(id, { name, color })
+    await db.categories.update(id, { name, color, updatedAt: new Date().toISOString() })
     toast(t('Category updated'))
   }
 
