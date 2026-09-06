@@ -103,14 +103,26 @@ function usePopupKeyboardShiftInset(active: boolean): number {
     if (!active) return
     const vv = window.visualViewport
     if (!vv) return
+    // The keyboard's OWN slide-up animation fires many intermediate
+    // resize/scroll events on visualViewport (not just one at the end) —
+    // reacting to every one of them restarts this popup-only style's CSS
+    // transition mid-flight, competing with the popup's own opening
+    // animation for the main thread and reading as choppy on real mobile
+    // hardware. Settling only once the events stop for a beat avoids that
+    // without meaningfully delaying the final result.
+    let timer: ReturnType<typeof setTimeout> | null = null
     function update() {
-      const covered = window.innerHeight - vv!.height - vv!.offsetTop
-      setInset(covered > 0 ? covered : 0)
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(() => {
+        const covered = window.innerHeight - vv!.height - vv!.offsetTop
+        setInset(covered > 0 ? covered : 0)
+      }, 60)
     }
     update()
     vv.addEventListener('resize', update)
     vv.addEventListener('scroll', update)
     return () => {
+      if (timer) clearTimeout(timer)
       vv.removeEventListener('resize', update)
       vv.removeEventListener('scroll', update)
     }
@@ -138,15 +150,25 @@ function usePopupAvailableHeight(active: boolean): number | null {
     }
     if (baselineRef.current == null) baselineRef.current = currentHeight()
 
+    // Same reasoning as usePopupKeyboardShiftInset's own debounce — the
+    // keyboard's slide-up fires many intermediate viewport events, and
+    // reacting to each one restarts this max-height's CSS transition
+    // mid-flight, competing with the popup's opening animation and
+    // reading as choppy on real mobile hardware.
+    let timer: ReturnType<typeof setTimeout> | null = null
     function update() {
-      const height = currentHeight()
-      setAvailable(baselineRef.current! - height > 40 ? height : null)
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(() => {
+        const height = currentHeight()
+        setAvailable(baselineRef.current! - height > 40 ? height : null)
+      }, 60)
     }
     update()
     vv?.addEventListener('resize', update)
     vv?.addEventListener('scroll', update)
     window.addEventListener('resize', update)
     return () => {
+      if (timer) clearTimeout(timer)
       vv?.removeEventListener('resize', update)
       vv?.removeEventListener('scroll', update)
       window.removeEventListener('resize', update)
