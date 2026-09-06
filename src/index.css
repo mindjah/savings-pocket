@@ -826,25 +826,19 @@ h1, h2, h3, p {
   border-radius: var(--radius-lg);
   width: min(100%, 420px);
   padding: 20px;
-}
-
-/* Popup-only: on a browser where the keyboard doesn't resize the layout
-   viewport on its own, Modal sets .modal-overlay-popup's paddingBottom
-   and .modal-popup's max-height to keep the dialog clear of it (see
-   usePopupKeyboardShiftInset/usePopupAvailableHeight) — animate both so
-   it reads as smoothly recentering instead of visibly snapping once the
-   keyboard finishes opening. Scoped to the popup-only classes, not the
-   shared .modal-overlay/.modal, so bottom sheets are untouched. Gated
-   behind prefers-reduced-motion like every other bit of motion in the
-   app (see theme.css). */
-@media (prefers-reduced-motion: no-preference) {
-  .modal-overlay-popup {
-    transition: padding-bottom 0.25s ease;
-  }
-
-  .modal-popup {
-    transition: max-height 0.25s ease;
-  }
+  /* Promotes its own compositor layer ahead of the entrance animation
+     (theme.css's panelFadeIn, transform + opacity only) so that first
+     paint doesn't have to promote it on the fly — the classic mobile
+     jank-on-open fix. NOT used to animate max-height/padding-bottom
+     smoothly (see below) — height/padding are layout properties, and
+     transitioning them forces a reflow on every frame regardless of how
+     few times the value changes, which is its own source of jank on
+     real mobile hardware distinct from the update-frequency issue the
+     debounce in usePopupKeyboardShiftInset/usePopupAvailableHeight
+     fixes. Snapping instead of animating trades a perfectly smooth
+     resize for guaranteed no dropped frames — the right trade for a
+     change that only happens once, quietly, after the debounce settles. */
+  will-change: transform, opacity;
 }
 
 @media (min-width: 640px) {
