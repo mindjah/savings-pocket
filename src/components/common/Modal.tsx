@@ -103,21 +103,24 @@ function usePopupKeyboardShiftInset(active: boolean): number {
     if (!active) return
     const vv = window.visualViewport
     if (!vv) return
-    // The keyboard's OWN slide-up animation (typically ~250-300ms end to
-    // end) fires many intermediate resize/scroll events on visualViewport
-    // throughout that whole time, not just one at the end — reacting to
-    // each one snaps this popup-only style repeatedly in quick succession,
-    // which reads as flickery even without an animation to interrupt.
-    // 200ms comfortably outlasts the gaps between those intermediate
-    // events, so this settles to a single snap once the keyboard's own
-    // motion is actually done, not partway through it.
+    // Opening a keyboard on mobile is really TWO separate phases on
+    // visualViewport, not one: a `resize` as the keyboard itself slides up
+    // (shrinking .height), then — once that's done — a SEPARATE `scroll`
+    // as the browser repositions the visual viewport to keep the focused
+    // input in view within the new, smaller space (changing .offsetTop).
+    // Debouncing too short settles after the resize phase alone, applies
+    // one snap, then the later scroll phase starts a second debounce
+    // cycle and applies a second one — two visible snaps with a gap
+    // between them instead of one. 350ms comfortably spans both phases
+    // (as well as the many intermediate events each one fires along the
+    // way), so every real trigger collapses into a single final snap.
     let timer: ReturnType<typeof setTimeout> | null = null
     function update() {
       if (timer) clearTimeout(timer)
       timer = setTimeout(() => {
         const covered = window.innerHeight - vv!.height - vv!.offsetTop
         setInset(covered > 0 ? covered : 0)
-      }, 200)
+      }, 350)
     }
     update()
     vv.addEventListener('resize', update)
@@ -151,16 +154,17 @@ function usePopupAvailableHeight(active: boolean): number | null {
     }
     if (baselineRef.current == null) baselineRef.current = currentHeight()
 
-    // Same reasoning and 200ms as usePopupKeyboardShiftInset's own
-    // debounce above — settle once the keyboard's whole slide-up is
-    // actually done, not once per intermediate event along the way.
+    // Same reasoning and 350ms as usePopupKeyboardShiftInset's own
+    // debounce above — a keyboard opening is a resize phase THEN a
+    // separate later scroll phase, and settling too early lands one snap
+    // per phase instead of a single final one.
     let timer: ReturnType<typeof setTimeout> | null = null
     function update() {
       if (timer) clearTimeout(timer)
       timer = setTimeout(() => {
         const height = currentHeight()
         setAvailable(baselineRef.current! - height > 40 ? height : null)
-      }, 200)
+      }, 350)
     }
     update()
     vv?.addEventListener('resize', update)
