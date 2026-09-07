@@ -15,8 +15,10 @@ interface Props {
   // Dashboard's own embed only (see AnalyticsDashboardCard) — that card is a
   // fixed 2x2 size that clips rather than growing to fit (see .no-scroll),
   // so the full ranking + an uncapped Recommendations list could easily run
-  // longer than it. Fewer bars and no Recommendations section keeps this a
-  // glanceable summary; "Go to Analytics" still opens the real, uncapped tab.
+  // longer than it. Fewer bars, at most one (smaller, no avg actual/budget
+  // line) Recommendations card, and the whole section skipped when there's
+  // nothing to recommend — "Go to Analytics" still opens the real, uncapped
+  // tab for everything this trims.
   compact?: boolean
 }
 
@@ -60,7 +62,11 @@ export function HabitsTab({ entriesByMonth, categoryBudgetsByMonth, categories, 
   // native-currency for the row's own displayed amount.
   const maxAvgUsd = Math.max(0, ...ranking.map((r) => r.avgMonthlyUsd))
 
-  const insights = useMemo(() => spendingHabits(recentEntriesByMonth, recentBudgetsByMonth), [recentEntriesByMonth, recentBudgetsByMonth])
+  const allInsights = useMemo(
+    () => spendingHabits(recentEntriesByMonth, recentBudgetsByMonth),
+    [recentEntriesByMonth, recentBudgetsByMonth],
+  )
+  const insights = compact ? allInsights.slice(0, 1) : allInsights
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -97,7 +103,7 @@ export function HabitsTab({ entriesByMonth, categoryBudgetsByMonth, categories, 
         </div>
       )}
 
-      {!compact && (
+      {(!compact || insights.length > 0) && (
         <>
           <div className="section-title" style={{ marginTop: 14 }}>
             <h2>{t('Recommendations')}</h2>
@@ -122,16 +128,19 @@ export function HabitsTab({ entriesByMonth, categoryBudgetsByMonth, categories, 
                     type="button"
                     key={`${insight.categoryId}:${insight.currency}`}
                     onClick={() => setCategoryModalFor({ categoryId: insight.categoryId })}
+                    style={compact ? { padding: 10 } : undefined}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                       <span className="swatch" style={{ background: category?.color ?? '#888' }} />
                       <strong>{name}</strong>
                     </div>
                     <div>{text}</div>
-                    <div className="muted" style={{ marginTop: 4 }}>
-                      {t('Avg actual')}: {formatMoney(insight.avgActual, insight.currency)} · {t('Avg budget')}:{' '}
-                      {formatMoney(insight.avgBudget, insight.currency)}
-                    </div>
+                    {!compact && (
+                      <div className="muted" style={{ marginTop: 4 }}>
+                        {t('Avg actual')}: {formatMoney(insight.avgActual, insight.currency)} · {t('Avg budget')}:{' '}
+                        {formatMoney(insight.avgBudget, insight.currency)}
+                      </div>
+                    )}
                   </button>
                 )
               })}
