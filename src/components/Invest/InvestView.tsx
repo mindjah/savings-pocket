@@ -141,7 +141,7 @@ export function InvestView({ resetKey }: Props) {
   const visibleCurrencies =
     subTab === 'crypto'
       ? CURRENCIES.filter((c) => c.code === cryptoDisplayCurrency)
-      : CURRENCIES.filter((c) => assetCurrencies.includes(c.code))
+      : CURRENCIES.filter((c) => assetCurrencies.includes(c.code) && assetTotals[c.code] !== 0)
   const totals = subTab === 'crypto' ? cryptoTotals : assetTotals
 
   return (
@@ -284,6 +284,10 @@ export function InvestView({ resetKey }: Props) {
 
       {subTab === 'assets' && (
         <>
+          <div className="section-title" style={{ marginTop: 20 }}>
+            <h2>{t('My assets')}</h2>
+          </div>
+
           {!assetEntries ? null : assetEntries.length === 0 ? (
             <div className="empty-state">
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>

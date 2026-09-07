@@ -33,16 +33,8 @@ export function SettingsView({ resetKey }: Props) {
   // Crypto shows just one converted total (no per-currency breakdown, unlike
   // every other currency picker here) — a single choice, not a multi-select.
   const [cryptoDisplayCurrency, setCryptoDisplayCurrency] = useMetaSetting<Currency>('cryptoDisplayCurrency', 'EUR')
-  // Assets are each held in their own native currency already (see
-  // AssetEntryForm), so — unlike every other multi-select here, which
-  // offers every app currency — this one only offers currencies an actual
-  // asset uses; picking a currency nobody holds anything in would just add
-  // an always-empty option.
-  const assetEntries = useLiveQuery(() => db.assetEntries.toArray(), [])
-  const assetCurrencyOptions = useMemo(
-    () => CURRENCIES.map((c) => c.code).filter((code) => (assetEntries ?? []).some((e) => e.currency === code)),
-    [assetEntries],
-  )
+  // Independent from every other currency picker here — offers every app
+  // currency, same as Savings/Spending's own multi-selects.
   const [assetCurrencies, setAssetCurrencies] = useMetaSetting<Currency[]>('enabledAssetCurrencies', DEFAULT_CRYPTO_CURRENCIES)
   const [spendingCurrencies, setSpendingCurrencies] = useMetaSetting<Currency[]>(
     'enabledSpendingCurrencies',
@@ -344,13 +336,9 @@ export function SettingsView({ resetKey }: Props) {
         <div className="settings-row wrap">
           <div>
             <div>{t('Assets currencies')}</div>
-            <div className="muted">
-              {assetCurrencyOptions.length > 0
-                ? t('Currencies shown for asset totals')
-                : t('No assets tracked yet — add one to choose currencies here')}
-            </div>
+            <div className="muted">{t('Currencies shown for asset totals')}</div>
           </div>
-          <CurrencyMultiSelect selected={assetCurrencies} onChange={setAssetCurrencies} options={assetCurrencyOptions} />
+          <CurrencyMultiSelect selected={assetCurrencies} onChange={setAssetCurrencies} />
         </div>
 
         <div className="settings-row wrap">

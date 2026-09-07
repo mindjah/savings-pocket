@@ -49,6 +49,7 @@ export const RU: Record<string, string> = {
   'My money': 'Мои деньги',
   'Lent out': 'Одолжено',
   'My Pockets': 'Мои копилки',
+  'My assets': 'Мои активы',
   'No savings tracked yet. Tap + to add your first entry.':
     'Сбережения ещё не добавлены. Нажмите +, чтобы добавить первую запись.',
   Cash: 'Наличные',

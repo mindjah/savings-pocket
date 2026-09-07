@@ -29,6 +29,7 @@ export function InvestSummaryCard({ onNavigate }: Props) {
   // broader multi-currency summary, not the crypto-only view Settings'
   // single-choice restriction is meant to declutter.
   const [assetCurrencies] = useMetaSetting<Currency[]>('enabledAssetCurrencies', DEFAULT_CRYPTO_CURRENCIES)
+  const [cryptoDisplayCurrency] = useMetaSetting<Currency>('cryptoDisplayCurrency', 'EUR')
   const coinIds = useMemo(() => Array.from(new Set((entries ?? []).map((e) => e.coinId))), [entries])
   const { prices } = useCryptoRates(coinIds)
   const priceHistories = useCryptoPriceHistory30d(coinIds)
@@ -61,19 +62,16 @@ export function InvestSummaryCard({ onNavigate }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entries, priceHistories])
 
-  const visibleCurrencies = CURRENCIES.filter((c) => assetCurrencies.includes(c.code))
-
   const cryptoTotals = useMemo(() => {
     const t: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0, JPY: 0, CNY: 0 }
     ;(entries ?? []).forEach((e) => {
       const price = prices[e.coinId]
-      visibleCurrencies.forEach((c) => {
+      CURRENCIES.forEach((c) => {
         t[c.code] += e.amount * priceIn(price, c.code)
       })
     })
     return t
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entries, prices, assetCurrencies])
+  }, [entries, prices])
 
   const assetTotals = useMemo(() => {
     const t: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0, JPY: 0, CNY: 0 }
@@ -85,11 +83,24 @@ export function InvestSummaryCard({ onNavigate }: Props) {
 
   const combinedTotals = useMemo(() => {
     const t: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0, JPY: 0, CNY: 0 }
-    visibleCurrencies.forEach((c) => {
+    CURRENCIES.forEach((c) => {
       t[c.code] = cryptoTotals[c.code] + assetTotals[c.code]
     })
     return t
-  }, [cryptoTotals, assetTotals, visibleCurrencies])
+  }, [cryptoTotals, assetTotals])
+
+  // Crypto has no native currency of its own — priceIn converts a holding
+  // into every fiat currency, so cryptoTotals (and combinedTotals) reads
+  // nonzero for every currency the moment ANY crypto is held, regardless of
+  // whether it means anything in that specific currency. So this only
+  // treats an asset's own real currency as evidence a currency is "in use"
+  // (assetTotals, genuinely per-currency), plus Settings' own single-choice
+  // crypto display currency if there's any crypto to show at all.
+  const visibleCurrencies = CURRENCIES.filter(
+    (c) =>
+      assetCurrencies.includes(c.code) &&
+      (assetTotals[c.code] !== 0 || (c.code === cryptoDisplayCurrency && (entries?.length ?? 0) > 0)),
+  )
 
   const valueUsd = useMemo(() => {
     const map = new Map<number, number>()
