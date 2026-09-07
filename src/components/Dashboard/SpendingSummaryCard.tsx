@@ -83,7 +83,7 @@ export function SpendingSummaryCard({ onNavigate }: Props) {
         )}
 
         {level && budgetStatus && (
-          <div className="muted" style={{ marginTop: 6 }}>
+          <div className="muted dashboard-card-divider">
             {level === 'orange'
               ? tLimitsExceededInCategories(lang, budgetStatus.overBudgetCategoryCount)
               : tBudgetStatusExplanation(lang, level, budgetStatus.overBudgetCategoryCount)}

@@ -109,7 +109,7 @@ export function CryptoSummaryCard({ onNavigate }: Props) {
         )}
 
         {portfolioTrend && (
-          <div className="dashboard-card-trend">
+          <div className="dashboard-card-trend dashboard-card-divider">
             <Sparkline points={portfolioTrend.values} color={portfolioTrend.pct >= 0 ? 'var(--accent)' : 'var(--danger)'} />
             <span className={`dashboard-trend-badge${portfolioTrend.pct >= 0 ? ' dashboard-trend-up' : ' dashboard-trend-down'}`}>
               {portfolioTrend.pct >= 0 ? '↑' : '↓'} {Math.abs(portfolioTrend.pct).toFixed(1)}% {t('over 30 days')}
@@ -118,7 +118,7 @@ export function CryptoSummaryCard({ onNavigate }: Props) {
         )}
 
         {entries != null && (
-          <div className="dashboard-card-list">
+          <div className="dashboard-card-list" style={{ marginTop: portfolioTrend ? 14 : undefined }}>
             {entries.length === 0 ? (
               <div className="muted">{t('No crypto holdings yet. Tap + to add one.')}</div>
             ) : (

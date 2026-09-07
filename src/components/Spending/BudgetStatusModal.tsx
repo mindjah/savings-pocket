@@ -599,15 +599,16 @@ export function BudgetStatusBody({ monthPrefix: monthPrefixProp, compact }: Body
                   style={{
                     display: 'flex',
                     alignItems: 'flex-start',
-                    gap: 6,
+                    gap: 8,
+                    marginTop: 8,
                     marginBottom: 16,
                     color: CARD_LEVEL_COLOR[cardLevel],
                     fontWeight: 600,
-                    fontSize: '0.85rem',
+                    fontSize: '1rem',
                   }}
                 >
                   <span style={{ flexShrink: 0 }}>
-                    <StatusIcon size={14} />
+                    <StatusIcon size={16} />
                   </span>
                   <span>{tBudgetStatusExplanation(lang, cardLevel, budgetStatus!.overBudgetCategoryCount)}</span>
                 </div>

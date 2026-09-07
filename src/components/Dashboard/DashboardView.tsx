@@ -17,18 +17,27 @@ interface Props {
 }
 
 const GAP = 16
-const MIN_COLUMN_WIDTH = 220
+const COLUMNS = 4
 
-// Standard cards — 1x1 by default, auto-promoting to 1x2 if their own
-// content doesn't fit (see DashboardCell). Order is user-reorderable and
-// persisted per device.
-const STANDARD_KEYS = ['networth', 'savings', 'balance', 'crypto', 'spending'] as const
-type StandardKey = (typeof STANDARD_KEYS)[number]
+const CARD_KEYS = ['networth', 'savings', 'balance', 'crypto', 'spending', 'budget', 'analytics'] as const
+type CardKey = (typeof CARD_KEYS)[number]
 
-// Data-rich cards — a fixed 2x2 set in code (not auto-expanding); still
-// reorderable amongst each other.
-const MEDIUM_KEYS = ['budget', 'analytics'] as const
-type MediumKey = (typeof MEDIUM_KEYS)[number]
+// Each card's own size — standard cards are 1x1, auto-promoting to 1x2 if
+// their own content doesn't fit (see DashboardCell); Budget status and
+// Analytics are a fixed 2x2 in code and never auto-resize. One combined
+// order (rather than a separate list per tier) so any card can be dragged
+// onto any other regardless of size — dropping a 2x2 onto a 1x1's spot (or
+// vice versa) reorders the whole sequence and the grid reflows around it,
+// instead of only accepting drops within the same tier.
+const CARD_TIER: Record<CardKey, { widthUnits: 1 | 2; heightUnits: 1 | 2; autoPromote?: boolean }> = {
+  networth: { widthUnits: 1, heightUnits: 1, autoPromote: true },
+  savings: { widthUnits: 1, heightUnits: 1, autoPromote: true },
+  balance: { widthUnits: 1, heightUnits: 1, autoPromote: true },
+  crypto: { widthUnits: 1, heightUnits: 1, autoPromote: true },
+  spending: { widthUnits: 1, heightUnits: 1, autoPromote: true },
+  budget: { widthUnits: 2, heightUnits: 2 },
+  analytics: { widthUnits: 2, heightUnits: 2 },
+}
 
 // Desktop-only overview (see NavBar's desktopOnly flag) collecting the
 // visual/summary part of every other screen in one place — no mobile form
@@ -46,71 +55,51 @@ export function DashboardView({ onNavigate }: Props) {
 
   const [budgetEnabled] = useMetaSetting<boolean>('budgetEnabled', false)
 
-  const [standardOrderRaw, setStandardOrder] = useMetaSetting<StandardKey[]>('dashboardStandardOrder', [...STANDARD_KEYS])
-  const standardOrder = sanitizeOrder(standardOrderRaw, STANDARD_KEYS)
-  const standardDrag = useDragReorder(standardOrder, setStandardOrder)
-
-  const [mediumOrderRaw, setMediumOrder] = useMetaSetting<MediumKey[]>('dashboardMediumOrder', [...MEDIUM_KEYS])
-  const mediumOrder = sanitizeOrder(mediumOrderRaw, MEDIUM_KEYS)
-  const mediumDrag = useDragReorder(mediumOrder, setMediumOrder)
+  const [orderRaw, setOrder] = useMetaSetting<CardKey[]>('dashboardCardOrder', [...CARD_KEYS])
+  const order = sanitizeOrder(orderRaw, CARD_KEYS)
+  const drag = useDragReorder(order, setOrder)
 
   const gridRef = useRef<HTMLDivElement>(null)
-  const cellSize = useDashboardCellSize(gridRef, MIN_COLUMN_WIDTH, GAP)
+  const cellSize = useDashboardCellSize(gridRef, COLUMNS, GAP)
 
-  const standardCards: Record<StandardKey, ReactNode> = {
+  const cards: Record<CardKey, ReactNode> = {
     networth: <NetWorthSummaryCard blurBalances={blurBalances} onToggleBlur={() => setBlurBalances((b) => !b)} />,
     savings: <SavingsSummaryCard onNavigate={() => onNavigate('savings')} />,
     balance: <BalanceSummaryCard onNavigate={() => onNavigate('savings')} />,
     crypto: <CryptoSummaryCard onNavigate={() => onNavigate('crypto')} />,
     spending: <SpendingSummaryCard onNavigate={() => onNavigate('spending')} />,
-  }
-  const mediumCards: Record<MediumKey, ReactNode> = {
     budget: <BudgetStatusDashboardCard />,
     analytics: <AnalyticsDashboardCard onNavigate={() => onNavigate('analytics')} />,
   }
 
   return (
     <div className={`view boucoup-scope dashboard-view${blurBalances ? ' balances-blurred' : ''}`}>
-      {/* One grid for every card — a card's own tier (see DashboardCell)
-          decides its size; drag any card onto another of the same kind to
-          swap its position, remembered per device. */}
-      <div className="dashboard-grid" ref={gridRef}>
-        {standardOrder.map((key) => (
-          <DashboardCell
-            key={key}
-            cellSize={cellSize}
-            gap={GAP}
-            widthUnits={1}
-            heightUnits={1}
-            autoPromote
-            dragging={standardDrag.draggingKey === key}
-            draggable
-            onDragStart={standardDrag.onDragStart(key)}
-            onDragEnd={standardDrag.onDragEnd}
-            onDragOver={standardDrag.onDragOver}
-            onDrop={standardDrag.onDrop(key)}
-          >
-            {standardCards[key]}
-          </DashboardCell>
-        ))}
-
-        {mediumOrder
+      {/* One grid for every card — a card's own tier (see CARD_TIER above)
+          decides its size; drag any card onto any other to reorder. Fixed
+          columns + grid-auto-rows matched to that same width (cellSize) +
+          dense packing means the browser itself fills gaps around
+          whatever's dragged where, including stacking two 1x1s in one
+          column next to a wider/taller card — no manual placement logic
+          needed on this end. Order is remembered per device. */}
+      <div
+        className="dashboard-grid"
+        ref={gridRef}
+        style={{ gridTemplateColumns: `repeat(${COLUMNS}, minmax(0, 1fr))`, gridAutoRows: cellSize > 0 ? `${cellSize}px` : undefined }}
+      >
+        {order
           .filter((key) => key !== 'budget' || budgetEnabled)
           .map((key) => (
             <DashboardCell
               key={key}
-              cellSize={cellSize}
-              gap={GAP}
-              widthUnits={2}
-              heightUnits={2}
-              dragging={mediumDrag.draggingKey === key}
+              {...CARD_TIER[key]}
+              dragging={drag.draggingKey === key}
               draggable
-              onDragStart={mediumDrag.onDragStart(key)}
-              onDragEnd={mediumDrag.onDragEnd}
-              onDragOver={mediumDrag.onDragOver}
-              onDrop={mediumDrag.onDrop(key)}
+              onDragStart={drag.onDragStart(key)}
+              onDragEnd={drag.onDragEnd}
+              onDragOver={drag.onDragOver}
+              onDrop={drag.onDrop(key)}
             >
-              {mediumCards[key]}
+              {cards[key]}
             </DashboardCell>
           ))}
       </div>

@@ -122,7 +122,7 @@ export function BalanceSummaryCard({ onNavigate }: Props) {
         )}
 
         {allEntries != null && (
-          <div className="dashboard-card-list" style={{ marginTop: 10 }}>
+          <div className={`dashboard-card-list${budgetEnabled && visibleBudgetCurrencies.length > 0 ? ' dashboard-card-divider' : ''}`}>
             {pockets.length === 0 ? (
               <div className="muted">{t('No savings tracked yet. Tap + to add your first entry.')}</div>
             ) : (

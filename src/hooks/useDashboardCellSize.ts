@@ -2,14 +2,13 @@ import { useEffect, useState, type RefObject } from 'react'
 
 /**
  * Measures the actual rendered width of one column in the dashboard's
- * `repeat(auto-fit, minmax(minColumnWidth, 1fr))` grid, so cards can be
- * sized in exact multiples of that one square unit (see DashboardCell) —
- * recomputed on resize via ResizeObserver. Mirrors the browser's own
- * auto-fit column-count formula, using the same minColumnWidth/gap the
- * grid's own CSS uses, so it lines up with what the grid actually renders.
+ * fixed-column grid, so `grid-auto-rows` can be set to that same pixel
+ * value — a card's height then comes purely from its own `grid-row: span
+ * N` against that fixed row size, giving a true square 1x1 base unit.
+ * Recomputed on resize via ResizeObserver.
  */
-export function useDashboardCellSize(containerRef: RefObject<HTMLElement | null>, minColumnWidth: number, gap: number): number {
-  const [cellSize, setCellSize] = useState(minColumnWidth)
+export function useDashboardCellSize(containerRef: RefObject<HTMLElement | null>, columns: number, gap: number): number {
+  const [cellSize, setCellSize] = useState(0)
 
   useEffect(() => {
     const el = containerRef.current
@@ -18,7 +17,6 @@ export function useDashboardCellSize(containerRef: RefObject<HTMLElement | null>
     function compute() {
       const width = el!.clientWidth
       if (width <= 0) return
-      const columns = Math.max(1, Math.floor((width + gap) / (minColumnWidth + gap)))
       setCellSize((width - (columns - 1) * gap) / columns)
     }
 
@@ -26,7 +24,7 @@ export function useDashboardCellSize(containerRef: RefObject<HTMLElement | null>
     const ro = new ResizeObserver(compute)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [containerRef, minColumnWidth, gap])
+  }, [containerRef, columns, gap])
 
   return cellSize
 }

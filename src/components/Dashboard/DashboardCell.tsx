@@ -1,9 +1,7 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 interface Props {
   children: ReactNode
-  cellSize: number
-  gap: number
   widthUnits: 1 | 2
   heightUnits: 1 | 2
   // Standard cards only: if this card's own content doesn't fit a 1x1
@@ -19,17 +17,14 @@ interface Props {
   onDrop?: () => void
 }
 
-// One dashboard card's grid cell — Monthly Expenses at 1x1 is the base
-// square unit (cellSize, measured from the grid's own rendered column
-// width by useDashboardCellSize); every other card is some multiple of it.
-// Explicit pixel height (rather than CSS grid-row spanning, which would
-// need grid-auto-rows to already know the square unit) keeps this exact
-// regardless of what else is in the same row, and lets same-tier cards'
-// "Go to X" buttons land at the same Y position as each other.
+// One dashboard card's grid cell. Sized purely via CSS grid-column/grid-row
+// spans against the grid's own fixed-column-width/matching grid-auto-rows
+// (see DashboardView) — the browser's own `grid-auto-flow: dense` packing
+// then places every cell with no gaps, reflowing everything else around a
+// promoted or reordered card automatically. No manual collision/placement
+// logic needed on this end.
 export function DashboardCell({
   children,
-  cellSize,
-  gap,
   widthUnits,
   heightUnits,
   autoPromote,
@@ -43,26 +38,39 @@ export function DashboardCell({
   const ref = useRef<HTMLDivElement>(null)
   const [promoted, setPromoted] = useState(false)
 
-  // One-way: once promoted, stop measuring. Promoting doubles the height,
-  // which typically makes the content fit — re-measuring against that
-  // taller box would immediately see "no overflow" and demote back to
-  // short, which overflows again, forever (an infinite render loop this
-  // caught in practice, not just in theory).
-  useLayoutEffect(() => {
+  // A card's own content (crypto prices, exchange rates, etc.) usually
+  // finishes loading well after this cell's own first render — that's a
+  // re-render of some deeply nested child, which doesn't propagate back up
+  // to re-run an effect here. A MutationObserver on the body catches the
+  // resulting overflow regardless of which descendant's data arriving
+  // caused it, instead of only checking once at mount.
+  //
+  // One-way: once promoted, stop measuring (and disconnect). Promoting
+  // doubles the height, which typically makes the content fit —
+  // re-measuring against that taller box would immediately see "no
+  // overflow" and demote back to short, which overflows again, forever
+  // (an infinite render loop this caught in practice, not just in theory).
+  useEffect(() => {
     if (!autoPromote || promoted) return
     const body = ref.current?.querySelector('.dashboard-card-body')
     if (!body) return
-    if (body.scrollHeight > body.clientHeight + 1) setPromoted(true)
-  })
+
+    function check() {
+      if (body!.scrollHeight > body!.clientHeight + 1) setPromoted(true)
+    }
+    check()
+    const observer = new MutationObserver(check)
+    observer.observe(body, { childList: true, subtree: true, characterData: true })
+    return () => observer.disconnect()
+  }, [autoPromote, promoted])
 
   const effectiveHeightUnits = autoPromote && promoted ? 2 : heightUnits
-  const height = cellSize * effectiveHeightUnits + gap * (effectiveHeightUnits - 1)
 
   return (
     <div
       ref={ref}
       className={`dashboard-cell${dragging ? ' dragging' : ''}`}
-      style={{ height, gridColumn: `span ${widthUnits}` }}
+      style={{ gridColumn: `span ${widthUnits}`, gridRow: `span ${effectiveHeightUnits}` }}
       draggable={draggable}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}

@@ -378,24 +378,24 @@ h1, h2, h3, p {
   max-width: 1600px;
 }
 
-/* A single grid for every dashboard card — column width is measured in JS
-   (useDashboardCellSize) off this same track definition, so a card's pixel
-   height (set inline per DashboardCell, in exact multiples of that width)
-   always matches an exact multiple of a column, i.e. a true square base
-   unit. Row height is left as the browser's default "auto" (sized to
-   whatever's actually in it) — align-self: start below means a short card
-   next to a tall one never gets stretched to match it, so same-tier cards'
-   "Go to X" buttons always land at the same Y position as each other. */
+/* A single grid for every dashboard card. Fixed column count (not
+   auto-fit) — grid-template-columns and grid-auto-rows are both set
+   inline from DashboardView, the latter measured in JS (useDashboardCellSize)
+   to match the former exactly, so a 1x1 card (grid-column/row: span 1) is
+   always a true square. grid-auto-flow: dense is what actually fills gaps
+   around whatever's dragged where or promoted taller — e.g. two 1x1s can
+   sit stacked in one column right next to a 2x2, the browser packs
+   everything else around that automatically. */
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
+  grid-auto-flow: row dense;
 }
 
 .dashboard-cell {
   display: flex;
   flex-direction: column;
-  align-self: start;
+  min-width: 0; /* a grid item's implicit min-width:auto otherwise lets unbreakable content (a long number, currency chips) force this column wider than its 1fr share, breaking the square 1x1 unit */
   cursor: grab;
 }
 
@@ -481,7 +481,12 @@ h1, h2, h3, p {
   font-size: 0.85rem;
 }
 
-.dashboard-card-link {
+/* .dashboard-card .dashboard-card-link (2 classes) — some of these are also
+   .btn.btn-ghost buttons (1 class, equal to .dashboard-card-link alone),
+   and .btn is defined later in this file with its own centering/padding,
+   which would otherwise win the tie and re-center this left-aligned,
+   bottom-pinned link. */
+.dashboard-card .dashboard-card-link {
   display: block;
   flex-shrink: 0;
   margin-top: 12px;
@@ -547,6 +552,19 @@ h1, h2, h3, p {
 
 .dashboard-networth-card .dashboard-card-eye-toggle {
   color: rgba(255, 255, 255, 0.85);
+}
+
+.dashboard-networth-card .dashboard-card-divider {
+  border-top-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Separates one section of a dashboard card from the next (e.g. the total
+   amount from whatever's below it) — same treatment as the budget gauge's
+   own top border below, generalized so any card can use it. */
+.dashboard-card-divider {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
 }
 
 /* Balance card's "Available until end of month" gauge — same real

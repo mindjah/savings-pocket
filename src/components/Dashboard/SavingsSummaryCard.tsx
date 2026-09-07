@@ -80,7 +80,7 @@ export function SavingsSummaryCard({ onNavigate }: Props) {
         )}
 
         {allEntries != null && (
-          <div className="dashboard-card-list">
+          <div className="dashboard-card-list dashboard-card-divider">
             {pockets.length === 0 ? (
               <div className="muted">{t('No savings tracked yet. Tap + to add your first entry.')}</div>
             ) : (
