@@ -64,7 +64,13 @@ export function DashboardView({ onNavigate }: Props) {
 
   const [budgetEnabled] = useMetaSetting<boolean>('budgetEnabled', false)
 
-  const [orderRaw, setOrder] = useMetaSetting<CardKey[]>('dashboardCardOrder', [...CARD_KEYS])
+  // Separate keys per device — a reorder on the desktop grid has no
+  // business dictating the mobile stack's own order (and vice versa),
+  // since the two are dragged independently in entirely different layouts.
+  const [orderRaw, setOrder] = useMetaSetting<CardKey[]>(
+    isDesktop ? 'dashboardCardOrder' : 'dashboardCardOrderMobile',
+    [...CARD_KEYS],
+  )
   const order = sanitizeOrder(orderRaw, CARD_KEYS)
   const drag = useDashboardDrag(order, setOrder)
 
