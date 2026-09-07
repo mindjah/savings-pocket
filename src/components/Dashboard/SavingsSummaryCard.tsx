@@ -95,7 +95,7 @@ export function SavingsSummaryCard({ onNavigate }: Props) {
         )}
 
         {visibleLentCurrencies.length > 0 && (
-          <div className="dashboard-card-list" style={{ marginTop: 10 }}>
+          <div className="dashboard-card-list dashboard-card-divider">
             {visibleLentCurrencies.map((c) => (
               <div className="dashboard-card-list-row" key={c.code}>
                 <span className="muted">{t('Lent out')}</span>
