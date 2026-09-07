@@ -25,6 +25,14 @@ interface Props {
   monthPrefix?: string
 }
 
+interface BodyProps {
+  // Defaults to the real current month — same meaning as Props' own
+  // monthPrefix above, just without onClose (the body has no close button
+  // of its own; that's the surrounding Modal's job, or the Dashboard card
+  // it's embedded in just doesn't have one at all).
+  monthPrefix?: string
+}
+
 const LEVEL_COLOR: Record<BudgetStatusLevel, string> = {
   green: 'var(--accent)',
   yellow: 'var(--warning)',
@@ -188,7 +196,12 @@ function BudgetDonut({
   )
 }
 
-export function BudgetStatusModal({ onClose, monthPrefix: monthPrefixProp }: Props) {
+// Shared by both entry points below — a bottom sheet (SpendingView's own
+// status button, Analytics' budget cards) and a plain card embedded
+// directly on the desktop Dashboard. Same data/donuts/category list; only
+// the surrounding chrome (Modal vs. a bare Dashboard card) differs — same
+// split AnalyticsModal's own AnalyticsBody already established.
+export function BudgetStatusBody({ monthPrefix: monthPrefixProp }: BodyProps) {
   const { t, lang } = useTranslation()
   const categories = useLiveQuery(() => db.categories.toArray(), []) ?? []
   const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories])
@@ -201,7 +214,6 @@ export function BudgetStatusModal({ onClose, monthPrefix: monthPrefixProp }: Pro
   const now = new Date()
   const realCurrentMonthPrefix = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`
   const monthPrefix = monthPrefixProp ?? realCurrentMonthPrefix
-  const [monthYear, monthNum] = monthPrefix.split('-').map(Number)
   // Pace (how much of the budget "should" be used by now) only means
   // anything for the month actually in progress — a fully past month is
   // simply over or under its budget (elapsed 1, no partial-pace yellow), and
@@ -543,21 +555,6 @@ export function BudgetStatusModal({ onClose, monthPrefix: monthPrefixProp }: Pro
 
   return (
     <>
-    <Modal
-      wide
-      title={
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-          <BudgetIcon size={20} />
-          {t('Budget status')}
-          {monthPrefixProp && (
-            <span className="muted" style={{ fontWeight: 400, fontSize: '0.85rem' }}>
-              — {t(MONTH_NAMES[monthNum - 1])} {monthYear}
-            </span>
-          )}
-        </span>
-      }
-      onClose={onClose}
-    >
       {currencySummaries.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '16px 12px', margin: '4px 0 20px' }}>
           {currencySummaries.map((s) => (
@@ -704,18 +701,44 @@ export function BudgetStatusModal({ onClose, monthPrefix: monthPrefixProp }: Pro
           )}
         </>
       )}
-    </Modal>
 
-    {categoryModalFor != null && (
-      <CategoryExpensesModal
-        categoryId={categoryModalFor}
-        categoryName={categoryMap.get(categoryModalFor)?.name ?? t('Unknown')}
-        categoryColor={categoryMap.get(categoryModalFor)?.color ?? '#888'}
-        monthPrefix={monthPrefix}
-        readOnly
-        onClose={() => setCategoryModalFor(null)}
-      />
-    )}
+      {categoryModalFor != null && (
+        <CategoryExpensesModal
+          categoryId={categoryModalFor}
+          categoryName={categoryMap.get(categoryModalFor)?.name ?? t('Unknown')}
+          categoryColor={categoryMap.get(categoryModalFor)?.color ?? '#888'}
+          monthPrefix={monthPrefix}
+          readOnly
+          onClose={() => setCategoryModalFor(null)}
+        />
+      )}
     </>
+  )
+}
+
+// Thin Modal wrapper around the body above — used by SpendingView's own
+// status button and Analytics' budget cards. The Dashboard embeds
+// BudgetStatusBody directly instead, with no Modal chrome at all.
+export function BudgetStatusModal({ onClose, monthPrefix }: Props) {
+  const { t } = useTranslation()
+  const monthNumParts = monthPrefix?.split('-').map(Number)
+  return (
+    <Modal
+      wide
+      title={
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <BudgetIcon size={20} />
+          {t('Budget status')}
+          {monthPrefix && monthNumParts && (
+            <span className="muted" style={{ fontWeight: 400, fontSize: '0.85rem' }}>
+              — {t(MONTH_NAMES[monthNumParts[1] - 1])} {monthNumParts[0]}
+            </span>
+          )}
+        </span>
+      }
+      onClose={onClose}
+    >
+      <BudgetStatusBody monthPrefix={monthPrefix} />
+    </Modal>
   )
 }

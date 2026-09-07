@@ -6,6 +6,8 @@ import { SavingsSummaryCard } from './SavingsSummaryCard'
 import { BalanceSummaryCard } from './BalanceSummaryCard'
 import { CryptoSummaryCard } from './CryptoSummaryCard'
 import { SpendingSummaryCard } from './SpendingSummaryCard'
+import { BudgetStatusDashboardCard } from './BudgetStatusDashboardCard'
+import { AnalyticsDashboardCard } from './AnalyticsDashboardCard'
 
 interface Props {
   onNavigate: (tab: Tab) => void
@@ -34,6 +36,8 @@ export function DashboardView({ onNavigate }: Props) {
         <BalanceSummaryCard onNavigate={() => onNavigate('savings')} />
         <CryptoSummaryCard onNavigate={() => onNavigate('crypto')} />
         <SpendingSummaryCard onNavigate={() => onNavigate('spending')} />
+        <BudgetStatusDashboardCard onNavigate={() => onNavigate('spending')} />
+        <AnalyticsDashboardCard onNavigate={() => onNavigate('analytics')} />
       </div>
     </div>
   )

@@ -338,16 +338,44 @@ h1, h2, h3, p {
 }
 
 /* Dashboard — desktop-only overview screen (see NavBar's desktopOnly flag),
-   so this never needs a narrow/mobile layout. */
+   so this never needs a narrow/mobile layout. Unlike every other screen it
+   isn't a single reading column, so it opts out of .view's centered
+   max-width and spreads across the available window instead. */
+.view.dashboard-view {
+  max-width: 1600px;
+}
+
+/* Explicit 12-column track (rather than auto-fit/minmax) so each card can
+   claim a span proportional to how much it actually shows: the four quick
+   at-a-glance cards share one row equally, while Budget status and
+   Analytics — full donuts/category-lists and full tabbed charts — each
+   claim the entire row width below. */
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(12, 1fr);
   gap: 16px;
 }
 
 .dashboard-card {
   display: flex;
   flex-direction: column;
+  grid-column: span 3;
+}
+
+.dashboard-card-wide {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 1279px) {
+  .dashboard-card {
+    grid-column: span 6;
+  }
+}
+
+@media (max-width: 899px) {
+  .dashboard-card {
+    grid-column: 1 / -1;
+  }
 }
 
 .dashboard-card-header {

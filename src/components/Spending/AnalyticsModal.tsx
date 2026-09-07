@@ -27,11 +27,11 @@ function groupByMonth<T extends { date?: string; month?: string }>(rows: T[]): M
   return map
 }
 
-// Shared by both entry points below — a bottom sheet on mobile (opened from
-// Spending's Manage menu) and a full desktop-sidebar page (see NavBar's
-// desktopOnly tabs). Same data, same tabs; only the surrounding chrome
-// (Modal vs. a plain .view page) differs.
-function AnalyticsBody() {
+// Shared by all three entry points below — a bottom sheet on mobile (opened
+// from Spending's Manage menu), a full desktop-sidebar page (see NavBar's
+// desktopOnly tabs), and embedded directly as a card on the Dashboard. Same
+// data, same tabs; only the surrounding chrome differs.
+export function AnalyticsBody() {
   const { t } = useTranslation()
   const [tab, setTab] = useState<AnalyticsTab>('compare')
 

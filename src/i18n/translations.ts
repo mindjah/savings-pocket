@@ -24,6 +24,7 @@ export const RU: Record<string, string> = {
   'Go to Savings': 'К сбережениям',
   'Go to Crypto': 'К крипте',
   'Go to Spending': 'К расходам',
+  'Go to Analytics': 'К аналитике',
 
   // Lock screen
   'Savings Pocket is locked': 'Savings Pocket заблокирован',
