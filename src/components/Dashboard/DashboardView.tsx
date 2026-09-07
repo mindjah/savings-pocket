@@ -11,6 +11,8 @@ import { CryptoSummaryCard } from './CryptoSummaryCard'
 import { SpendingSummaryCard } from './SpendingSummaryCard'
 import { BudgetStatusDashboardCard } from './BudgetStatusDashboardCard'
 import { AnalyticsDashboardCard } from './AnalyticsDashboardCard'
+import { ThemeQuickToggle } from './ThemeQuickToggle'
+import { CurrencyRatesButton } from './CurrencyRatesButton'
 
 interface Props {
   onNavigate: (tab: Tab) => void
@@ -74,6 +76,15 @@ export function DashboardView({ onNavigate }: Props) {
 
   return (
     <div className={`view boucoup-scope dashboard-view${blurBalances ? ' balances-blurred' : ''}`}>
+      {/* Desktop-only duplicates of controls that otherwise live on other
+          screens (Settings' theme control, Savings' exchange rates) —
+          the dashboard has no mobile form at all, so nothing here needs an
+          isDesktop guard the way NavBar's own sync-status duplicate does. */}
+      <div className="dashboard-top-row">
+        <ThemeQuickToggle />
+        <CurrencyRatesButton />
+      </div>
+
       {/* One grid for every card — a card's own tier (see CARD_TIER above)
           decides its size; drag any card onto any other to reorder. Fixed
           columns + grid-auto-rows matched to that same width (cellSize) +

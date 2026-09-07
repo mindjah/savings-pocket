@@ -127,7 +127,7 @@ export function CryptoSummaryCard({ onNavigate }: Props) {
                   <span className="muted">
                     {e.amount} {e.symbol}
                   </span>
-                  <span>{formatMoney(e.amount * priceIn(prices[e.coinId], 'USD'), 'USD')}</span>
+                  <span className="dashboard-amount">{formatMoney(e.amount * priceIn(prices[e.coinId], 'USD'), 'USD')}</span>
                 </div>
               ))
             )}

@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import { CURRENCIES, DEFAULT_CRYPTO_CURRENCIES, DEFAULT_SAVINGS_CURRENCIES, DEFAULT_SPENDING_CURRENCIES } from '../../lib/constants'
-import { formatDateOrTime, formatDateTime, formatMoney } from '../../lib/format'
+import { formatDateTime, formatMoney } from '../../lib/format'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
-import { exportBackup, importBackup, type LastBackup } from '../../lib/backup'
+import { exportBackup, importBackup } from '../../lib/backup'
 import { backupToGoogleDrive, DriveBackupCancelled, isGoogleDriveConfigured, restoreFromGoogleDrive } from '../../lib/googleDrive'
 import { useToast } from '../../hooks/useToast'
 import type { Currency, Language, SavingsTrackingMode } from '../../db/types'
@@ -17,10 +17,7 @@ import { tDriveBackupConflict, tImportComplete, tNoPocketYet } from '../../i18n/
 import { PasscodeSetupModal } from './PasscodeSetupModal'
 import { HeaderPortal } from '../common/HeaderPortal'
 import { GoogleDriveIcon } from '../common/GoogleDriveIcon'
-import { CloudSyncIcon } from '../common/CloudSyncIcon'
-import { ManualSyncIcon } from '../common/ManualSyncIcon'
-
-const BACKUP_FRESH_DAYS = 7
+import { SyncStatusBadge } from '../common/SyncStatusBadge'
 
 interface Props {
   resetKey: number
@@ -146,36 +143,6 @@ export function SettingsView({ resetKey }: Props) {
   const [busy, setBusy] = useState(false)
   const toast = useToast()
 
-  const lastBackupRec = useLiveQuery(() => db.meta.get('lastBackup'), [])
-  const lastBackup = lastBackupRec?.value as LastBackup | undefined
-  const daysSinceBackup = lastBackup ? (Date.now() - new Date(lastBackup.at).getTime()) / 86400000 : null
-  const backupStatusColor =
-    daysSinceBackup == null ? 'var(--danger-strong)' : daysSinceBackup < BACKUP_FRESH_DAYS ? 'var(--accent)' : 'var(--warning)'
-  const backupStatusText =
-    lastBackup == null ? t('Never backed up') : `${t('Last backup')} ${formatDateOrTime(lastBackup.at, lang)}`
-  const backupStatusBadge = (
-    // Right-docked against the header's own right padding (16px, see
-    // .app-header) and capped so the whole badge — icon included — never
-    // grows past the screen's own horizontal middle, wrapping there
-    // instead of getting close to the title on the left. Not just the
-    // text span: the cap has to cover the icon+gap too, or a short second
-    // line could still poke past center once the icon's width is added.
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        color: backupStatusColor,
-        fontSize: '0.8rem',
-        fontWeight: 600,
-        maxWidth: 'calc(50vw - 16px)',
-      }}
-    >
-      <span style={{ textAlign: 'right' }}>{backupStatusText}</span>
-      {lastBackup?.method === 'manual' ? <ManualSyncIcon size={24} /> : <CloudSyncIcon size={24} />}
-    </span>
-  )
-
   async function handleExport() {
     setBusy(true)
     try {
@@ -236,8 +203,17 @@ export function SettingsView({ resetKey }: Props) {
 
   return (
     <div className="view boucoup-scope">
-      <HeaderPortal>{backupStatusBadge}</HeaderPortal>
-      <div className="desktop-header-row">{backupStatusBadge}</div>
+      {/* Right-docked against the header's own right padding (16px, see
+          .app-header) and capped so the whole badge — icon included — never
+          grows past the screen's own horizontal middle, wrapping there
+          instead of getting close to the title on the left. Desktop shows
+          this same status at the bottom of the sidebar instead (see
+          NavBar) — visible from every screen, not just Settings. */}
+      <HeaderPortal>
+        <span style={{ maxWidth: 'calc(50vw - 16px)' }}>
+          <SyncStatusBadge />
+        </span>
+      </HeaderPortal>
 
       <div className="section-title">
         <h2>{t('General')}</h2>

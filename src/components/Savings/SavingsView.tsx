@@ -162,19 +162,15 @@ export function SavingsView({ resetKey }: Props) {
 
   return (
     <div className={`view boucoup-scope savings-view${blurBalances ? ' balances-blurred' : ''}`}>
+      {/* Mobile only — desktop moved this to the Dashboard's own top-right
+          corner instead (see DashboardView/CurrencyRatesButton), visible
+          from every screen rather than only Savings. */}
       <HeaderPortal>
         <button className="btn btn-accent-text" onClick={() => setShowRates(true)} type="button">
           {t('Exchange rates')}
           <i className="fa-solid fa-money-bill-transfer" style={{ fontSize: 18 }} aria-hidden="true" />
         </button>
       </HeaderPortal>
-
-      <div className="desktop-header-row">
-        <button className="btn btn-accent-text" onClick={() => setShowRates(true)} type="button">
-          {t('Exchange rates')}
-          <i className="fa-solid fa-money-bill-transfer" style={{ fontSize: 18 }} aria-hidden="true" />
-        </button>
-      </div>
 
       <NetWorthCard blurBalances={blurBalances} onToggleBlur={() => setBlurBalances((b) => !b)} />
 

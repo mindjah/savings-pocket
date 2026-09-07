@@ -4,6 +4,7 @@ import { useIsDesktop } from '../../hooks/useIsDesktop'
 import { SandboxIcon } from '../common/SandboxIcon'
 import { BudgetIcon } from '../common/BudgetIcon'
 import { AnalyticsIcon } from '../common/AnalyticsIcon'
+import { SyncStatusBadge } from '../common/SyncStatusBadge'
 
 export type Tab = 'dashboard' | 'savings' | 'crypto' | 'spending' | 'planning' | 'budget' | 'analytics' | 'settings'
 
@@ -51,6 +52,12 @@ export function NavBar({ active, onChange }: Props) {
           <span>{t(tab.label)}</span>
         </button>
       ))}
+      {/* Desktop-only (see .nav-sync-status in index.css) — mobile keeps
+          showing this same status in its own top header instead (see
+          SettingsView's HeaderPortal usage). */}
+      <div className="nav-sync-status">
+        <SyncStatusBadge />
+      </div>
     </nav>
   )
 }

@@ -431,6 +431,8 @@ export const RU: Record<string, string> = {
     'Скрывать суммы на экране «Сбережения», пока не нажмёте на иконку глаза',
   'Show balances': 'Показать суммы',
   'Hide balances': 'Скрыть суммы',
+  'Switch to light theme': 'Переключить на светлую тему',
+  'Switch to dark theme': 'Переключить на тёмную тему',
   'Confirm passcode': 'Подтвердите код',
   'Save passcode': 'Сохранить код',
   'Passcode set': 'Код сохранён',

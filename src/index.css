@@ -272,6 +272,10 @@ h1, h2, h3, p {
   display: none;
 }
 
+.nav-sync-status {
+  display: none;
+}
+
 @media (min-width: 860px) {
   .app-shell {
     flex-direction: row;
@@ -319,6 +323,24 @@ h1, h2, h3, p {
 
   .nav-item.active {
     background: color-mix(in srgb, var(--accent) 16%, transparent);
+  }
+
+  /* Pinned to the sidebar's bottom (margin-top: auto in its flex column)
+     instead of Settings' own header — visible from every screen, not just
+     Settings, same status shown in the mobile header via HeaderPortal. The
+     negative margin eats into .nav-bottom's own 28px bottom padding, so
+     this sits closer to the sidebar's true bottom edge than that padding
+     alone would allow. */
+  .nav-sync-status {
+    display: block;
+    margin-top: auto;
+    margin-bottom: -16px;
+    padding: 12px 12px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .nav-sync-status span {
+    font-size: 0.75rem;
   }
 
   .view {
@@ -376,6 +398,31 @@ h1, h2, h3, p {
    max-width and spreads across the available window instead. */
 .view.dashboard-view {
   max-width: 1600px;
+  padding-top: 16px; /* half of .view's own desktop padding-top (32px) */
+}
+
+/* Theme toggle (left) + exchange rates (right) — duplicated here from
+   Settings/Savings' own desktop header rows (see ThemeQuickToggle,
+   CurrencyRatesButton). Negative margin halves .view's own 16px column
+   gap between this row and the grid below it. */
+.dashboard-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: -8px;
+}
+
+.dashboard-theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
 }
 
 /* A single grid for every dashboard card. Fixed column count (not
@@ -677,7 +724,10 @@ h1, h2, h3, p {
 .savings-view .net-worth-amount,
 .savings-view .net-worth-breakdown-amount,
 .savings-view .total-chip .amount,
-.savings-view .entry-amount {
+.savings-view .entry-amount,
+.dashboard-view .dashboard-card-total,
+.dashboard-view .dashboard-networth-line,
+.dashboard-view .dashboard-amount {
   will-change: filter;
   transition: filter 0.15s ease;
   transform: translateZ(0);
@@ -693,7 +743,8 @@ h1, h2, h3, p {
 .balances-blurred .total-chip .amount,
 .balances-blurred .entry-amount,
 .balances-blurred .dashboard-card-total,
-.balances-blurred .dashboard-networth-line {
+.balances-blurred .dashboard-networth-line,
+.balances-blurred .dashboard-amount {
   filter: blur(8px);
   user-select: none;
 }

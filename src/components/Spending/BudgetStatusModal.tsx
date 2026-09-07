@@ -550,12 +550,15 @@ export function BudgetStatusBody({ monthPrefix: monthPrefixProp, compact }: Body
   const cardLevel = budgetStatus ? budgetCardLevel(budgetStatus) : null
 
   const hasAnything = budgetedRows.length > 0 || otherRows.length > 0
-  const donutSize = currencySummaries.length > 1 ? 148 : 200
+  // compact (the Dashboard's own trimmed embed) is the only caller this
+  // large size applies to — the general Budget status modal/bottom sheet
+  // keeps its existing smaller donuts untouched.
+  const donutSize = compact ? (currencySummaries.length > 1 ? 220 : 260) : currencySummaries.length > 1 ? 148 : 200
 
   return (
     <>
       {overallStatus && (
-        <div style={{ textAlign: 'center', marginBottom: 16 }}>
+        <div style={{ textAlign: 'center', marginBottom: compact ? 32 : 16 }}>
           <div className="muted" style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
             {t('Spent')}
           </div>
@@ -569,7 +572,7 @@ export function BudgetStatusBody({ monthPrefix: monthPrefixProp, compact }: Body
       )}
 
       {currencySummaries.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '16px 12px', margin: '4px 0 20px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '16px 12px', margin: compact ? '4px 0 36px' : '4px 0 20px' }}>
           {currencySummaries.map((s) => (
             <div key={s.currency} style={{ flex: currencySummaries.length > 1 ? '0 1 calc(50% - 6px)' : '0 1 100%', minWidth: 0 }}>
               <BudgetDonut
@@ -600,7 +603,7 @@ export function BudgetStatusBody({ monthPrefix: monthPrefixProp, compact }: Body
                     display: 'flex',
                     alignItems: 'flex-start',
                     gap: 8,
-                    marginTop: 8,
+                    marginTop: compact ? 24 : 8,
                     marginBottom: 16,
                     color: CARD_LEVEL_COLOR[cardLevel],
                     fontWeight: 600,
