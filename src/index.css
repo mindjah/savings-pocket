@@ -465,6 +465,13 @@ h1, h2, h3, p {
   display: flex;
   flex-direction: column;
   min-width: 0; /* a grid item's implicit min-width:auto otherwise lets unbreakable content (a long number, currency chips) force this column wider than its 1fr share, breaking the square 1x1 unit */
+  /* Dragging a card (see useDashboardDrag) moves the pointer freely across
+     every other card's own text while hit-testing the drop target —
+     without this, that reads to the browser as a text-selection drag and
+     highlights whatever it passes over, on top of the actual reorder. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .dashboard-cell.dragging {
