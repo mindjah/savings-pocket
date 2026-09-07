@@ -28,9 +28,11 @@ export const RU: Record<string, string> = {
   'over 30 days': 'за 30 дней',
   'Available until end of month': 'Доступно до конца месяца',
   'From budget': 'Из бюджета',
+  'View details': 'Подробнее',
 
   // Settings > General
   General: 'Общие',
+  Theme: 'Тема',
   System: 'Система',
   Light: 'Светлая',
   Dark: 'Тёмная',

@@ -1,21 +1,20 @@
+import { useState } from 'react'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { useTranslation } from '../../hooks/useTranslation'
 import { BudgetIcon } from '../common/BudgetIcon'
-import { BudgetStatusBody } from '../Spending/BudgetStatusModal'
+import { BudgetStatusBody, BudgetStatusModal } from '../Spending/BudgetStatusModal'
 
-interface Props {
-  onNavigate: () => void
-}
-
-// Embeds the exact same donuts/explanation/category list SpendingView's own
-// status button opens as a bottom sheet (BudgetStatusBody, extracted from
-// BudgetStatusModal the same way AnalyticsModal already splits into
-// AnalyticsBody) — not just a number, the actual visualization. Hidden
-// entirely when the Settings > budget feature itself is off, same as it
-// already is everywhere else that budget status appears.
-export function BudgetStatusDashboardCard({ onNavigate }: Props) {
+// Embeds a trimmed BudgetStatusBody — the "Spent X of X" headline, the
+// donuts, and the status text, but no category breakdown (compact) — so
+// this card never needs to scroll. The button opens the real, full
+// BudgetStatusModal (donuts + full category list) rather than navigating
+// away to the Spending tab. Hidden entirely when the Settings > budget
+// feature itself is off, same as it already is everywhere else budget
+// status appears.
+export function BudgetStatusDashboardCard() {
   const { t } = useTranslation()
   const [budgetEnabled] = useMetaSetting<boolean>('budgetEnabled', false)
+  const [showFull, setShowFull] = useState(false)
   if (!budgetEnabled) return null
 
   return (
@@ -26,12 +25,13 @@ export function BudgetStatusDashboardCard({ onNavigate }: Props) {
         </span>
         <h3>{t('Budget status')}</h3>
       </div>
-      <div className="dashboard-card-body">
-        <BudgetStatusBody />
+      <div className="dashboard-card-body no-scroll">
+        <BudgetStatusBody compact />
       </div>
-      <button className="btn btn-ghost dashboard-card-link" onClick={onNavigate} type="button">
-        {t('Go to Spending')} →
+      <button className="btn btn-ghost dashboard-card-link" onClick={() => setShowFull(true)} type="button">
+        {t('View details')} →
       </button>
+      {showFull && <BudgetStatusModal onClose={() => setShowFull(false)} />}
     </div>
   )
 }

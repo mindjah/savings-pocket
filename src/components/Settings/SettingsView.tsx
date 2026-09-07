@@ -244,7 +244,8 @@ export function SettingsView({ resetKey }: Props) {
       </div>
 
       <div className="card settings-list">
-        <div className="settings-row">
+        <div className="settings-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
+          <div>{t('Language')}</div>
           <div className="segmented" style={{ width: '100%' }}>
             <button type="button" className={language === 'en' ? 'active' : ''} onClick={() => setLanguage('en')}>
               English
@@ -254,7 +255,8 @@ export function SettingsView({ resetKey }: Props) {
             </button>
           </div>
         </div>
-        <div className="settings-row">
+        <div className="settings-row" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
+          <div>{t('Theme')}</div>
           <div className="segmented" style={{ width: '100%' }}>
             <button type="button" className={themePreference === 'system' ? 'active' : ''} onClick={() => setThemePreference('system')}>
               {t('System')}

@@ -31,6 +31,11 @@ interface BodyProps {
   // of its own; that's the surrounding Modal's job, or the Dashboard card
   // it's embedded in just doesn't have one at all).
   monthPrefix?: string
+  // Dashboard's own trimmed embed: the "Spent X of X" headline, the donuts,
+  // and the status text, but no category breakdown — that's what tapping
+  // through to the full modal is for, so this compact form never needs to
+  // scroll on its own.
+  compact?: boolean
 }
 
 const LEVEL_COLOR: Record<BudgetStatusLevel, string> = {
@@ -181,12 +186,6 @@ function BudgetDonut({
           <div style={{ fontSize: size > 160 ? '1.6rem' : '1.15rem', fontWeight: 800, lineHeight: 1.25 }}>{Math.round(percentage)}%</div>
         </div>
       </div>
-      <div style={{ fontSize: '0.85rem', marginTop: 8, width: '100%', textAlign: 'center' }}>
-        <strong>{formatMoney(segments.reduce((sum, s) => sum + s.amount, 0) + unbudgetedTotal, currency)}</strong>{' '}
-        <span className="muted">
-          {t('of')} {formatMoney(budget, currency)}
-        </span>
-      </div>
       {totalSpent > budget && overallOver === false && (
         <div className="muted" style={{ fontSize: '0.75rem', marginTop: 2, width: '100%', textAlign: 'center' }}>
           {tOverspentButOverallFine(lang, currency)}
@@ -201,7 +200,7 @@ function BudgetDonut({
 // directly on the desktop Dashboard. Same data/donuts/category list; only
 // the surrounding chrome (Modal vs. a bare Dashboard card) differs — same
 // split AnalyticsModal's own AnalyticsBody already established.
-export function BudgetStatusBody({ monthPrefix: monthPrefixProp }: BodyProps) {
+export function BudgetStatusBody({ monthPrefix: monthPrefixProp, compact }: BodyProps) {
   const { t, lang } = useTranslation()
   const categories = useLiveQuery(() => db.categories.toArray(), []) ?? []
   const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories])
@@ -615,7 +614,7 @@ export function BudgetStatusBody({ monthPrefix: monthPrefixProp }: BodyProps) {
               )
             })()}
 
-          {budgetedRows.length > 0 && (
+          {!compact && budgetedRows.length > 0 && (
             <div className="list-frame">
               {budgetedRows.map((r) => {
                 const cat = categoryMap.get(r.categoryId)
@@ -668,7 +667,7 @@ export function BudgetStatusBody({ monthPrefix: monthPrefixProp }: BodyProps) {
             </div>
           )}
 
-          {otherRows.length > 0 && (
+          {!compact && otherRows.length > 0 && (
             <>
               <div className="section-title" style={{ marginTop: budgetedRows.length > 0 ? 16 : 0 }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>

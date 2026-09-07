@@ -96,32 +96,6 @@ export function BalanceSummaryCard({ onNavigate }: Props) {
           </div>
         )}
 
-        {allEntries != null && (
-          <div className="dashboard-card-list">
-            {pockets.length === 0 ? (
-              <div className="muted">{t('No savings tracked yet. Tap + to add your first entry.')}</div>
-            ) : (
-              topPockets.map((p) => (
-                <div className="dashboard-card-list-row" key={p.id}>
-                  <span className="muted">{p.location}</span>
-                  <span>{formatMoney(p.amount, p.currency)}</span>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {visibleCreditCurrencies.length > 0 && (
-          <div className="dashboard-card-list" style={{ marginTop: 10 }}>
-            {visibleCreditCurrencies.map((c) => (
-              <div className="dashboard-card-list-row" key={c.code}>
-                <span className="muted">{t('Credits')}</span>
-                <span className="dashboard-networth-line">{formatMoney(creditTotals[c.code], c.code)}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
         {budgetEnabled && visibleBudgetCurrencies.length > 0 && (
           <div className="dashboard-budget-gauge">
             <div className="muted dashboard-budget-gauge-label">{t('Available until end of month')}</div>
@@ -144,6 +118,32 @@ export function BalanceSummaryCard({ onNavigate }: Props) {
                 </div>
               )
             })}
+          </div>
+        )}
+
+        {allEntries != null && (
+          <div className="dashboard-card-list" style={{ marginTop: 10 }}>
+            {pockets.length === 0 ? (
+              <div className="muted">{t('No savings tracked yet. Tap + to add your first entry.')}</div>
+            ) : (
+              topPockets.map((p) => (
+                <div className="dashboard-card-list-row" key={p.id}>
+                  <span className="muted">{p.location}</span>
+                  <span>{formatMoney(p.amount, p.currency)}</span>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {visibleCreditCurrencies.length > 0 && (
+          <div className="dashboard-card-list" style={{ marginTop: 10 }}>
+            {visibleCreditCurrencies.map((c) => (
+              <div className="dashboard-card-list-row" key={c.code}>
+                <span className="muted">{t('Credits')}</span>
+                <span className="dashboard-networth-line">{formatMoney(creditTotals[c.code], c.code)}</span>
+              </div>
+            ))}
           </div>
         )}
       </div>

@@ -378,45 +378,43 @@ h1, h2, h3, p {
   max-width: 1600px;
 }
 
-/* One row of standard-size quick-glance cards (Net worth, Savings, Balance,
-   Invest, Monthly Expenses) — auto-fit so it tiles evenly regardless of how
-   many there are, each one sized off the same --dashboard-card-h baseline.
-   A second row below holds the two data-rich cards (Budget status,
-   Analytics) at roughly double that width. Two separate grids rather than
-   one shared column track, so neither row's item count distorts the
-   other's sizing. */
-:root {
-  --dashboard-card-h: 240px;
-}
-
-.dashboard-standard-row {
+/* A single grid for every dashboard card — column width is measured in JS
+   (useDashboardCellSize) off this same track definition, so a card's pixel
+   height (set inline per DashboardCell, in exact multiples of that width)
+   always matches an exact multiple of a column, i.e. a true square base
+   unit. Row height is left as the browser's default "auto" (sized to
+   whatever's actually in it) — align-self: start below means a short card
+   next to a tall one never gets stretched to match it, so same-tier cards'
+   "Go to X" buttons always land at the same Y position as each other. */
+.dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
 }
 
-.dashboard-medium-row {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+.dashboard-cell {
+  display: flex;
+  flex-direction: column;
+  align-self: start;
+  cursor: grab;
 }
 
-@media (max-width: 899px) {
-  .dashboard-medium-row {
-    grid-template-columns: 1fr;
-  }
+.dashboard-cell:active {
+  cursor: grabbing;
 }
 
-/* Every card's height grows with however much it's actually showing (a
-   longer category list, more habit rows, more holdings) but never past 2
-   standard card heights; anything beyond that scrolls — inside the body
-   only, so the header and the "Go to X" link stay put and reachable
-   without scrolling to them. */
+.dashboard-cell.dragging {
+  opacity: 0.5;
+}
+
+/* Fills its DashboardCell exactly (the cell owns the actual pixel size) —
+   header and the "Go to X" link stay fixed, only the body between them
+   flexes/scrolls if a 1x1 card's content doesn't fit and it hasn't (or, for
+   a manually-sized card, can't) promote to a taller tier. */
 .dashboard-card {
   display: flex;
   flex-direction: column;
-  min-height: var(--dashboard-card-h);
-  max-height: calc(var(--dashboard-card-h) * 2);
+  height: 100%;
 }
 
 .dashboard-card-body {
@@ -425,6 +423,13 @@ h1, h2, h3, p {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+}
+
+/* Budget status' compact dashboard embed specifically must never scroll —
+   its content is trimmed (see BudgetStatusBody's compact prop) to always
+   fit its fixed 2x2 cell instead. */
+.dashboard-card-body.no-scroll {
+  overflow: hidden;
 }
 
 .dashboard-card-header {
@@ -529,7 +534,9 @@ h1, h2, h3, p {
   color: #fff;
 }
 
-.dashboard-networth-card .muted {
+/* Three classes here too — theme.css's .boucoup-scope .muted is also a
+   2-class rule, and (loading later) would otherwise win the tie. */
+.boucoup-scope .dashboard-networth-card .muted {
   color: rgba(255, 255, 255, 0.78);
 }
 
@@ -578,24 +585,6 @@ h1, h2, h3, p {
   display: flex;
   justify-content: space-between;
   font-size: 0.75rem;
-}
-
-/* Dashboard drag-and-drop reordering (see useDragReorder) — the wrapper
-   carries the draggable/dragover/drop handlers so individual card
-   components don't need to know about it. */
-.dashboard-draggable {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  cursor: grab;
-}
-
-.dashboard-draggable:active {
-  cursor: grabbing;
-}
-
-.dashboard-draggable.dragging {
-  opacity: 0.5;
 }
 
 .section-title {

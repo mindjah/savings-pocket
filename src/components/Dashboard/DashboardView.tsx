@@ -1,7 +1,9 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Tab } from '../Layout/NavBar'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { useDragReorder, sanitizeOrder } from '../../hooks/useDragReorder'
+import { useDashboardCellSize } from '../../hooks/useDashboardCellSize'
+import { DashboardCell } from './DashboardCell'
 import { NetWorthSummaryCard } from './NetWorthSummaryCard'
 import { SavingsSummaryCard } from './SavingsSummaryCard'
 import { BalanceSummaryCard } from './BalanceSummaryCard'
@@ -14,9 +16,17 @@ interface Props {
   onNavigate: (tab: Tab) => void
 }
 
+const GAP = 16
+const MIN_COLUMN_WIDTH = 220
+
+// Standard cards — 1x1 by default, auto-promoting to 1x2 if their own
+// content doesn't fit (see DashboardCell). Order is user-reorderable and
+// persisted per device.
 const STANDARD_KEYS = ['networth', 'savings', 'balance', 'crypto', 'spending'] as const
 type StandardKey = (typeof STANDARD_KEYS)[number]
 
+// Data-rich cards — a fixed 2x2 set in code (not auto-expanding); still
+// reorderable amongst each other.
 const MEDIUM_KEYS = ['budget', 'analytics'] as const
 type MediumKey = (typeof MEDIUM_KEYS)[number]
 
@@ -44,6 +54,9 @@ export function DashboardView({ onNavigate }: Props) {
   const mediumOrder = sanitizeOrder(mediumOrderRaw, MEDIUM_KEYS)
   const mediumDrag = useDragReorder(mediumOrder, setMediumOrder)
 
+  const gridRef = useRef<HTMLDivElement>(null)
+  const cellSize = useDashboardCellSize(gridRef, MIN_COLUMN_WIDTH, GAP)
+
   const standardCards: Record<StandardKey, ReactNode> = {
     networth: <NetWorthSummaryCard blurBalances={blurBalances} onToggleBlur={() => setBlurBalances((b) => !b)} />,
     savings: <SavingsSummaryCard onNavigate={() => onNavigate('savings')} />,
@@ -52,21 +65,25 @@ export function DashboardView({ onNavigate }: Props) {
     spending: <SpendingSummaryCard onNavigate={() => onNavigate('spending')} />,
   }
   const mediumCards: Record<MediumKey, ReactNode> = {
-    budget: <BudgetStatusDashboardCard onNavigate={() => onNavigate('spending')} />,
+    budget: <BudgetStatusDashboardCard />,
     analytics: <AnalyticsDashboardCard onNavigate={() => onNavigate('analytics')} />,
   }
 
   return (
     <div className={`view boucoup-scope dashboard-view${blurBalances ? ' balances-blurred' : ''}`}>
-      {/* Standard-size cards, evenly tiled regardless of count — each one's
-          own height still grows/shrinks with its own content (see
-          .dashboard-card's min/max-height in index.css). Drag any card onto
-          another to swap its position; order is remembered per device. */}
-      <div className="dashboard-standard-row">
+      {/* One grid for every card — a card's own tier (see DashboardCell)
+          decides its size; drag any card onto another of the same kind to
+          swap its position, remembered per device. */}
+      <div className="dashboard-grid" ref={gridRef}>
         {standardOrder.map((key) => (
-          <div
+          <DashboardCell
             key={key}
-            className={`dashboard-draggable${standardDrag.draggingKey === key ? ' dragging' : ''}`}
+            cellSize={cellSize}
+            gap={GAP}
+            widthUnits={1}
+            heightUnits={1}
+            autoPromote
+            dragging={standardDrag.draggingKey === key}
             draggable
             onDragStart={standardDrag.onDragStart(key)}
             onDragEnd={standardDrag.onDragEnd}
@@ -74,19 +91,19 @@ export function DashboardView({ onNavigate }: Props) {
             onDrop={standardDrag.onDrop(key)}
           >
             {standardCards[key]}
-          </div>
+          </DashboardCell>
         ))}
-      </div>
 
-      {/* The two data-rich cards — roughly 2 standard cards wide, capped at
-          2 standard cards tall with internal scrolling beyond that. */}
-      <div className="dashboard-medium-row">
         {mediumOrder
           .filter((key) => key !== 'budget' || budgetEnabled)
           .map((key) => (
-            <div
+            <DashboardCell
               key={key}
-              className={`dashboard-draggable${mediumDrag.draggingKey === key ? ' dragging' : ''}`}
+              cellSize={cellSize}
+              gap={GAP}
+              widthUnits={2}
+              heightUnits={2}
+              dragging={mediumDrag.draggingKey === key}
               draggable
               onDragStart={mediumDrag.onDragStart(key)}
               onDragEnd={mediumDrag.onDragEnd}
@@ -94,7 +111,7 @@ export function DashboardView({ onNavigate }: Props) {
               onDrop={mediumDrag.onDrop(key)}
             >
               {mediumCards[key]}
-            </div>
+            </DashboardCell>
           ))}
       </div>
     </div>
