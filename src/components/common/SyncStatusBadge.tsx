@@ -8,13 +8,22 @@ import { ManualSyncIcon } from './ManualSyncIcon'
 
 const BACKUP_FRESH_DAYS = 7
 
-// Last-backup status — mobile shows this in the Dashboard's own header (see
-// DashboardView, replacing its title), desktop at the bottom of the
-// sidebar (see NavBar) instead, since the sidebar is visible from every
-// screen. Icon kept small (16px, not the 24px used where this stands
-// alone) so it never forces a single-line header row taller than any
-// other screen's own plain text title.
-export function SyncStatusBadge() {
+interface Props {
+  // 'sidebar' (default): desktop's own usage at the bottom of NavBar's
+  // sidebar — a fixed narrow column already, so no wrap handling needed.
+  // 'header': mobile Dashboard's usage, replacing the header's title (see
+  // DashboardView) — same properties Settings' own mobile header used
+  // before this moved here (24px icon, wraps once it reaches roughly the
+  // screen's own center, same as a long Russian date-string would have),
+  // just left-aligned (was right-docked in Settings; this sits in the
+  // header's left corner instead) instead of right-aligned.
+  variant?: 'sidebar' | 'header'
+}
+
+// Last-backup status — mobile shows this in the Dashboard's own header,
+// desktop at the bottom of the sidebar (see NavBar) instead, since the
+// sidebar is visible from every screen.
+export function SyncStatusBadge({ variant = 'sidebar' }: Props) {
   const { t, lang } = useTranslation()
   const lastBackupRec = useLiveQuery(() => db.meta.get('lastBackup'), [])
   const lastBackup = lastBackupRec?.value as LastBackup | undefined
@@ -23,9 +32,19 @@ export function SyncStatusBadge() {
   const text = lastBackup == null ? t('Never backed up') : `${t('Last backup')} ${formatDateOrTime(lastBackup.at, lang)}`
 
   return (
-    <span style={{ display: 'inline-flex', verticalAlign: 'top', alignItems: 'center', gap: 6, color, fontSize: '0.8rem', fontWeight: 600 }}>
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        color,
+        fontSize: '0.8rem',
+        fontWeight: 600,
+        ...(variant === 'header' ? { maxWidth: 'calc(50vw - 16px)', verticalAlign: 'top' } : {}),
+      }}
+    >
       <span>{text}</span>
-      {lastBackup?.method === 'manual' ? <ManualSyncIcon size={16} /> : <CloudSyncIcon size={16} />}
+      {lastBackup?.method === 'manual' ? <ManualSyncIcon size={24} /> : <CloudSyncIcon size={24} />}
     </span>
   )
 }

@@ -94,7 +94,7 @@ export function DashboardView({ onNavigate }: Props) {
           its own in-body row instead: theme toggle (duplicating Settings'
           own control) + the same exchange rates button. */}
       <HeaderTitlePortal>
-        <SyncStatusBadge />
+        <SyncStatusBadge variant="header" />
       </HeaderTitlePortal>
       <HeaderPortal>
         <CurrencyRatesButton />
