@@ -345,37 +345,45 @@ h1, h2, h3, p {
   max-width: 1600px;
 }
 
-/* Explicit 12-column track (rather than auto-fit/minmax) so each card can
-   claim a span proportional to how much it actually shows: the four quick
-   at-a-glance cards share one row equally, while Budget status and
-   Analytics — full donuts/category-lists and full tabbed charts — each
-   claim the entire row width below. */
-.dashboard-grid {
+/* One row of standard-size quick-glance cards (Net worth, Savings, Balance,
+   Invest, Monthly Expenses) — auto-fit so it tiles evenly regardless of how
+   many there are, each one sized off the same --dashboard-card-h baseline.
+   A second row below holds the two data-rich cards (Budget status,
+   Analytics) at roughly double that width. Two separate grids rather than
+   one shared column track, so neither row's item count distorts the
+   other's sizing. */
+:root {
+  --dashboard-card-h: 240px;
+}
+
+.dashboard-standard-row {
   display: grid;
-  grid-template-columns: repeat(12, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
 }
 
-.dashboard-card {
-  display: flex;
-  flex-direction: column;
-  grid-column: span 3;
-}
-
-.dashboard-card-wide {
-  grid-column: 1 / -1;
-}
-
-@media (max-width: 1279px) {
-  .dashboard-card {
-    grid-column: span 6;
-  }
+.dashboard-medium-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
 }
 
 @media (max-width: 899px) {
-  .dashboard-card {
-    grid-column: 1 / -1;
+  .dashboard-medium-row {
+    grid-template-columns: 1fr;
   }
+}
+
+/* Every card's height grows with however much it's actually showing (a
+   longer category list, more habit rows, more holdings) but never past 2
+   standard card heights; anything beyond that scrolls inside the card
+   instead of pushing the rest of the dashboard down. */
+.dashboard-card {
+  display: flex;
+  flex-direction: column;
+  min-height: var(--dashboard-card-h);
+  max-height: calc(var(--dashboard-card-h) * 2);
+  overflow-y: auto;
 }
 
 .dashboard-card-header {
@@ -386,8 +394,19 @@ h1, h2, h3, p {
 }
 
 .dashboard-card-header h3 {
+  flex: 1;
   font-size: 1rem;
   font-weight: 700;
+}
+
+.dashboard-card-eye-toggle {
+  border: none;
+  background: none;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  cursor: pointer;
 }
 
 .dashboard-card-totals {
@@ -426,6 +445,28 @@ h1, h2, h3, p {
   font-size: 0.85rem;
   text-align: left;
   cursor: pointer;
+}
+
+.dashboard-card-trend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.dashboard-trend-badge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dashboard-trend-up {
+  color: var(--accent);
+}
+
+.dashboard-trend-down {
+  color: var(--danger);
 }
 
 .section-title {
@@ -514,7 +555,9 @@ h1, h2, h3, p {
 .balances-blurred .net-worth-amount,
 .balances-blurred .net-worth-breakdown-amount,
 .balances-blurred .total-chip .amount,
-.balances-blurred .entry-amount {
+.balances-blurred .entry-amount,
+.balances-blurred .dashboard-card-total,
+.balances-blurred .dashboard-networth-line {
   filter: blur(8px);
   user-select: none;
 }

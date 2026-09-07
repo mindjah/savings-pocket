@@ -6,9 +6,11 @@ import { CURRENCIES, DEFAULT_CRYPTO_CURRENCIES } from '../../lib/constants'
 import { formatMoney } from '../../lib/format'
 import { priceIn } from '../../lib/rates'
 import { useCryptoRates } from '../../hooks/useCryptoRates'
+import { useCryptoPriceHistory30d } from '../../hooks/useCryptoPriceHistory30d'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { useTranslation } from '../../hooks/useTranslation'
 import { BitcoinIcon } from '../common/BitcoinIcon'
+import { Sparkline } from '../common/Sparkline'
 
 interface Props {
   onNavigate: () => void
@@ -22,6 +24,35 @@ export function CryptoSummaryCard({ onNavigate }: Props) {
   const [cryptoCurrencies] = useMetaSetting<Currency[]>('enabledCryptoCurrencies', DEFAULT_CRYPTO_CURRENCIES)
   const coinIds = useMemo(() => Array.from(new Set((entries ?? []).map((e) => e.coinId))), [entries])
   const { prices } = useCryptoRates(coinIds)
+  const priceHistories = useCryptoPriceHistory30d(coinIds)
+
+  // Combined portfolio value over the last 30 days — each held coin's real
+  // daily price history (see priceHistory.ts) weighted by its CURRENT
+  // holding amount (30 days of amount-history isn't tracked, so today's
+  // holdings are treated as constant across the window, same simplification
+  // most portfolio trackers make without full transaction history).
+  const portfolioTrend = useMemo(() => {
+    if (!entries || entries.length === 0) return null
+    const validHistories = Object.fromEntries(Object.entries(priceHistories).filter(([, points]) => points.length > 1))
+    const lengths = Object.values(validHistories).map((h) => h.length)
+    if (lengths.length === 0) return null
+    const minLen = Math.min(...lengths)
+    if (minLen < 2) return null
+
+    const values: number[] = []
+    for (let i = 0; i < minLen; i++) {
+      let total = 0
+      for (const e of entries) {
+        const hist = validHistories[e.coinId]
+        if (!hist) continue
+        total += e.amount * hist[hist.length - minLen + i].usd
+      }
+      values.push(total)
+    }
+    if (values[0] === 0) return null
+    return { values, pct: ((values[values.length - 1] - values[0]) / values[0]) * 100 }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entries, priceHistories])
 
   const visibleCurrencies = CURRENCIES.filter((c) => cryptoCurrencies.includes(c.code))
   const totals = useMemo(() => {
@@ -90,6 +121,15 @@ export function CryptoSummaryCard({ onNavigate }: Props) {
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {portfolioTrend && (
+        <div className="dashboard-card-trend">
+          <Sparkline points={portfolioTrend.values} color={portfolioTrend.pct >= 0 ? 'var(--accent)' : 'var(--danger)'} />
+          <span className={`dashboard-trend-badge${portfolioTrend.pct >= 0 ? ' dashboard-trend-up' : ' dashboard-trend-down'}`}>
+            {portfolioTrend.pct >= 0 ? '↑' : '↓'} {Math.abs(portfolioTrend.pct).toFixed(1)}% {t('over 30 days')}
+          </span>
         </div>
       )}
 

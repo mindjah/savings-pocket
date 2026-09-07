@@ -19,7 +19,7 @@ export function BudgetStatusDashboardCard({ onNavigate }: Props) {
   if (!budgetEnabled) return null
 
   return (
-    <div className="card dashboard-card dashboard-card-wide">
+    <div className="card dashboard-card">
       <div className="dashboard-card-header">
         <span className="pocket-type-icon tint-orange" aria-hidden="true">
           <BudgetIcon size={20} />

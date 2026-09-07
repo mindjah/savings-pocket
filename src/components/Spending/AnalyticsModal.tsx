@@ -16,7 +16,7 @@ interface Props {
 
 type AnalyticsTab = 'compare' | 'year' | 'habits'
 
-function groupByMonth<T extends { date?: string; month?: string }>(rows: T[]): Map<string, T[]> {
+export function groupByMonth<T extends { date?: string; month?: string }>(rows: T[]): Map<string, T[]> {
   const map = new Map<string, T[]>()
   rows.forEach((row) => {
     const key = row.month ?? monthOf(row.date!)

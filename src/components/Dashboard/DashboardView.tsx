@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Tab } from '../Layout/NavBar'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
-import { NetWorthCard } from '../Savings/NetWorthCard'
+import { NetWorthSummaryCard } from './NetWorthSummaryCard'
 import { SavingsSummaryCard } from './SavingsSummaryCard'
 import { BalanceSummaryCard } from './BalanceSummaryCard'
 import { CryptoSummaryCard } from './CryptoSummaryCard'
@@ -29,13 +29,20 @@ export function DashboardView({ onNavigate }: Props) {
 
   return (
     <div className={`view boucoup-scope dashboard-view${blurBalances ? ' balances-blurred' : ''}`}>
-      <NetWorthCard blurBalances={blurBalances} onToggleBlur={() => setBlurBalances((b) => !b)} />
-
-      <div className="dashboard-grid">
+      {/* Standard-size cards, evenly tiled regardless of count — each one's
+          own height still grows/shrinks with its own content (see
+          .dashboard-card's min/max-height in index.css). */}
+      <div className="dashboard-standard-row">
+        <NetWorthSummaryCard blurBalances={blurBalances} onToggleBlur={() => setBlurBalances((b) => !b)} />
         <SavingsSummaryCard onNavigate={() => onNavigate('savings')} />
         <BalanceSummaryCard onNavigate={() => onNavigate('savings')} />
         <CryptoSummaryCard onNavigate={() => onNavigate('crypto')} />
         <SpendingSummaryCard onNavigate={() => onNavigate('spending')} />
+      </div>
+
+      {/* The two data-rich cards — roughly 2 standard cards wide, capped at
+          2 standard cards tall with internal scrolling beyond that. */}
+      <div className="dashboard-medium-row">
         <BudgetStatusDashboardCard onNavigate={() => onNavigate('spending')} />
         <AnalyticsDashboardCard onNavigate={() => onNavigate('analytics')} />
       </div>
