@@ -16,7 +16,12 @@ interface Props {
   // before this moved here (24px icon, wraps once it reaches roughly the
   // screen's own center, same as a long Russian date-string would have),
   // just left-aligned (was right-docked in Settings; this sits in the
-  // header's left corner instead) instead of right-aligned.
+  // header's left corner instead) instead of right-aligned. Also needs its
+  // own line-height: the real <h1> it's portaled into is styled for a much
+  // bigger single-line title (theme.css's .app-header h1 sets a 36px line
+  // box for 24px heading text) — without an override, this badge's own
+  // far-smaller text inherits that same 36px band per line, which is what
+  // was inflating the header's height and the gap between wrapped lines.
   variant?: 'sidebar' | 'header'
 }
 
@@ -40,7 +45,7 @@ export function SyncStatusBadge({ variant = 'sidebar' }: Props) {
         color,
         fontSize: '0.8rem',
         fontWeight: 600,
-        ...(variant === 'header' ? { maxWidth: 'calc(50vw - 16px)', verticalAlign: 'top' } : {}),
+        ...(variant === 'header' ? { maxWidth: 'calc(50vw - 16px)', verticalAlign: 'top', lineHeight: 1.3 } : {}),
       }}
     >
       <span>{text}</span>
