@@ -17,6 +17,8 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { PinIcon } from '../common/PinIcon'
 import { EntryActionMenu } from '../common/EntryActionMenu'
 import { Sparkline } from '../common/Sparkline'
+import { HeaderPortal } from '../common/HeaderPortal'
+import { BLURRABLE_SELECTOR } from '../../lib/blur'
 
 interface Props {
   resetKey: number
@@ -34,6 +36,17 @@ export function InvestView({ resetKey }: Props) {
   const [historyFor, setHistoryFor] = useState<CryptoEntry | null>(null)
   const [viewingNote, setViewingNote] = useState<string | null>(null)
   const [investCurrencies] = useMetaSetting<Currency[]>('enabledCryptoCurrencies', DEFAULT_CRYPTO_CURRENCIES)
+
+  // Same local-override-of-a-persisted-default pattern SavingsView/DashboardView
+  // use — only Settings' own toggle writes the persisted setting. Tapping any
+  // blurred amount (see the view's own onClick below) reveals all of them for
+  // the rest of this visit; leaving and coming back to Invest (a full
+  // unmount/remount, see App.tsx) always starts blurred again.
+  const [blurBalancesDefault] = useMetaSetting<boolean>('blurBalances', false)
+  const [blurBalances, setBlurBalances] = useState(blurBalancesDefault)
+  useEffect(() => {
+    setBlurBalances(blurBalancesDefault)
+  }, [blurBalancesDefault])
 
   // resetKey bumps when the user re-taps the already-active Invest nav tab —
   // jump back to Crypto and close any open popup, skipping the very first
@@ -125,7 +138,28 @@ export function InvestView({ resetKey }: Props) {
   const totals = subTab === 'crypto' ? cryptoTotals : assetTotals
 
   return (
-    <div className="view boucoup-scope">
+    <div
+      className={`view boucoup-scope${blurBalances ? ' balances-blurred' : ''}`}
+      onClick={(e) => {
+        if (blurBalances && (e.target as HTMLElement).closest(BLURRABLE_SELECTOR)) setBlurBalances(false)
+      }}
+    >
+      {subTab === 'crypto' && (
+        <HeaderPortal>
+          <button className="btn btn-accent-text" onClick={() => refresh({ force: true })} disabled={loading} type="button">
+            {loading ? t('Refreshing…') : t('↻ Refresh rates')}
+          </button>
+        </HeaderPortal>
+      )}
+
+      {subTab === 'crypto' && (
+        <div className="desktop-header-row">
+          <button className="btn btn-accent-text" onClick={() => refresh({ force: true })} disabled={loading} type="button">
+            {loading ? t('Refreshing…') : t('↻ Refresh rates')}
+          </button>
+        </div>
+      )}
+
       <div className="segmented">
         <button type="button" className={subTab === 'crypto' ? 'active' : ''} onClick={() => setSubTab('crypto')}>
           {t('Crypto')}
@@ -145,7 +179,7 @@ export function InvestView({ resetKey }: Props) {
       </div>
 
       {subTab === 'crypto' && portfolioTrend && (
-        <div className="dashboard-card-trend">
+        <div className="dashboard-card-trend" style={{ marginBottom: 16 }}>
           <Sparkline points={portfolioTrend.values} color={portfolioTrend.pct >= 0 ? 'var(--accent)' : 'var(--danger)'} />
           <span className={`dashboard-trend-badge${portfolioTrend.pct >= 0 ? ' dashboard-trend-up' : ' dashboard-trend-down'}`}>
             {portfolioTrend.pct >= 0 ? '↑' : '↓'} {Math.abs(portfolioTrend.pct).toFixed(1)}% {t('over 30 days')}
@@ -155,18 +189,6 @@ export function InvestView({ resetKey }: Props) {
 
       {subTab === 'crypto' && (
         <>
-          <div className="section-title">
-            <button
-              className="btn btn-ghost"
-              style={{ marginLeft: 'auto' }}
-              onClick={() => refresh({ force: true })}
-              disabled={loading}
-              type="button"
-            >
-              {loading ? t('Refreshing…') : t('↻ Refresh rates')}
-            </button>
-          </div>
-
           {fetchedAt && (
             <div className="muted">
               {t('Rates')} {t(stale ? '(offline, last known)' : 'updated')} {new Date(fetchedAt).toLocaleTimeString()}

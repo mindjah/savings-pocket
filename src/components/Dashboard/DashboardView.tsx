@@ -16,6 +16,7 @@ import { ThemeQuickToggle } from './ThemeQuickToggle'
 import { CurrencyRatesButton } from './CurrencyRatesButton'
 import { SyncStatusBadge } from '../common/SyncStatusBadge'
 import { HeaderPortal, HeaderTitlePortal } from '../common/HeaderPortal'
+import { BLURRABLE_SELECTOR } from '../../lib/blur'
 
 interface Props {
   onNavigate: (tab: Tab) => void
@@ -86,6 +87,9 @@ export function DashboardView({ onNavigate }: Props) {
     <div
       ref={gridRef}
       className={`view boucoup-scope dashboard-view${blurBalances ? ' balances-blurred' : ''}`}
+      onClick={(e) => {
+        if (blurBalances && (e.target as HTMLElement).closest(BLURRABLE_SELECTOR)) setBlurBalances(false)
+      }}
     >
       {/* Mobile: the real app header (see App.tsx excluding 'dashboard' from
           its own generic title portal) — sync status where the title would

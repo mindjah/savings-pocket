@@ -9,11 +9,9 @@ import { useFiatRates } from '../../hooks/useFiatRates'
 import { convertFiat } from '../../lib/fxRates'
 import { SavingsEntryForm } from './SavingsEntryForm'
 import { LoanEntryForm } from './LoanEntryForm'
-import { ExchangeRatesModal } from './ExchangeRatesModal'
 import { AdjustPocketModal } from './AdjustPocketModal'
 import { PocketHistoryModal } from './PocketHistoryModal'
 import { HistoryModal } from '../common/HistoryModal'
-import { HeaderPortal } from '../common/HeaderPortal'
 import { NoteViewModal } from '../common/NoteViewModal'
 import { useTranslation } from '../../hooks/useTranslation'
 import { CardIcon } from '../common/CardIcon'
@@ -21,6 +19,7 @@ import { CashIcon } from '../common/CashIcon'
 import { TransferIcon } from '../common/TransferIcon'
 import { TransferModal } from './TransferModal'
 import { EntryActionMenu } from '../common/EntryActionMenu'
+import { BLURRABLE_SELECTOR } from '../../lib/blur'
 
 type SubTab = 'mine' | 'credits' | 'lent'
 
@@ -73,7 +72,6 @@ export function SavingsView({ resetKey }: Props) {
   const [pocketHistoryFor, setPocketHistoryFor] = useState<{ id: number; currency: Currency } | null>(null)
   const [loanHistoryFor, setLoanHistoryFor] = useState<{ id: number; currency: Currency } | null>(null)
   const [viewingNote, setViewingNote] = useState<string | null>(null)
-  const [showRates, setShowRates] = useState(false)
   const [showTransfer, setShowTransfer] = useState(false)
 
   const defaultCurrency = savingsCurrencies[0] ?? 'EUR'
@@ -160,17 +158,12 @@ export function SavingsView({ resetKey }: Props) {
   }
 
   return (
-    <div className={`view boucoup-scope savings-view${blurBalances ? ' balances-blurred' : ''}`}>
-      {/* Mobile only — desktop moved this to the Dashboard's own top-right
-          corner instead (see DashboardView/CurrencyRatesButton), visible
-          from every screen rather than only Savings. */}
-      <HeaderPortal>
-        <button className="btn btn-accent-text" onClick={() => setShowRates(true)} type="button">
-          {t('Exchange rates')}
-          <i className="fa-solid fa-money-bill-transfer" style={{ fontSize: 18 }} aria-hidden="true" />
-        </button>
-      </HeaderPortal>
-
+    <div
+      className={`view boucoup-scope savings-view${blurBalances ? ' balances-blurred' : ''}`}
+      onClick={(e) => {
+        if (blurBalances && (e.target as HTMLElement).closest(BLURRABLE_SELECTOR)) setBlurBalances(false)
+      }}
+    >
       <div className="segmented">
         <button type="button" className={subTab === 'mine' ? 'active' : ''} onClick={() => setSubTab('mine')}>
           {t('My money')}
@@ -323,8 +316,6 @@ export function SavingsView({ resetKey }: Props) {
       )}
 
       {viewingNote != null && <NoteViewModal note={viewingNote} onClose={() => setViewingNote(null)} />}
-
-      {showRates && <ExchangeRatesModal onClose={() => setShowRates(false)} />}
 
       {showTransfer && <TransferModal onClose={() => setShowTransfer(false)} />}
     </div>
