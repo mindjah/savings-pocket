@@ -12,6 +12,12 @@ interface Props {
   entriesByMonth: Map<string, SpendingEntry[]>
   categoryBudgetsByMonth: Map<string, CategoryBudget[]>
   categories: Category[]
+  // Dashboard's own embed only (see AnalyticsDashboardCard) — that card is a
+  // fixed 2x2 size that clips rather than growing to fit (see .no-scroll),
+  // so the full ranking + an uncapped Recommendations list could easily run
+  // longer than it. Fewer bars and no Recommendations section keeps this a
+  // glanceable summary; "Go to Analytics" still opens the real, uncapped tab.
+  compact?: boolean
 }
 
 function lastSixMonths(): string[] {
@@ -24,7 +30,7 @@ function lastSixMonths(): string[] {
   return months
 }
 
-export function HabitsTab({ entriesByMonth, categoryBudgetsByMonth, categories }: Props) {
+export function HabitsTab({ entriesByMonth, categoryBudgetsByMonth, categories, compact }: Props) {
   const { t, lang } = useTranslation()
   const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories])
   const recentMonths = useMemo(() => lastSixMonths(), [])
@@ -43,7 +49,10 @@ export function HabitsTab({ entriesByMonth, categoryBudgetsByMonth, categories }
     return map
   }, [categoryBudgetsByMonth, recentMonths])
 
-  const ranking = useMemo(() => categoryRanking(recentEntriesByMonth, fx).slice(0, 8), [recentEntriesByMonth, fx])
+  const ranking = useMemo(
+    () => categoryRanking(recentEntriesByMonth, fx).slice(0, compact ? 4 : 8),
+    [recentEntriesByMonth, fx, compact],
+  )
   // Bar width has to compare real (fx-converted) value, not each row's own
   // native-currency avgMonthly — otherwise a small-numbered currency (e.g.
   // 50 EUR) looks like an empty sliver next to a big-numbered one (25000
@@ -88,42 +97,47 @@ export function HabitsTab({ entriesByMonth, categoryBudgetsByMonth, categories }
         </div>
       )}
 
-      <div className="section-title" style={{ marginTop: 14 }}>
-        <h2>{t('Recommendations')}</h2>
-      </div>
-      {insights.length === 0 ? (
-        <div className="empty-state">
-          <span className="icon">💡</span>
-          {t('No consistent over/under-budget pattern found yet — check back after a few more budgeted months.')}
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {insights.map((insight) => {
-            const category = categoryMap.get(insight.categoryId)
-            const name = category?.name ?? '—'
-            const text =
-              insight.direction === 'over'
-                ? tHabitOver(lang, name, insight.monthsOver, insight.monthsBudgeted)
-                : tHabitUnder(lang, name, insight.monthsUnder, insight.monthsBudgeted)
-            return (
-              <button
-                className="card budget-summary-card"
-                type="button"
-                key={`${insight.categoryId}:${insight.currency}`}
-                onClick={() => setCategoryModalFor({ categoryId: insight.categoryId })}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <span className="swatch" style={{ background: category?.color ?? '#888' }} />
-                  <strong>{name}</strong>
-                </div>
-                <div>{text}</div>
-                <div className="muted" style={{ marginTop: 4 }}>
-                  {t('Avg actual')}: {formatMoney(insight.avgActual, insight.currency)} · {t('Avg budget')}: {formatMoney(insight.avgBudget, insight.currency)}
-                </div>
-              </button>
-            )
-          })}
-        </div>
+      {!compact && (
+        <>
+          <div className="section-title" style={{ marginTop: 14 }}>
+            <h2>{t('Recommendations')}</h2>
+          </div>
+          {insights.length === 0 ? (
+            <div className="empty-state">
+              <span className="icon">💡</span>
+              {t('No consistent over/under-budget pattern found yet — check back after a few more budgeted months.')}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {insights.map((insight) => {
+                const category = categoryMap.get(insight.categoryId)
+                const name = category?.name ?? '—'
+                const text =
+                  insight.direction === 'over'
+                    ? tHabitOver(lang, name, insight.monthsOver, insight.monthsBudgeted)
+                    : tHabitUnder(lang, name, insight.monthsUnder, insight.monthsBudgeted)
+                return (
+                  <button
+                    className="card budget-summary-card"
+                    type="button"
+                    key={`${insight.categoryId}:${insight.currency}`}
+                    onClick={() => setCategoryModalFor({ categoryId: insight.categoryId })}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                      <span className="swatch" style={{ background: category?.color ?? '#888' }} />
+                      <strong>{name}</strong>
+                    </div>
+                    <div>{text}</div>
+                    <div className="muted" style={{ marginTop: 4 }}>
+                      {t('Avg actual')}: {formatMoney(insight.avgActual, insight.currency)} · {t('Avg budget')}:{' '}
+                      {formatMoney(insight.avgBudget, insight.currency)}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </>
       )}
 
       {categoryModalFor && (
