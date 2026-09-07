@@ -1,5 +1,14 @@
 import { useRef, useState } from 'react'
 
+// A brief hold before a touch on the handle actually starts dragging — long
+// enough that a scroll swipe that happens to pass over the thin handle bar
+// doesn't yank a card out from under it, short enough a deliberate press
+// still feels immediate. Cancelled outright if the finger moves past
+// MOVE_CANCEL_THRESHOLD_PX before the hold completes (that's a swipe, not a
+// hold-to-drag attempt).
+const HOLD_MS = 200
+const MOVE_CANCEL_THRESHOLD_PX = 8
+
 /**
  * Pointer Events (not the HTML5 drag-and-drop API) so the exact same code
  * reorders cards on both mouse (desktop grid) and touch (mobile stacked
@@ -14,18 +23,46 @@ export function useDashboardDrag<T extends string>(order: T[], setOrder: (next: 
   const [draggingKey, setDraggingKey] = useState<T | null>(null)
   const [overKey, setOverKey] = useState<T | null>(null)
   const draggingRef = useRef<T | null>(null)
+  const pendingRef = useRef<{ key: T; startX: number; startY: number } | null>(null)
+  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function clearHoldTimer() {
+    if (holdTimerRef.current != null) {
+      clearTimeout(holdTimerRef.current)
+      holdTimerRef.current = null
+    }
+  }
 
   function onHandlePointerDown(key: T) {
     return (e: React.PointerEvent<HTMLElement>) => {
       e.preventDefault()
-      draggingRef.current = key
-      setDraggingKey(key)
       e.currentTarget.setPointerCapture(e.pointerId)
+      pendingRef.current = { key, startX: e.clientX, startY: e.clientY }
+      clearHoldTimer()
+      holdTimerRef.current = setTimeout(() => {
+        holdTimerRef.current = null
+        if (!pendingRef.current || pendingRef.current.key !== key) return
+        draggingRef.current = key
+        setDraggingKey(key)
+      }, HOLD_MS)
     }
   }
 
   function onHandlePointerMove(e: React.PointerEvent<HTMLElement>) {
-    if (!draggingRef.current) return
+    if (!draggingRef.current) {
+      // Still waiting out the hold — a real move this early means a scroll
+      // swipe passed over the handle, not a deliberate press-and-hold.
+      const pending = pendingRef.current
+      if (pending) {
+        const dx = e.clientX - pending.startX
+        const dy = e.clientY - pending.startY
+        if (Math.hypot(dx, dy) > MOVE_CANCEL_THRESHOLD_PX) {
+          clearHoldTimer()
+          pendingRef.current = null
+        }
+      }
+      return
+    }
     const el = document.elementFromPoint(e.clientX, e.clientY)
     const cell = el?.closest<HTMLElement>('[data-card-key]')
     const key = cell?.dataset.cardKey as T | undefined
@@ -33,6 +70,8 @@ export function useDashboardDrag<T extends string>(order: T[], setOrder: (next: 
   }
 
   function onHandlePointerUp() {
+    clearHoldTimer()
+    pendingRef.current = null
     const dragged = draggingRef.current
     const target = overKey
     draggingRef.current = null
