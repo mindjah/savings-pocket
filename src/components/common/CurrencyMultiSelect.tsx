@@ -6,10 +6,15 @@ import { useTranslation } from '../../hooks/useTranslation'
 interface Props {
   selected: Currency[]
   onChange: (next: Currency[]) => void
+  // Restricts which currencies are offered as choices (e.g. Assets'
+  // currency picker only offers currencies actually used by an existing
+  // asset — see SettingsView). Defaults to every app currency.
+  options?: Currency[]
 }
 
-export function CurrencyMultiSelect({ selected, onChange }: Props) {
+export function CurrencyMultiSelect({ selected, onChange, options }: Props) {
   const { t } = useTranslation()
+  const choices = options ? CURRENCIES.filter((c) => options.includes(c.code)) : CURRENCIES
   function toggle(code: Currency) {
     if (selected.includes(code)) {
       if (selected.length === 1) return // always keep at least one enabled
@@ -56,7 +61,7 @@ export function CurrencyMultiSelect({ selected, onChange }: Props) {
       </button>
       {open && (
         <div className="currency-dropdown-panel" role="listbox">
-          {CURRENCIES.map((c) => {
+          {choices.map((c) => {
             const checked = selected.includes(c.code)
             return (
               <label key={c.code} className="currency-dropdown-option">

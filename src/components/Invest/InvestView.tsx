@@ -35,7 +35,11 @@ export function InvestView({ resetKey }: Props) {
   const [editingAsset, setEditingAsset] = useState<AssetEntry | null | 'new'>(null)
   const [historyFor, setHistoryFor] = useState<CryptoEntry | null>(null)
   const [viewingNote, setViewingNote] = useState<string | null>(null)
-  const [investCurrencies] = useMetaSetting<Currency[]>('enabledCryptoCurrencies', DEFAULT_CRYPTO_CURRENCIES)
+  // Crypto shows one converted total (Settings' own single-choice picker);
+  // Assets keeps a real multi-currency breakdown, since each asset is held
+  // in its own native currency already (see AssetEntryForm).
+  const [cryptoDisplayCurrency] = useMetaSetting<Currency>('cryptoDisplayCurrency', 'EUR')
+  const [assetCurrencies] = useMetaSetting<Currency[]>('enabledAssetCurrencies', DEFAULT_CRYPTO_CURRENCIES)
 
   // Same local-override-of-a-persisted-default pattern SavingsView/DashboardView
   // use — only Settings' own toggle writes the persisted setting. Tapping any
@@ -121,11 +125,10 @@ export function InvestView({ resetKey }: Props) {
     return map
   }, [entries, prices])
 
-  const visibleCurrencies = CURRENCIES.filter((c) => investCurrencies.includes(c.code))
   const cryptoTotals: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0, JPY: 0, CNY: 0 }
   entries?.forEach((e) => {
     const price = prices[e.coinId]
-    visibleCurrencies.forEach((c) => {
+    CURRENCIES.forEach((c) => {
       cryptoTotals[c.code] += e.amount * priceIn(price, c.code)
     })
   })
@@ -135,6 +138,10 @@ export function InvestView({ resetKey }: Props) {
     assetTotals[e.currency] += e.amount
   })
 
+  const visibleCurrencies =
+    subTab === 'crypto'
+      ? CURRENCIES.filter((c) => c.code === cryptoDisplayCurrency)
+      : CURRENCIES.filter((c) => assetCurrencies.includes(c.code))
   const totals = subTab === 'crypto' ? cryptoTotals : assetTotals
 
   return (
@@ -320,8 +327,7 @@ export function InvestView({ resetKey }: Props) {
       {editingAsset && (
         <AssetEntryForm
           entry={editingAsset === 'new' ? null : editingAsset}
-          defaultCurrency={investCurrencies[0] ?? 'EUR'}
-          availableCurrencies={investCurrencies}
+          defaultCurrency={assetCurrencies[0] ?? 'EUR'}
           onClose={() => setEditingAsset(null)}
         />
       )}

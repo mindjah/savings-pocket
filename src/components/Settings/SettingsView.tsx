@@ -30,18 +30,31 @@ export function SettingsView({ resetKey }: Props) {
     'enabledSavingsCurrencies',
     DEFAULT_SAVINGS_CURRENCIES,
   )
-  const [cryptoCurrencies, setCryptoCurrencies] = useMetaSetting<Currency[]>(
-    'enabledCryptoCurrencies',
-    DEFAULT_CRYPTO_CURRENCIES,
+  // Crypto shows just one converted total (no per-currency breakdown, unlike
+  // every other currency picker here) — a single choice, not a multi-select.
+  const [cryptoDisplayCurrency, setCryptoDisplayCurrency] = useMetaSetting<Currency>('cryptoDisplayCurrency', 'EUR')
+  // Assets are each held in their own native currency already (see
+  // AssetEntryForm), so — unlike every other multi-select here, which
+  // offers every app currency — this one only offers currencies an actual
+  // asset uses; picking a currency nobody holds anything in would just add
+  // an always-empty option.
+  const assetEntries = useLiveQuery(() => db.assetEntries.toArray(), [])
+  const assetCurrencyOptions = useMemo(
+    () => CURRENCIES.map((c) => c.code).filter((code) => (assetEntries ?? []).some((e) => e.currency === code)),
+    [assetEntries],
   )
+  const [assetCurrencies, setAssetCurrencies] = useMetaSetting<Currency[]>('enabledAssetCurrencies', DEFAULT_CRYPTO_CURRENCIES)
   const [spendingCurrencies, setSpendingCurrencies] = useMetaSetting<Currency[]>(
     'enabledSpendingCurrencies',
     DEFAULT_SPENDING_CURRENCIES,
   )
   const [netWorthCurrency, setNetWorthCurrency] = useMetaSetting<Currency>('netWorthCurrency', 'EUR')
   const netWorthOptions = useMemo(
-    () => CURRENCIES.filter((c) => savingsCurrencies.includes(c.code) || cryptoCurrencies.includes(c.code)).map((c) => c.code),
-    [savingsCurrencies, cryptoCurrencies],
+    () =>
+      CURRENCIES.filter(
+        (c) => savingsCurrencies.includes(c.code) || c.code === cryptoDisplayCurrency || assetCurrencies.includes(c.code),
+      ).map((c) => c.code),
+    [savingsCurrencies, cryptoDisplayCurrency, assetCurrencies],
   )
   // If the saved display currency was disabled in Settings, fall back to the first available one.
   useEffect(() => {
@@ -318,10 +331,26 @@ export function SettingsView({ resetKey }: Props) {
 
         <div className="settings-row wrap">
           <div>
-            <div>{t('Invest currencies')}</div>
-            <div className="muted">{t('Fiat currencies shown for invest holdings and totals')}</div>
+            <div>{t('Crypto currency')}</div>
+            <div className="muted">{t('Fiat currency crypto holdings and totals are converted to')}</div>
           </div>
-          <CurrencyMultiSelect selected={cryptoCurrencies} onChange={setCryptoCurrencies} />
+          <CurrencySingleSelect
+            value={cryptoDisplayCurrency}
+            options={CURRENCIES.map((c) => c.code)}
+            onChange={setCryptoDisplayCurrency}
+          />
+        </div>
+
+        <div className="settings-row wrap">
+          <div>
+            <div>{t('Assets currencies')}</div>
+            <div className="muted">
+              {assetCurrencyOptions.length > 0
+                ? t('Currencies shown for asset totals')
+                : t('No assets tracked yet — add one to choose currencies here')}
+            </div>
+          </div>
+          <CurrencyMultiSelect selected={assetCurrencies} onChange={setAssetCurrencies} options={assetCurrencyOptions} />
         </div>
 
         <div className="settings-row wrap">

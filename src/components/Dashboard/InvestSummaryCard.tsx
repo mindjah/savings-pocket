@@ -24,7 +24,11 @@ export function InvestSummaryCard({ onNavigate }: Props) {
   const { t } = useTranslation()
   const entries = useLiveQuery(() => db.cryptoEntries.toArray(), [])
   const assetEntries = useLiveQuery(() => db.assetEntries.toArray(), [])
-  const [investCurrencies] = useMetaSetting<Currency[]>('enabledCryptoCurrencies', DEFAULT_CRYPTO_CURRENCIES)
+  // The combined crypto+assets total shown here uses Assets' own
+  // (multi-currency) picker rather than Crypto's single-choice one — it's a
+  // broader multi-currency summary, not the crypto-only view Settings'
+  // single-choice restriction is meant to declutter.
+  const [assetCurrencies] = useMetaSetting<Currency[]>('enabledAssetCurrencies', DEFAULT_CRYPTO_CURRENCIES)
   const coinIds = useMemo(() => Array.from(new Set((entries ?? []).map((e) => e.coinId))), [entries])
   const { prices } = useCryptoRates(coinIds)
   const priceHistories = useCryptoPriceHistory30d(coinIds)
@@ -57,7 +61,7 @@ export function InvestSummaryCard({ onNavigate }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entries, priceHistories])
 
-  const visibleCurrencies = CURRENCIES.filter((c) => investCurrencies.includes(c.code))
+  const visibleCurrencies = CURRENCIES.filter((c) => assetCurrencies.includes(c.code))
 
   const cryptoTotals = useMemo(() => {
     const t: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0, JPY: 0, CNY: 0 }
@@ -69,7 +73,7 @@ export function InvestSummaryCard({ onNavigate }: Props) {
     })
     return t
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entries, prices, investCurrencies])
+  }, [entries, prices, assetCurrencies])
 
   const assetTotals = useMemo(() => {
     const t: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0, JPY: 0, CNY: 0 }

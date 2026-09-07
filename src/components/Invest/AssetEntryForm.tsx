@@ -12,20 +12,22 @@ import { useTranslation } from '../../hooks/useTranslation'
 interface Props {
   entry: AssetEntry | null
   defaultCurrency: Currency
-  availableCurrencies: Currency[]
   onClose: () => void
 }
 
 // Deliberately minimal (see AssetEntry) — no adjust-balance/history, just
 // add/edit/delete, same shape as LoanEntryForm without the "reason for
 // change" bit.
-export function AssetEntryForm({ entry, defaultCurrency, availableCurrencies, onClose }: Props) {
+export function AssetEntryForm({ entry, defaultCurrency, onClose }: Props) {
   const { t } = useTranslation()
   const isEdit = !!entry
   const [name, setName] = useState(entry?.name ?? '')
   const [currency, setCurrency] = useState<Currency>(entry?.currency ?? defaultCurrency)
-  // Keep the entry's own currency selectable even if it was later disabled in Settings.
-  const currencyOptions = CURRENCIES.filter((c) => availableCurrencies.includes(c.code) || c.code === entry?.currency)
+  // Every app currency is always offered here — unlike Settings' own
+  // Assets currencies picker (which only offers currencies an existing
+  // asset already uses), an asset being created is what makes a currency
+  // "in use" in the first place, so this can't be limited to that same list.
+  const currencyOptions = CURRENCIES
   const [note, setNote] = useState(entry?.note ?? '')
   const [amount, setAmount] = useState(entry ? String(entry.amount) : '')
   const toast = useToast()
