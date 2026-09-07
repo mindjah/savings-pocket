@@ -598,6 +598,14 @@ h1, h2, h3, p {
   font-weight: 800;
 }
 
+/* Requires a .dashboard-card-totals ancestor so this only reaches the
+   multi-currency totals row — a lone .dashboard-card-total elsewhere on a
+   card (e.g. the budget gauge's own per-currency row) lives outside that
+   wrapper and is never matched. */
+.dashboard-card-totals .dashboard-card-total:not(:last-child)::after {
+  content: ',';
+}
+
 .dashboard-card-list {
   display: flex;
   flex-direction: column;
