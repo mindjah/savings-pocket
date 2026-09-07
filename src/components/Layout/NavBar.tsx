@@ -12,10 +12,7 @@ export type Tab = 'dashboard' | 'savings' | 'invest' | 'spending' | 'planning' |
 // src/design-system/ README: tab bar glyphs are real FA icons, never
 // emoji or hand-drawn substitutes).
 const TABS: { key: Tab; label: string; icon: ReactNode; desktopOnly?: boolean }[] = [
-  // Desktop-only, no mobile form at all (unlike the three below) — an
-  // overview of the other screens' own visualizations, which only has
-  // room to make sense on a wider layout.
-  { key: 'dashboard', label: 'Dashboard', icon: <i className="fa-solid fa-gauge" aria-hidden="true" />, desktopOnly: true },
+  { key: 'dashboard', label: 'Dashboard', icon: <i className="fa-solid fa-gauge" aria-hidden="true" /> },
   { key: 'savings', label: 'Savings', icon: <i className="fa-solid fa-piggy-bank" aria-hidden="true" /> },
   { key: 'invest', label: 'Invest', icon: <i className="fa-solid fa-coins" aria-hidden="true" /> },
   { key: 'spending', label: 'Spending', icon: <i className="fa-solid fa-calendar-days" aria-hidden="true" /> },
@@ -52,9 +49,9 @@ export function NavBar({ active, onChange }: Props) {
           <span>{t(tab.label)}</span>
         </button>
       ))}
-      {/* Desktop-only (see .nav-sync-status in index.css) — mobile keeps
-          showing this same status in its own top header instead (see
-          SettingsView's HeaderPortal usage). */}
+      {/* Desktop-only (see .nav-sync-status in index.css) — mobile shows
+          this same status in the Dashboard's own top-left corner instead
+          (see DashboardView). */}
       <div className="nav-sync-status">
         <SyncStatusBadge />
       </div>

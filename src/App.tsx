@@ -33,10 +33,11 @@ const TITLES: Record<Tab, string> = {
 }
 
 // Only reachable through the desktop sidebar (see NavBar's desktopOnly
-// flag) — planning/budget/analytics stay bottom sheets opened from
-// Spending's own Manage menu on mobile instead; dashboard has no mobile
-// form at all.
-const DESKTOP_ONLY_TABS: Tab[] = ['dashboard', 'planning', 'budget', 'analytics']
+// flag) — these stay bottom sheets opened from Spending's own Manage menu
+// on mobile instead. Dashboard has its own real mobile form (a single
+// stacked column instead of the desktop grid — see DashboardView), so it's
+// not in this list.
+const DESKTOP_ONLY_TABS: Tab[] = ['planning', 'budget', 'analytics']
 
 const STORAGE_KEY = 'savings-pocket:activeTab'
 // Quick app-switches (checking a notification, glancing at another app)
@@ -217,7 +218,7 @@ function AppShell() {
         <h1 id={HEADER_TITLE_ID} />
         <div id={HEADER_ACTIONS_ID} className="app-header-actions" />
       </header>
-      {tab !== 'spending' && <HeaderTitlePortal>{t(TITLES[tab])}</HeaderTitlePortal>}
+      {tab !== 'spending' && tab !== 'dashboard' && <HeaderTitlePortal>{t(TITLES[tab])}</HeaderTitlePortal>}
       <NavBar active={tab} onChange={handleChange} />
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         {tab === 'dashboard' && <DashboardView onNavigate={handleChange} />}

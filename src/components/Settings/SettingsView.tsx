@@ -15,9 +15,7 @@ import { clearPasscode } from '../../lib/passcode'
 import { useTranslation } from '../../hooks/useTranslation'
 import { tDriveBackupConflict, tImportComplete, tNoPocketYet } from '../../i18n/translations'
 import { PasscodeSetupModal } from './PasscodeSetupModal'
-import { HeaderPortal } from '../common/HeaderPortal'
 import { GoogleDriveIcon } from '../common/GoogleDriveIcon'
-import { SyncStatusBadge } from '../common/SyncStatusBadge'
 
 interface Props {
   resetKey: number
@@ -203,18 +201,6 @@ export function SettingsView({ resetKey }: Props) {
 
   return (
     <div className="view boucoup-scope">
-      {/* Right-docked against the header's own right padding (16px, see
-          .app-header) and capped so the whole badge — icon included — never
-          grows past the screen's own horizontal middle, wrapping there
-          instead of getting close to the title on the left. Desktop shows
-          this same status at the bottom of the sidebar instead (see
-          NavBar) — visible from every screen, not just Settings. */}
-      <HeaderPortal>
-        <span style={{ maxWidth: 'calc(50vw - 16px)' }}>
-          <SyncStatusBadge />
-        </span>
-      </HeaderPortal>
-
       <div className="section-title">
         <h2>{t('General')}</h2>
       </div>

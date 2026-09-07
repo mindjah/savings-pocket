@@ -8,10 +8,12 @@ import { ManualSyncIcon } from './ManualSyncIcon'
 
 const BACKUP_FRESH_DAYS = 7
 
-// Last-backup status — shown in Settings' own mobile header (via
-// HeaderPortal) and, on desktop, at the bottom of the sidebar (see NavBar)
-// instead of above Settings' content, since the sidebar is visible from
-// every screen, not just Settings.
+// Last-backup status — mobile shows this in the Dashboard's own header (see
+// DashboardView, replacing its title), desktop at the bottom of the
+// sidebar (see NavBar) instead, since the sidebar is visible from every
+// screen. Icon kept small (16px, not the 24px used where this stands
+// alone) so it never forces a single-line header row taller than any
+// other screen's own plain text title.
 export function SyncStatusBadge() {
   const { t, lang } = useTranslation()
   const lastBackupRec = useLiveQuery(() => db.meta.get('lastBackup'), [])
@@ -21,9 +23,9 @@ export function SyncStatusBadge() {
   const text = lastBackup == null ? t('Never backed up') : `${t('Last backup')} ${formatDateOrTime(lastBackup.at, lang)}`
 
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color, fontSize: '0.8rem', fontWeight: 600 }}>
+    <span style={{ display: 'inline-flex', verticalAlign: 'top', alignItems: 'center', gap: 6, color, fontSize: '0.8rem', fontWeight: 600 }}>
       <span>{text}</span>
-      {lastBackup?.method === 'manual' ? <ManualSyncIcon size={24} /> : <CloudSyncIcon size={24} />}
+      {lastBackup?.method === 'manual' ? <ManualSyncIcon size={16} /> : <CloudSyncIcon size={16} />}
     </span>
   )
 }

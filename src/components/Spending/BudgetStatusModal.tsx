@@ -34,8 +34,13 @@ interface BodyProps {
   // Dashboard's own trimmed embed: the "Spent X of X" headline, the donuts,
   // and the status text, but no category breakdown — that's what tapping
   // through to the full modal is for, so this compact form never needs to
-  // scroll on its own.
+  // scroll on its own. Used on both the desktop and mobile dashboard.
   compact?: boolean
+  // Desktop dashboard only — bigger donuts/spacing, since that card has a
+  // full 2x2 cell of room to spare. Mobile's dashboard card stays compact
+  // (no categories) but keeps the same donut size as the real Budget
+  // status view, matching every other mobile screen's own sizing.
+  largeDonuts?: boolean
 }
 
 const LEVEL_COLOR: Record<BudgetStatusLevel, string> = {
@@ -186,6 +191,12 @@ function BudgetDonut({
           <div style={{ fontSize: size > 160 ? '1.6rem' : '1.15rem', fontWeight: 800, lineHeight: 1.25 }}>{Math.round(percentage)}%</div>
         </div>
       </div>
+      <div style={{ fontSize: '0.85rem', marginTop: 12, width: '100%', textAlign: 'center' }}>
+        <strong>{formatMoney(segments.reduce((sum, s) => sum + s.amount, 0) + unbudgetedTotal, currency)}</strong>{' '}
+        <span className="muted">
+          {t('of')} {formatMoney(budget, currency)}
+        </span>
+      </div>
       {totalSpent > budget && overallOver === false && (
         <div className="muted" style={{ fontSize: '0.75rem', marginTop: 2, width: '100%', textAlign: 'center' }}>
           {tOverspentButOverallFine(lang, currency)}
@@ -200,7 +211,7 @@ function BudgetDonut({
 // directly on the desktop Dashboard. Same data/donuts/category list; only
 // the surrounding chrome (Modal vs. a bare Dashboard card) differs — same
 // split AnalyticsModal's own AnalyticsBody already established.
-export function BudgetStatusBody({ monthPrefix: monthPrefixProp, compact }: BodyProps) {
+export function BudgetStatusBody({ monthPrefix: monthPrefixProp, compact, largeDonuts }: BodyProps) {
   const { t, lang } = useTranslation()
   const categories = useLiveQuery(() => db.categories.toArray(), []) ?? []
   const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories])
@@ -550,15 +561,16 @@ export function BudgetStatusBody({ monthPrefix: monthPrefixProp, compact }: Body
   const cardLevel = budgetStatus ? budgetCardLevel(budgetStatus) : null
 
   const hasAnything = budgetedRows.length > 0 || otherRows.length > 0
-  // compact (the Dashboard's own trimmed embed) is the only caller this
-  // large size applies to — the general Budget status modal/bottom sheet
-  // keeps its existing smaller donuts untouched.
-  const donutSize = compact ? (currencySummaries.length > 1 ? 220 : 260) : currencySummaries.length > 1 ? 148 : 200
+  // largeDonuts (the desktop dashboard's own embed specifically) is the only
+  // caller this large size applies to — the general Budget status modal/
+  // bottom sheet, and the mobile dashboard's own compact-but-not-large
+  // embed, keep the existing smaller donuts.
+  const donutSize = largeDonuts ? (currencySummaries.length > 1 ? 220 : 260) : currencySummaries.length > 1 ? 148 : 200
 
   return (
     <>
       {overallStatus && (
-        <div style={{ textAlign: 'center', marginBottom: compact ? 32 : 16 }}>
+        <div style={{ textAlign: 'center', marginBottom: largeDonuts ? 32 : 16 }}>
           <div className="muted" style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
             {t('Spent')}
           </div>
@@ -572,7 +584,7 @@ export function BudgetStatusBody({ monthPrefix: monthPrefixProp, compact }: Body
       )}
 
       {currencySummaries.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '16px 12px', margin: compact ? '4px 0 36px' : '4px 0 20px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '16px 12px', margin: largeDonuts ? '4px 0 36px' : '4px 0 20px' }}>
           {currencySummaries.map((s) => (
             <div key={s.currency} style={{ flex: currencySummaries.length > 1 ? '0 1 calc(50% - 6px)' : '0 1 100%', minWidth: 0 }}>
               <BudgetDonut
@@ -603,7 +615,7 @@ export function BudgetStatusBody({ monthPrefix: monthPrefixProp, compact }: Body
                     display: 'flex',
                     alignItems: 'flex-start',
                     gap: 8,
-                    marginTop: compact ? 24 : 8,
+                    marginTop: largeDonuts ? 24 : 8,
                     marginBottom: 16,
                     color: CARD_LEVEL_COLOR[cardLevel],
                     fontWeight: 600,

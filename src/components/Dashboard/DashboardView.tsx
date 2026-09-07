@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Tab } from '../Layout/NavBar'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
-import { useDragReorder, sanitizeOrder } from '../../hooks/useDragReorder'
+import { useIsDesktop } from '../../hooks/useIsDesktop'
+import { useDashboardDrag, sanitizeOrder } from '../../hooks/useDashboardDrag'
 import { useDashboardCellSize } from '../../hooks/useDashboardCellSize'
 import { DashboardCell } from './DashboardCell'
 import { NetWorthSummaryCard } from './NetWorthSummaryCard'
@@ -13,6 +14,8 @@ import { BudgetStatusDashboardCard } from './BudgetStatusDashboardCard'
 import { AnalyticsDashboardCard } from './AnalyticsDashboardCard'
 import { ThemeQuickToggle } from './ThemeQuickToggle'
 import { CurrencyRatesButton } from './CurrencyRatesButton'
+import { SyncStatusBadge } from '../common/SyncStatusBadge'
+import { HeaderPortal, HeaderTitlePortal } from '../common/HeaderPortal'
 
 interface Props {
   onNavigate: (tab: Tab) => void
@@ -30,7 +33,9 @@ type CardKey = (typeof CARD_KEYS)[number]
 // order (rather than a separate list per tier) so any card can be dragged
 // onto any other regardless of size — dropping a 2x2 onto a 1x1's spot (or
 // vice versa) reorders the whole sequence and the grid reflows around it,
-// instead of only accepting drops within the same tier.
+// instead of only accepting drops within the same tier. On mobile these
+// tiers only affect drag-reorder bookkeeping — every card renders as a
+// plain full-width stacked block there (see DashboardCell's 'stack' mode).
 const CARD_TIER: Record<CardKey, { widthUnits: 1 | 2; heightUnits: 1 | 2; autoPromote?: boolean }> = {
   networth: { widthUnits: 1, heightUnits: 1, autoPromote: true },
   savings: { widthUnits: 1, heightUnits: 1, autoPromote: true },
@@ -41,11 +46,12 @@ const CARD_TIER: Record<CardKey, { widthUnits: 1 | 2; heightUnits: 1 | 2; autoPr
   analytics: { widthUnits: 2, heightUnits: 2 },
 }
 
-// Desktop-only overview (see NavBar's desktopOnly flag) collecting the
-// visual/summary part of every other screen in one place — no mobile form
-// at all, unlike Planning/Budget/Analytics, so this has no bottom-sheet
-// counterpart to share code with.
+// Every screen's own visual/summary part in one place — a real mobile form
+// (a single stacked column, full-width cards, like every other mobile
+// screen) alongside the desktop grid.
 export function DashboardView({ onNavigate }: Props) {
+  const isDesktop = useIsDesktop()
+
   // Same local-override-of-a-persisted-default pattern SavingsView uses for
   // its own NetWorthCard — only Settings' own toggle writes the persisted
   // setting; the eye button here only shows/hides for the current visit.
@@ -59,7 +65,7 @@ export function DashboardView({ onNavigate }: Props) {
 
   const [orderRaw, setOrder] = useMetaSetting<CardKey[]>('dashboardCardOrder', [...CARD_KEYS])
   const order = sanitizeOrder(orderRaw, CARD_KEYS)
-  const drag = useDragReorder(order, setOrder)
+  const drag = useDashboardDrag(order, setOrder)
 
   const gridRef = useRef<HTMLDivElement>(null)
   const cellSize = useDashboardCellSize(gridRef, COLUMNS, GAP)
@@ -74,45 +80,65 @@ export function DashboardView({ onNavigate }: Props) {
     analytics: <AnalyticsDashboardCard onNavigate={() => onNavigate('analytics')} />,
   }
 
-  return (
-    <div className={`view boucoup-scope dashboard-view${blurBalances ? ' balances-blurred' : ''}`}>
-      {/* Desktop-only duplicates of controls that otherwise live on other
-          screens (Settings' theme control, Savings' exchange rates) —
-          the dashboard has no mobile form at all, so nothing here needs an
-          isDesktop guard the way NavBar's own sync-status duplicate does. */}
-      <div className="dashboard-top-row">
-        <ThemeQuickToggle />
-        <CurrencyRatesButton />
-      </div>
+  const visibleOrder = order.filter((key) => key !== 'budget' || budgetEnabled)
 
-      {/* One grid for every card — a card's own tier (see CARD_TIER above)
-          decides its size; drag any card onto any other to reorder. Fixed
-          columns + grid-auto-rows matched to that same width (cellSize) +
-          dense packing means the browser itself fills gaps around
-          whatever's dragged where, including stacking two 1x1s in one
-          column next to a wider/taller card — no manual placement logic
-          needed on this end. Order is remembered per device. */}
+  return (
+    <div
+      ref={gridRef}
+      className={`view boucoup-scope dashboard-view${blurBalances ? ' balances-blurred' : ''}`}
+    >
+      {/* Mobile: the real app header (see App.tsx excluding 'dashboard' from
+          its own generic title portal) — sync status where the title would
+          otherwise go, exchange rates where every other mobile screen's own
+          action button goes. Desktop hides that header entirely and shows
+          its own in-body row instead: theme toggle (duplicating Settings'
+          own control) + the same exchange rates button. */}
+      <HeaderTitlePortal>
+        <SyncStatusBadge />
+      </HeaderTitlePortal>
+      <HeaderPortal>
+        <CurrencyRatesButton />
+      </HeaderPortal>
+
+      {isDesktop && (
+        <div className="dashboard-top-row">
+          <ThemeQuickToggle />
+          <CurrencyRatesButton />
+        </div>
+      )}
+
+      {/* Desktop: one grid for every card — a card's own tier (see
+          CARD_TIER above) decides its size; drag any card onto any other to
+          reorder. Fixed columns + grid-auto-rows matched to that same width
+          (cellSize) + dense packing means the browser itself fills gaps
+          around whatever's dragged where, including stacking two 1x1s in
+          one column next to a wider/taller card — no manual placement
+          logic needed on this end. Mobile: every card is a plain full-width
+          stacked block instead, same as every other mobile screen. Order
+          (not layout) is remembered per device either way. */}
       <div
-        className="dashboard-grid"
-        ref={gridRef}
-        style={{ gridTemplateColumns: `repeat(${COLUMNS}, minmax(0, 1fr))`, gridAutoRows: cellSize > 0 ? `${cellSize}px` : undefined }}
+        className={isDesktop ? 'dashboard-grid' : 'dashboard-stack'}
+        style={
+          isDesktop
+            ? { gridTemplateColumns: `repeat(${COLUMNS}, minmax(0, 1fr))`, gridAutoRows: cellSize > 0 ? `${cellSize}px` : undefined }
+            : undefined
+        }
       >
-        {order
-          .filter((key) => key !== 'budget' || budgetEnabled)
-          .map((key) => (
-            <DashboardCell
-              key={key}
-              {...CARD_TIER[key]}
-              dragging={drag.draggingKey === key}
-              draggable
-              onDragStart={drag.onDragStart(key)}
-              onDragEnd={drag.onDragEnd}
-              onDragOver={drag.onDragOver}
-              onDrop={drag.onDrop(key)}
-            >
-              {cards[key]}
-            </DashboardCell>
-          ))}
+        {visibleOrder.map((key) => (
+          <DashboardCell
+            key={key}
+            cardKey={key}
+            layout={isDesktop ? 'grid' : 'stack'}
+            {...CARD_TIER[key]}
+            dragging={drag.draggingKey === key}
+            dragOver={drag.overKey === key}
+            onHandlePointerDown={drag.onHandlePointerDown(key)}
+            onHandlePointerMove={drag.onHandlePointerMove}
+            onHandlePointerUp={drag.onHandlePointerUp}
+          >
+            {cards[key]}
+          </DashboardCell>
+        ))}
       </div>
     </div>
   )

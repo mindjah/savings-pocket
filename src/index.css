@@ -439,29 +439,71 @@ h1, h2, h3, p {
   grid-auto-flow: row dense;
 }
 
+/* Mobile — one column, full-width blocks stacked top to bottom, each at
+   its own natural height (no square unit, nothing to auto-promote), same
+   as every other mobile screen's card list. */
+.dashboard-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .dashboard-cell {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-width: 0; /* a grid item's implicit min-width:auto otherwise lets unbreakable content (a long number, currency chips) force this column wider than its 1fr share, breaking the square 1x1 unit */
-  cursor: grab;
-}
-
-.dashboard-cell:active {
-  cursor: grabbing;
 }
 
 .dashboard-cell.dragging {
   opacity: 0.5;
 }
 
+.dashboard-cell.drag-over {
+  outline: 2px dashed var(--accent);
+  outline-offset: 2px;
+}
+
+/* The only element that starts a reorder (see useDashboardDrag) — tapping
+   anywhere else on a card (its own buttons, links) works normally. A
+   dedicated bar above the card's own content (not overlaid on it) so it
+   never collides with a card's own top-right/top-left controls.
+   touch-action: none stops a touch drag from also scrolling the page. */
+.dashboard-drag-handle {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 16px;
+  margin-bottom: 4px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--border);
+  font-size: 0.7rem;
+  cursor: grab;
+  touch-action: none;
+}
+
+.dashboard-drag-handle:active {
+  cursor: grabbing;
+  color: var(--text-muted);
+}
+
 /* Fills its DashboardCell exactly (the cell owns the actual pixel size) —
    header and the "Go to X" link stay fixed, only the body between them
    flexes/scrolls if a 1x1 card's content doesn't fit and it hasn't (or, for
-   a manually-sized card, can't) promote to a taller tier. */
+   a manually-sized card, can't) promote to a taller tier. Mobile has no
+   fixed cell size to fill, so height is just whatever the content needs. */
 .dashboard-card {
   display: flex;
   flex-direction: column;
   height: 100%;
+}
+
+.dashboard-cell-stack .dashboard-card {
+  height: auto;
 }
 
 /* No overflow-y: auto here (there used to be one) — every 1x1/1x2 card
