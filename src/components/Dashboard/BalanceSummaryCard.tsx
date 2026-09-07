@@ -139,7 +139,9 @@ export function BalanceSummaryCard({ onNavigate }: Props) {
           <div className="dashboard-card-list dashboard-card-divider">
             {topCredits.map((entry) => (
               <div className="dashboard-card-list-row" key={entry.id}>
-                <span className="muted">{entry.location}</span>
+                <span className="muted">
+                  {entry.location} {t(entry.type === 'cash' ? 'Cash' : 'Card')}
+                </span>
                 <span className="dashboard-amount">{formatMoney(entry.amount, entry.currency)}</span>
               </div>
             ))}
