@@ -337,6 +337,69 @@ h1, h2, h3, p {
   border: none;
 }
 
+/* Dashboard — desktop-only overview screen (see NavBar's desktopOnly flag),
+   so this never needs a narrow/mobile layout. */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.dashboard-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.dashboard-card-header h3 {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.dashboard-card-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+
+.dashboard-card-total {
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.dashboard-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.dashboard-card-list-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.85rem;
+}
+
+.dashboard-card-link {
+  display: block;
+  margin-top: 12px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+}
+
 .section-title {
   display: flex;
   align-items: center;

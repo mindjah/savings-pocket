@@ -5,12 +5,16 @@ import { SandboxIcon } from '../common/SandboxIcon'
 import { BudgetIcon } from '../common/BudgetIcon'
 import { AnalyticsIcon } from '../common/AnalyticsIcon'
 
-export type Tab = 'savings' | 'crypto' | 'spending' | 'planning' | 'budget' | 'analytics' | 'settings'
+export type Tab = 'dashboard' | 'savings' | 'crypto' | 'spending' | 'planning' | 'budget' | 'analytics' | 'settings'
 
 // Font Awesome 6 Free (Solid) — Boucoup's own icon system (see
 // src/design-system/ README: tab bar glyphs are real FA icons, never
 // emoji or hand-drawn substitutes).
 const TABS: { key: Tab; label: string; icon: ReactNode; desktopOnly?: boolean }[] = [
+  // Desktop-only, no mobile form at all (unlike the three below) — an
+  // overview of the other screens' own visualizations, which only has
+  // room to make sense on a wider layout.
+  { key: 'dashboard', label: 'Dashboard', icon: <i className="fa-solid fa-gauge" aria-hidden="true" />, desktopOnly: true },
   { key: 'savings', label: 'Savings', icon: <i className="fa-solid fa-piggy-bank" aria-hidden="true" /> },
   { key: 'crypto', label: 'Crypto', icon: <i className="fa-solid fa-coins" aria-hidden="true" /> },
   { key: 'spending', label: 'Spending', icon: <i className="fa-solid fa-calendar-days" aria-hidden="true" /> },

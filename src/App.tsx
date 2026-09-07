@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavBar, type Tab } from './components/Layout/NavBar'
+import { DashboardView } from './components/Dashboard/DashboardView'
 import { SavingsView } from './components/Savings/SavingsView'
 import { CryptoView } from './components/Crypto/CryptoView'
 import { SpendingView } from './components/Spending/SpendingView'
@@ -21,6 +22,7 @@ import { connectDriveForAutoBackup, shouldOfferDriveReconnect } from './lib/goog
 import { GoogleDriveIcon } from './components/common/GoogleDriveIcon'
 
 const TITLES: Record<Tab, string> = {
+  dashboard: 'Dashboard',
   savings: 'Savings',
   crypto: 'Crypto',
   spending: 'Spending',
@@ -31,9 +33,10 @@ const TITLES: Record<Tab, string> = {
 }
 
 // Only reachable through the desktop sidebar (see NavBar's desktopOnly
-// flag) — on mobile they stay bottom sheets opened from Spending's own
-// Manage menu instead.
-const DESKTOP_ONLY_TABS: Tab[] = ['planning', 'budget', 'analytics']
+// flag) — planning/budget/analytics stay bottom sheets opened from
+// Spending's own Manage menu on mobile instead; dashboard has no mobile
+// form at all.
+const DESKTOP_ONLY_TABS: Tab[] = ['dashboard', 'planning', 'budget', 'analytics']
 
 const STORAGE_KEY = 'savings-pocket:activeTab'
 // Quick app-switches (checking a notification, glancing at another app)
@@ -42,7 +45,7 @@ const RELOCK_AFTER_MS = 5 * 60 * 1000
 
 function readInitialTab(isDesktop: boolean): Tab {
   const stored = localStorage.getItem(STORAGE_KEY)
-  const valid: Tab[] = ['savings', 'crypto', 'spending', 'planning', 'budget', 'analytics', 'settings']
+  const valid: Tab[] = ['dashboard', 'savings', 'crypto', 'spending', 'planning', 'budget', 'analytics', 'settings']
   if (stored && (valid as string[]).includes(stored)) {
     const tab = stored as Tab
     // A tab saved from a wider window shouldn't strand a phone-width reopen
@@ -204,6 +207,7 @@ function AppShell() {
       {tab !== 'spending' && <HeaderTitlePortal>{t(TITLES[tab])}</HeaderTitlePortal>}
       <NavBar active={tab} onChange={handleChange} />
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        {tab === 'dashboard' && <DashboardView onNavigate={handleChange} />}
         {tab === 'savings' && <SavingsView resetKey={savingsResetKey} />}
         {tab === 'crypto' && <CryptoView resetKey={cryptoResetKey} />}
         {tab === 'spending' && <SpendingView resetKey={spendingResetKey} />}

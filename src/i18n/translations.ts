@@ -10,11 +10,20 @@ import type { Language } from '../db/types'
 // on whatever the UI language happened to be when they were written.
 export const RU: Record<string, string> = {
   // Nav / tabs
+  Dashboard: 'Дашборд',
   Savings: 'Сбережения',
   Crypto: 'Крипто',
   Spending: 'Расходы',
   'For spending': 'На расходы',
   Settings: 'Настройки',
+
+  // Dashboard
+  Balance: 'Баланс',
+  Invest: 'Инвестиции',
+  'Monthly Expenses': 'Расходы за месяц',
+  'Go to Savings': 'К сбережениям',
+  'Go to Crypto': 'К крипте',
+  'Go to Spending': 'К расходам',
 
   // Lock screen
   'Savings Pocket is locked': 'Savings Pocket заблокирован',
