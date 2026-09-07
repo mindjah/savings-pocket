@@ -108,11 +108,11 @@ export function InvestSummaryCard({ onNavigate }: Props) {
           if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1
           return (valueUsd.get(b.id ?? -1) ?? 0) - (valueUsd.get(a.id ?? -1) ?? 0)
         })
-        .slice(0, 4),
+        .slice(0, 8),
     [entries, valueUsd],
   )
 
-  const topAssets = useMemo(() => (assetEntries ?? []).slice().sort((a, b) => b.amount - a.amount).slice(0, 4), [assetEntries])
+  const topAssets = useMemo(() => (assetEntries ?? []).slice().sort((a, b) => b.amount - a.amount).slice(0, 8), [assetEntries])
 
   return (
     <div className="card dashboard-card">

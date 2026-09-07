@@ -52,7 +52,7 @@ export function SavingsSummaryCard({ onNavigate }: Props) {
     return fxRates ? convertFiat(entry.amount, entry.currency, 'USD', fxRates) : entry.amount
   }
   const topPockets = useMemo(
-    () => pockets.slice().sort((a, b) => comparableValue(b) - comparableValue(a)).slice(0, 4),
+    () => pockets.slice().sort((a, b) => comparableValue(b) - comparableValue(a)).slice(0, 8),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [pockets, fxRates],
   )
