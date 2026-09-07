@@ -29,6 +29,7 @@ interface Props {
 export function SettingsView({ resetKey }: Props) {
   const { t, lang } = useTranslation()
   const [language, setLanguage] = useMetaSetting<Language>('language', 'en')
+  const [themePreference, setThemePreference] = useMetaSetting<'system' | 'light' | 'dark'>('themePreference', 'system')
 
   const [savingsCurrencies, setSavingsCurrencies] = useMetaSetting<Currency[]>(
     'enabledSavingsCurrencies',
@@ -239,7 +240,7 @@ export function SettingsView({ resetKey }: Props) {
       <div className="desktop-header-row">{backupStatusBadge}</div>
 
       <div className="section-title">
-        <h2>{t('Language')}</h2>
+        <h2>{t('General')}</h2>
       </div>
 
       <div className="card settings-list">
@@ -250,6 +251,19 @@ export function SettingsView({ resetKey }: Props) {
             </button>
             <button type="button" className={language === 'ru' ? 'active' : ''} onClick={() => setLanguage('ru')}>
               Русский
+            </button>
+          </div>
+        </div>
+        <div className="settings-row">
+          <div className="segmented" style={{ width: '100%' }}>
+            <button type="button" className={themePreference === 'system' ? 'active' : ''} onClick={() => setThemePreference('system')}>
+              {t('System')}
+            </button>
+            <button type="button" className={themePreference === 'light' ? 'active' : ''} onClick={() => setThemePreference('light')}>
+              {t('Light')}
+            </button>
+            <button type="button" className={themePreference === 'dark' ? 'active' : ''} onClick={() => setThemePreference('dark')}>
+              {t('Dark')}
             </button>
           </div>
         </div>

@@ -97,41 +97,43 @@ export function CryptoSummaryCard({ onNavigate }: Props) {
         <h3>{t('Invest')}</h3>
       </div>
 
-      {entries == null ? null : (
-        <div className="dashboard-card-totals">
-          {visibleCurrencies.map((c) => (
-            <strong key={c.code} className="dashboard-card-total">
-              {formatMoney(totals[c.code], c.code)}
-            </strong>
-          ))}
-        </div>
-      )}
+      <div className="dashboard-card-body">
+        {entries == null ? null : (
+          <div className="dashboard-card-totals">
+            {visibleCurrencies.map((c) => (
+              <strong key={c.code} className="dashboard-card-total">
+                {formatMoney(totals[c.code], c.code)}
+              </strong>
+            ))}
+          </div>
+        )}
 
-      {entries != null && (
-        <div className="dashboard-card-list">
-          {entries.length === 0 ? (
-            <div className="muted">{t('No crypto holdings yet. Tap + to add one.')}</div>
-          ) : (
-            topHoldings.map((e) => (
-              <div className="dashboard-card-list-row" key={e.id}>
-                <span className="muted">
-                  {e.amount} {e.symbol}
-                </span>
-                <span>{formatMoney(e.amount * priceIn(prices[e.coinId], 'USD'), 'USD')}</span>
-              </div>
-            ))
-          )}
-        </div>
-      )}
+        {portfolioTrend && (
+          <div className="dashboard-card-trend">
+            <Sparkline points={portfolioTrend.values} color={portfolioTrend.pct >= 0 ? 'var(--accent)' : 'var(--danger)'} />
+            <span className={`dashboard-trend-badge${portfolioTrend.pct >= 0 ? ' dashboard-trend-up' : ' dashboard-trend-down'}`}>
+              {portfolioTrend.pct >= 0 ? '↑' : '↓'} {Math.abs(portfolioTrend.pct).toFixed(1)}% {t('over 30 days')}
+            </span>
+          </div>
+        )}
 
-      {portfolioTrend && (
-        <div className="dashboard-card-trend">
-          <Sparkline points={portfolioTrend.values} color={portfolioTrend.pct >= 0 ? 'var(--accent)' : 'var(--danger)'} />
-          <span className={`dashboard-trend-badge${portfolioTrend.pct >= 0 ? ' dashboard-trend-up' : ' dashboard-trend-down'}`}>
-            {portfolioTrend.pct >= 0 ? '↑' : '↓'} {Math.abs(portfolioTrend.pct).toFixed(1)}% {t('over 30 days')}
-          </span>
-        </div>
-      )}
+        {entries != null && (
+          <div className="dashboard-card-list">
+            {entries.length === 0 ? (
+              <div className="muted">{t('No crypto holdings yet. Tap + to add one.')}</div>
+            ) : (
+              topHoldings.map((e) => (
+                <div className="dashboard-card-list-row" key={e.id}>
+                  <span className="muted">
+                    {e.amount} {e.symbol}
+                  </span>
+                  <span>{formatMoney(e.amount * priceIn(prices[e.coinId], 'USD'), 'USD')}</span>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
 
       <button className="btn btn-ghost dashboard-card-link" onClick={onNavigate} type="button">
         {t('Go to Crypto')} →

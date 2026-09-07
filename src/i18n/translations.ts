@@ -26,6 +26,14 @@ export const RU: Record<string, string> = {
   'Go to Spending': 'К расходам',
   'Go to Analytics': 'К аналитике',
   'over 30 days': 'за 30 дней',
+  'Available until end of month': 'Доступно до конца месяца',
+  'From budget': 'Из бюджета',
+
+  // Settings > General
+  General: 'Общие',
+  System: 'Система',
+  Light: 'Светлая',
+  Dark: 'Тёмная',
 
   // Lock screen
   'Savings Pocket is locked': 'Savings Pocket заблокирован',

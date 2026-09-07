@@ -36,7 +36,9 @@ export function AnalyticsDashboardCard({ onNavigate }: Props) {
         </span>
         <h3>{t('Spending habits')}</h3>
       </div>
-      <HabitsTab entriesByMonth={entriesByMonth} categoryBudgetsByMonth={categoryBudgetsByMonth} categories={categories} />
+      <div className="dashboard-card-body">
+        <HabitsTab entriesByMonth={entriesByMonth} categoryBudgetsByMonth={categoryBudgetsByMonth} categories={categories} />
+      </div>
       <button className="btn btn-ghost dashboard-card-link" onClick={onNavigate} type="button">
         {t('Go to Analytics')} →
       </button>

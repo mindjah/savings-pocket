@@ -77,6 +77,19 @@ function AppShell() {
   const locked = faceIdEnabled && !unlocked
   const [autoBackupEnabled] = useMetaSetting<boolean>('autoBackupToGoogleDrive', false)
   const [showDriveReconnect, setShowDriveReconnect] = useState(false)
+  const [themePreference] = useMetaSetting<'system' | 'light' | 'dark'>('themePreference', 'system')
+
+  // 'system' leaves the OS preference (prefers-color-scheme) in charge, same
+  // as before this setting existed — an explicit light/dark choice stamps
+  // data-theme, which index.css's palette blocks give higher specificity
+  // than the OS-driven media query so it wins regardless of OS preference.
+  useEffect(() => {
+    if (themePreference === 'system') {
+      delete document.documentElement.dataset.theme
+    } else {
+      document.documentElement.dataset.theme = themePreference
+    }
+  }, [themePreference])
 
   // A window resized down to phone width (or a desktop tab reopened on a
   // phone via restored session state) shouldn't strand the user on a nav

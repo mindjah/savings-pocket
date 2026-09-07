@@ -71,23 +71,25 @@ export function SpendingSummaryCard({ onNavigate }: Props) {
         <h3>{t('Monthly Expenses')}</h3>
       </div>
 
-      {entriesRaw == null ? null : (
-        <div className="dashboard-card-totals">
-          {visibleCurrencies.map((c) => (
-            <strong key={c.code} className="dashboard-card-total">
-              {formatMoney(spentTotals[c.code], c.code)}
-            </strong>
-          ))}
-        </div>
-      )}
+      <div className="dashboard-card-body">
+        {entriesRaw == null ? null : (
+          <div className="dashboard-card-totals">
+            {visibleCurrencies.map((c) => (
+              <strong key={c.code} className="dashboard-card-total">
+                {formatMoney(spentTotals[c.code], c.code)}
+              </strong>
+            ))}
+          </div>
+        )}
 
-      {level && budgetStatus && (
-        <div className="muted" style={{ marginTop: 6 }}>
-          {level === 'orange'
-            ? tLimitsExceededInCategories(lang, budgetStatus.overBudgetCategoryCount)
-            : tBudgetStatusExplanation(lang, level, budgetStatus.overBudgetCategoryCount)}
-        </div>
-      )}
+        {level && budgetStatus && (
+          <div className="muted" style={{ marginTop: 6 }}>
+            {level === 'orange'
+              ? tLimitsExceededInCategories(lang, budgetStatus.overBudgetCategoryCount)
+              : tBudgetStatusExplanation(lang, level, budgetStatus.overBudgetCategoryCount)}
+          </div>
+        )}
+      </div>
 
       <div className="dashboard-card-link" style={{ marginTop: 12, textAlign: 'left', color: 'var(--accent)' }}>
         {t('Go to Spending')} →

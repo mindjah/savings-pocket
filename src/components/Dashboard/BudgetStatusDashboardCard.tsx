@@ -26,7 +26,9 @@ export function BudgetStatusDashboardCard({ onNavigate }: Props) {
         </span>
         <h3>{t('Budget status')}</h3>
       </div>
-      <BudgetStatusBody />
+      <div className="dashboard-card-body">
+        <BudgetStatusBody />
+      </div>
       <button className="btn btn-ghost dashboard-card-link" onClick={onNavigate} type="button">
         {t('Go to Spending')} →
       </button>

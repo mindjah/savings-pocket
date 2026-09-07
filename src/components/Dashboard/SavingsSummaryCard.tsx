@@ -8,19 +8,20 @@ import { convertFiat } from '../../lib/fxRates'
 import { useFiatRates } from '../../hooks/useFiatRates'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { useTranslation } from '../../hooks/useTranslation'
-import { CashIcon } from '../common/CashIcon'
 
 interface Props {
   onNavigate: () => void
 }
 
 // Mirrors SavingsView's own "My money" totals/sort for purpose: 'savings'
-// pockets specifically — the reference dashboard's "Savings" card.
+// pockets, plus its "Lent out" total — the reference dashboard's "Savings"
+// card.
 export function SavingsSummaryCard({ onNavigate }: Props) {
   const { t } = useTranslation()
   const [savingsCurrencies] = useMetaSetting<Currency[]>('enabledSavingsCurrencies', DEFAULT_SAVINGS_CURRENCIES)
   const { rates: fxRates } = useFiatRates()
   const allEntries = useLiveQuery(() => db.savingsEntries.toArray(), [])
+  const loans = useLiveQuery(() => db.loanEntries.toArray(), [])
 
   const pockets = useMemo(
     () => (allEntries ?? []).filter((e) => e.kind !== 'credit' && (e.purpose ?? 'savings') === 'savings'),
@@ -35,6 +36,15 @@ export function SavingsSummaryCard({ onNavigate }: Props) {
     return t
   }, [pockets])
   const visibleCurrencies = CURRENCIES.filter((c) => savingsCurrencies.includes(c.code) && totals[c.code] !== 0)
+
+  const lentTotals = useMemo(() => {
+    const t: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0, JPY: 0, CNY: 0 }
+    ;(loans ?? []).forEach((e) => {
+      t[e.currency] += e.amount
+    })
+    return t
+  }, [loans])
+  const visibleLentCurrencies = CURRENCIES.filter((c) => lentTotals[c.code] !== 0)
 
   // Amounts are in different currencies, so raw numbers aren't comparable —
   // same reasoning as SavingsView's own comparableValue.
@@ -51,37 +61,50 @@ export function SavingsSummaryCard({ onNavigate }: Props) {
     <div className="card dashboard-card">
       <div className="dashboard-card-header">
         <span className="pocket-type-icon tint-green" aria-hidden="true">
-          <CashIcon size={20} />
+          <i className="fa-solid fa-piggy-bank" aria-hidden="true" />
         </span>
         <h3>{t('Savings')}</h3>
       </div>
 
-      {allEntries == null ? null : visibleCurrencies.length === 0 ? (
-        <div className="muted">{formatMoney(0, savingsCurrencies[0] ?? 'EUR')}</div>
-      ) : (
-        <div className="dashboard-card-totals">
-          {visibleCurrencies.map((c) => (
-            <strong key={c.code} className="dashboard-card-total">
-              {formatMoney(totals[c.code], c.code)}
-            </strong>
-          ))}
-        </div>
-      )}
+      <div className="dashboard-card-body">
+        {allEntries == null ? null : visibleCurrencies.length === 0 ? (
+          <div className="muted">{formatMoney(0, savingsCurrencies[0] ?? 'EUR')}</div>
+        ) : (
+          <div className="dashboard-card-totals">
+            {visibleCurrencies.map((c) => (
+              <strong key={c.code} className="dashboard-card-total">
+                {formatMoney(totals[c.code], c.code)}
+              </strong>
+            ))}
+          </div>
+        )}
 
-      {allEntries != null && (
-        <div className="dashboard-card-list">
-          {pockets.length === 0 ? (
-            <div className="muted">{t('No savings tracked yet. Tap + to add your first entry.')}</div>
-          ) : (
-            topPockets.map((p) => (
-              <div className="dashboard-card-list-row" key={p.id}>
-                <span className="muted">{p.location}</span>
-                <span>{formatMoney(p.amount, p.currency)}</span>
+        {allEntries != null && (
+          <div className="dashboard-card-list">
+            {pockets.length === 0 ? (
+              <div className="muted">{t('No savings tracked yet. Tap + to add your first entry.')}</div>
+            ) : (
+              topPockets.map((p) => (
+                <div className="dashboard-card-list-row" key={p.id}>
+                  <span className="muted">{p.location}</span>
+                  <span>{formatMoney(p.amount, p.currency)}</span>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {visibleLentCurrencies.length > 0 && (
+          <div className="dashboard-card-list" style={{ marginTop: 10 }}>
+            {visibleLentCurrencies.map((c) => (
+              <div className="dashboard-card-list-row" key={c.code}>
+                <span className="muted">{t('Lent out')}</span>
+                <span className="dashboard-networth-line">{formatMoney(lentTotals[c.code], c.code)}</span>
               </div>
-            ))
-          )}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
 
       <button className="btn btn-ghost dashboard-card-link" onClick={onNavigate} type="button">
         {t('Go to Savings')} →

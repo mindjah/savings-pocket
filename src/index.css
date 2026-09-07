@@ -49,6 +49,39 @@
   }
 }
 
+/* An explicit Settings > General theme choice (see App.tsx) — the
+   attribute selector's higher specificity beats the media query above
+   either way, so this wins regardless of what the OS preference actually
+   is. No attribute at all (the 'system' choice) leaves the OS-driven rules
+   above in charge, unchanged. */
+:root[data-theme='light'] {
+  --bg: #f5f7f6;
+  --bg-elevated: #ffffff;
+  --surface: #ffffff;
+  --surface-hover: #eef2f0;
+  --border: #dbe4e0;
+  --text: #101915;
+  --text-muted: #5c6d65;
+  --accent: #16a34a;
+  --accent-strong: #15803d;
+  --accent-contrast: #ffffff;
+  --shadow: 0 4px 16px rgba(16, 25, 21, 0.08);
+}
+
+:root[data-theme='dark'] {
+  --bg: #0b1210;
+  --bg-elevated: #121c19;
+  --surface: #17231f;
+  --surface-hover: #1e2f29;
+  --border: #26372f;
+  --text: #eef3f0;
+  --text-muted: #9db3aa;
+  --accent: #22c55e;
+  --accent-strong: #16a34a;
+  --accent-contrast: #04160c;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -376,14 +409,22 @@ h1, h2, h3, p {
 
 /* Every card's height grows with however much it's actually showing (a
    longer category list, more habit rows, more holdings) but never past 2
-   standard card heights; anything beyond that scrolls inside the card
-   instead of pushing the rest of the dashboard down. */
+   standard card heights; anything beyond that scrolls — inside the body
+   only, so the header and the "Go to X" link stay put and reachable
+   without scrolling to them. */
 .dashboard-card {
   display: flex;
   flex-direction: column;
   min-height: var(--dashboard-card-h);
   max-height: calc(var(--dashboard-card-h) * 2);
+}
+
+.dashboard-card-body {
+  flex: 1;
+  min-height: 0; /* lets a flex child actually shrink/scroll instead of overflowing its parent */
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .dashboard-card-header {
@@ -391,6 +432,7 @@ h1, h2, h3, p {
   align-items: center;
   gap: 10px;
   margin-bottom: 12px;
+  flex-shrink: 0;
 }
 
 .dashboard-card-header h3 {
@@ -436,6 +478,7 @@ h1, h2, h3, p {
 
 .dashboard-card-link {
   display: block;
+  flex-shrink: 0;
   margin-top: 12px;
   padding: 0;
   background: none;
@@ -467,6 +510,92 @@ h1, h2, h3, p {
 
 .dashboard-trend-down {
   color: var(--danger);
+}
+
+/* Total net worth — the one dashboard card that keeps the colored-hero
+   treatment Savings' own big banner uses, just at standard card size
+   instead of a giant one. Three classes (not two) so this beats theme.css's
+   .boucoup-scope .card regardless of load order — same reasoning as the
+   budget-summary-card level tints below. */
+.card.dashboard-card.dashboard-networth-card {
+  background: linear-gradient(180deg, var(--accent-strong) 0%, var(--accent) 100%);
+  border: none;
+  color: #fff;
+}
+
+.dashboard-networth-card .dashboard-card-header h3,
+.dashboard-networth-card .dashboard-card-total,
+.dashboard-networth-card .dashboard-networth-line {
+  color: #fff;
+}
+
+.dashboard-networth-card .muted {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.dashboard-networth-card .pocket-type-icon {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.dashboard-networth-card .dashboard-card-eye-toggle {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Balance card's "Available until end of month" gauge — same real
+   total-budget/spent numbers as Monthly Expenses/Budget status, styled as
+   a single glanceable progress bar instead of a donut. */
+.dashboard-budget-gauge {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.dashboard-budget-gauge-label {
+  font-size: 0.75rem;
+  margin-bottom: 4px;
+}
+
+.dashboard-budget-gauge-row + .dashboard-budget-gauge-row {
+  margin-top: 12px;
+}
+
+.dashboard-gauge-track {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--surface-hover);
+  overflow: hidden;
+  margin: 6px 0;
+}
+
+.dashboard-gauge-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.dashboard-budget-gauge-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+}
+
+/* Dashboard drag-and-drop reordering (see useDragReorder) — the wrapper
+   carries the draggable/dragover/drop handlers so individual card
+   components don't need to know about it. */
+.dashboard-draggable {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  cursor: grab;
+}
+
+.dashboard-draggable:active {
+  cursor: grabbing;
+}
+
+.dashboard-draggable.dragging {
+  opacity: 0.5;
 }
 
 .section-title {

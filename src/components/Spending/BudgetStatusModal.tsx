@@ -523,7 +523,7 @@ export function BudgetStatusBody({ monthPrefix: monthPrefixProp }: BodyProps) {
       (sum, s) => sum + (s.currency === refCurrency ? s.totalSpent : convertFiat(s.totalSpent, s.currency, refCurrency, fx)),
       0,
     )
-    return { over: totalSpentConverted > totalBudget }
+    return { over: totalSpentConverted > totalBudget, refCurrency, totalBudget, totalSpentConverted }
   }, [currencySummaries, fx])
 
   // Header total next to "Categories not in budget": one converted+combined
@@ -555,6 +555,20 @@ export function BudgetStatusBody({ monthPrefix: monthPrefixProp }: BodyProps) {
 
   return (
     <>
+      {overallStatus && (
+        <div style={{ textAlign: 'center', marginBottom: 16 }}>
+          <div className="muted" style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+            {t('Spent')}
+          </div>
+          <div style={{ fontSize: '2rem', fontWeight: 800, lineHeight: 1.2 }}>
+            {formatMoney(overallStatus.totalSpentConverted, overallStatus.refCurrency)}{' '}
+            <span className="muted" style={{ fontSize: '1.1rem', fontWeight: 600 }}>
+              {t('of')} {formatMoney(overallStatus.totalBudget, overallStatus.refCurrency)}
+            </span>
+          </div>
+        </div>
+      )}
+
       {currencySummaries.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '16px 12px', margin: '4px 0 20px' }}>
           {currencySummaries.map((s) => (
