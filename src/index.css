@@ -464,17 +464,23 @@ h1, h2, h3, p {
   height: 100%;
 }
 
+/* No overflow-y: auto here (there used to be one) — every 1x1/1x2 card
+   already promotes itself to fit its own content (see DashboardCell), so a
+   scrolling ancestor was never actually needed for those, and it's exactly
+   the kind of ancestor (overflow: auto + a filter-blurred, transform-
+   promoted descendant) that triggers WebKit's stale/blocky-tile blur
+   rendering bug. min-height: 0 still lets this shrink correctly inside the
+   flex column. */
 .dashboard-card-body {
   flex: 1;
-  min-height: 0; /* lets a flex child actually shrink/scroll instead of overflowing its parent */
-  overflow-y: auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
 
-/* Budget status' compact dashboard embed specifically must never scroll —
-   its content is trimmed (see BudgetStatusBody's compact prop) to always
-   fit its fixed 2x2 cell instead. */
+/* Budget status' and Analytics' fixed 2x2 embeds must never scroll or
+   visibly overflow into the row below — their content is either trimmed
+   (Budget status' compact prop) or just clipped if it doesn't quite fit. */
 .dashboard-card-body.no-scroll {
   overflow: hidden;
 }

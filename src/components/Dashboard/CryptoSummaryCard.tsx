@@ -124,7 +124,7 @@ export function CryptoSummaryCard({ onNavigate }: Props) {
             ) : (
               topHoldings.map((e) => (
                 <div className="dashboard-card-list-row" key={e.id}>
-                  <span className="muted">
+                  <span className="muted dashboard-amount">
                     {e.amount} {e.symbol}
                   </span>
                   <span className="dashboard-amount">{formatMoney(e.amount * priceIn(prices[e.coinId], 'USD'), 'USD')}</span>
