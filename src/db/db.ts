@@ -1,5 +1,6 @@
 import Dexie, { type Table } from 'dexie'
 import type {
+  AssetEntry,
   Category,
   CategoryBudget,
   CryptoEntry,
@@ -22,6 +23,7 @@ class AppDB extends Dexie {
   savingsHistory!: Table<SavingsHistory, number>
   cryptoEntries!: Table<CryptoEntry, number>
   cryptoHistory!: Table<CryptoHistory, number>
+  assetEntries!: Table<AssetEntry, number>
   loanEntries!: Table<LoanEntry, number>
   loanHistory!: Table<LoanHistory, number>
   categories!: Table<Category, number>
@@ -153,6 +155,11 @@ class AppDB extends Dexie {
           })
       }
     })
+
+    // Invest screen's new "Assets" tab, alongside Crypto.
+    this.version(9).stores({
+      assetEntries: '++id, currency',
+    })
   }
 }
 
@@ -163,6 +170,7 @@ export const BACKUP_TABLES = [
   'savingsHistory',
   'cryptoEntries',
   'cryptoHistory',
+  'assetEntries',
   'loanEntries',
   'loanHistory',
   'categories',

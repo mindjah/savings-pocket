@@ -154,7 +154,7 @@ export function SettingsView({ resetKey }: Props) {
   }
 
   async function handleImportFile(file: File) {
-    if (!confirm(t('Importing will replace ALL current data (savings, crypto, spending, categories) with the contents of this backup file. Continue?'))) {
+    if (!confirm(t('Importing will replace ALL current data (savings, invest, spending, categories) with the contents of this backup file. Continue?'))) {
       return
     }
     setBusy(true)
@@ -188,7 +188,7 @@ export function SettingsView({ resetKey }: Props) {
       const { imported } = await restoreFromGoogleDrive((hasLocalChanges) => {
         const confirmMessage = hasLocalChanges
           ? t("You have local changes that haven't been backed up to Google Drive yet — restoring now will replace them with your Google Drive backup and they'll be permanently lost. Continue?")
-          : t('Restoring will replace ALL current data (savings, crypto, spending, categories) with your Google Drive backup. Continue?')
+          : t('Restoring will replace ALL current data (savings, invest, spending, categories) with your Google Drive backup. Continue?')
         return confirm(confirmMessage)
       })
       const total = Object.values(imported).reduce((a, b) => a + b, 0)
@@ -325,15 +325,15 @@ export function SettingsView({ resetKey }: Props) {
         <div className="settings-row wrap">
           <div>
             <div>{t('Total net worth')}</div>
-            <div className="muted">{t('Currency used to display the combined savings + crypto + lent-out total')}</div>
+            <div className="muted">{t('Currency used to display the combined savings + invest + lent-out total')}</div>
           </div>
           <CurrencySingleSelect value={netWorthCurrency} options={netWorthOptions} onChange={setNetWorthCurrency} />
         </div>
 
         <div className="settings-row wrap">
           <div>
-            <div>{t('Crypto currencies')}</div>
-            <div className="muted">{t('Fiat currencies shown for crypto holdings and totals')}</div>
+            <div>{t('Invest currencies')}</div>
+            <div className="muted">{t('Fiat currencies shown for invest holdings and totals')}</div>
           </div>
           <CurrencyMultiSelect selected={cryptoCurrencies} onChange={setCryptoCurrencies} />
         </div>

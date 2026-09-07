@@ -41,14 +41,6 @@ export function BalanceSummaryCard({ onNavigate }: Props) {
   const visibleCurrencies = CURRENCIES.filter((c) => savingsCurrencies.includes(c.code) && totals[c.code] !== 0)
 
   const credits = useMemo(() => (allEntries ?? []).filter((e) => e.kind === 'credit'), [allEntries])
-  const creditTotals = useMemo(() => {
-    const t: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0, JPY: 0, CNY: 0 }
-    credits.forEach((e) => {
-      t[e.currency] += e.amount
-    })
-    return t
-  }, [credits])
-  const visibleCreditCurrencies = CURRENCIES.filter((c) => creditTotals[c.code] !== 0)
 
   function comparableValue(entry: { amount: number; currency: Currency }): number {
     return fxRates ? convertFiat(entry.amount, entry.currency, 'USD', fxRates) : entry.amount
@@ -57,6 +49,11 @@ export function BalanceSummaryCard({ onNavigate }: Props) {
     () => pockets.slice().sort((a, b) => comparableValue(b) - comparableValue(a)).slice(0, 4),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [pockets, fxRates],
+  )
+  const topCredits = useMemo(
+    () => credits.slice().sort((a, b) => comparableValue(b) - comparableValue(a)).slice(0, 4),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [credits, fxRates],
   )
 
   const now = new Date()
@@ -136,12 +133,12 @@ export function BalanceSummaryCard({ onNavigate }: Props) {
           </div>
         )}
 
-        {visibleCreditCurrencies.length > 0 && (
-          <div className="dashboard-card-list" style={{ marginTop: 10 }}>
-            {visibleCreditCurrencies.map((c) => (
-              <div className="dashboard-card-list-row" key={c.code}>
-                <span className="muted">{t('Credits')}</span>
-                <span className="dashboard-networth-line">{formatMoney(creditTotals[c.code], c.code)}</span>
+        {topCredits.length > 0 && (
+          <div className="dashboard-card-list dashboard-card-divider">
+            {topCredits.map((entry) => (
+              <div className="dashboard-card-list-row" key={entry.id}>
+                <span className="muted">{entry.location}</span>
+                <span className="dashboard-amount">{formatMoney(entry.amount, entry.currency)}</span>
               </div>
             ))}
           </div>

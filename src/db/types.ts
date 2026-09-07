@@ -97,6 +97,21 @@ export interface LoanEntry {
   updatedAt: string
 }
 
+// Invest screen's "Assets" tab — a general named holding (real estate, a
+// collectible, anything without live pricing) alongside Crypto's own
+// live-priced entries. Deliberately minimal for now (no history/adjust —
+// see AssetEntryForm): a plain name + currency amount + note, same shape
+// as a loan.
+export interface AssetEntry {
+  id?: number
+  name: string
+  currency: Currency
+  amount: number
+  note: string
+  createdAt: string
+  updatedAt: string
+}
+
 export interface LoanHistory {
   id?: number
   entryId: number

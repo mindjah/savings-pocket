@@ -16,12 +16,15 @@ interface Props {
   onNavigate: () => void
 }
 
-// Mirrors CryptoView's own totals and pinned-first/biggest-first sort —
-// the reference dashboard's "Invest" card.
-export function CryptoSummaryCard({ onNavigate }: Props) {
+// Mirrors InvestView's own totals and pinned-first/biggest-first sort — the
+// total shown up top is Crypto + Assets combined (see useNetWorth's own
+// investTotal), with the two kinds of holding listed separately below,
+// split by a divider.
+export function InvestSummaryCard({ onNavigate }: Props) {
   const { t } = useTranslation()
   const entries = useLiveQuery(() => db.cryptoEntries.toArray(), [])
-  const [cryptoCurrencies] = useMetaSetting<Currency[]>('enabledCryptoCurrencies', DEFAULT_CRYPTO_CURRENCIES)
+  const assetEntries = useLiveQuery(() => db.assetEntries.toArray(), [])
+  const [investCurrencies] = useMetaSetting<Currency[]>('enabledCryptoCurrencies', DEFAULT_CRYPTO_CURRENCIES)
   const coinIds = useMemo(() => Array.from(new Set((entries ?? []).map((e) => e.coinId))), [entries])
   const { prices } = useCryptoRates(coinIds)
   const priceHistories = useCryptoPriceHistory30d(coinIds)
@@ -54,8 +57,9 @@ export function CryptoSummaryCard({ onNavigate }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entries, priceHistories])
 
-  const visibleCurrencies = CURRENCIES.filter((c) => cryptoCurrencies.includes(c.code))
-  const totals = useMemo(() => {
+  const visibleCurrencies = CURRENCIES.filter((c) => investCurrencies.includes(c.code))
+
+  const cryptoTotals = useMemo(() => {
     const t: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0, JPY: 0, CNY: 0 }
     ;(entries ?? []).forEach((e) => {
       const price = prices[e.coinId]
@@ -65,7 +69,23 @@ export function CryptoSummaryCard({ onNavigate }: Props) {
     })
     return t
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entries, prices, cryptoCurrencies])
+  }, [entries, prices, investCurrencies])
+
+  const assetTotals = useMemo(() => {
+    const t: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0, JPY: 0, CNY: 0 }
+    ;(assetEntries ?? []).forEach((e) => {
+      t[e.currency] += e.amount
+    })
+    return t
+  }, [assetEntries])
+
+  const combinedTotals = useMemo(() => {
+    const t: Record<Currency, number> = { EUR: 0, USD: 0, RUB: 0, JPY: 0, CNY: 0 }
+    visibleCurrencies.forEach((c) => {
+      t[c.code] = cryptoTotals[c.code] + assetTotals[c.code]
+    })
+    return t
+  }, [cryptoTotals, assetTotals, visibleCurrencies])
 
   const valueUsd = useMemo(() => {
     const map = new Map<number, number>()
@@ -88,6 +108,8 @@ export function CryptoSummaryCard({ onNavigate }: Props) {
     [entries, valueUsd],
   )
 
+  const topAssets = useMemo(() => (assetEntries ?? []).slice().sort((a, b) => b.amount - a.amount).slice(0, 4), [assetEntries])
+
   return (
     <div className="card dashboard-card">
       <div className="dashboard-card-header">
@@ -102,7 +124,7 @@ export function CryptoSummaryCard({ onNavigate }: Props) {
           <div className="dashboard-card-totals">
             {visibleCurrencies.map((c) => (
               <strong key={c.code} className="dashboard-card-total">
-                {formatMoney(totals[c.code], c.code)}
+                {formatMoney(combinedTotals[c.code], c.code)}
               </strong>
             ))}
           </div>
@@ -133,10 +155,21 @@ export function CryptoSummaryCard({ onNavigate }: Props) {
             )}
           </div>
         )}
+
+        {assetEntries != null && assetEntries.length > 0 && (
+          <div className="dashboard-card-list dashboard-card-divider">
+            {topAssets.map((e) => (
+              <div className="dashboard-card-list-row" key={e.id}>
+                <span className="muted">{e.name}</span>
+                <span className="dashboard-amount">{formatMoney(e.amount, e.currency)}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <button className="btn btn-ghost dashboard-card-link" onClick={onNavigate} type="button">
-        {t('Go to Crypto')} →
+        {t('Go to Invest')} →
       </button>
     </div>
   )

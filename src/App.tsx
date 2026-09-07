@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { NavBar, type Tab } from './components/Layout/NavBar'
 import { DashboardView } from './components/Dashboard/DashboardView'
 import { SavingsView } from './components/Savings/SavingsView'
-import { CryptoView } from './components/Crypto/CryptoView'
+import { InvestView } from './components/Invest/InvestView'
 import { SpendingView } from './components/Spending/SpendingView'
 import { PlanningScreen } from './components/Spending/PlanningModal'
 import { BudgetScreen } from './components/Spending/BudgetModal'
@@ -24,7 +24,7 @@ import { GoogleDriveIcon } from './components/common/GoogleDriveIcon'
 const TITLES: Record<Tab, string> = {
   dashboard: 'Dashboard',
   savings: 'Savings',
-  crypto: 'Crypto',
+  invest: 'Invest',
   spending: 'Spending',
   planning: 'Planning sandbox',
   budget: 'Manage budget',
@@ -45,7 +45,7 @@ const RELOCK_AFTER_MS = 5 * 60 * 1000
 
 function readInitialTab(isDesktop: boolean): Tab {
   const stored = localStorage.getItem(STORAGE_KEY)
-  const valid: Tab[] = ['dashboard', 'savings', 'crypto', 'spending', 'planning', 'budget', 'analytics', 'settings']
+  const valid: Tab[] = ['dashboard', 'savings', 'invest', 'spending', 'planning', 'budget', 'analytics', 'settings']
   if (stored && (valid as string[]).includes(stored)) {
     const tab = stored as Tab
     // A tab saved from a wider window shouldn't strand a phone-width reopen
@@ -179,7 +179,7 @@ function AppShell() {
   }, [faceIdEnabled, autoBackupEnabled, locked])
 
   const [savingsResetKey, setSavingsResetKey] = useState(0)
-  const [cryptoResetKey, setCryptoResetKey] = useState(0)
+  const [investResetKey, setInvestResetKey] = useState(0)
   const [spendingResetKey, setSpendingResetKey] = useState(0)
   const [settingsResetKey, setSettingsResetKey] = useState(0)
 
@@ -188,7 +188,7 @@ function AppShell() {
       // Re-tapping the already-active tab jumps back to its main screen and
       // scrolls up — the same "tap to go home" pattern as most apps' bottom nav bars.
       if (next === 'savings') setSavingsResetKey((k) => k + 1)
-      if (next === 'crypto') setCryptoResetKey((k) => k + 1)
+      if (next === 'invest') setInvestResetKey((k) => k + 1)
       if (next === 'spending') setSpendingResetKey((k) => k + 1)
       if (next === 'settings') setSettingsResetKey((k) => k + 1)
       window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -222,7 +222,7 @@ function AppShell() {
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         {tab === 'dashboard' && <DashboardView onNavigate={handleChange} />}
         {tab === 'savings' && <SavingsView resetKey={savingsResetKey} />}
-        {tab === 'crypto' && <CryptoView resetKey={cryptoResetKey} />}
+        {tab === 'invest' && <InvestView resetKey={investResetKey} />}
         {tab === 'spending' && <SpendingView resetKey={spendingResetKey} />}
         {tab === 'planning' && <PlanningScreen onDirtyChange={setActiveScreenDirty} />}
         {tab === 'budget' && <BudgetScreen onDirtyChange={setActiveScreenDirty} />}

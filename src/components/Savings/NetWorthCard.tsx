@@ -53,7 +53,7 @@ export function NetWorthCard({ blurBalances, onToggleBlur }: Props) {
               <span className="net-worth-breakdown-amount">{formatMoney(breakdown.spendingTotal, displayCurrency)}</span>
             </span>
             <span>
-              {t('Crypto')}: <span className="net-worth-breakdown-amount">{formatMoney(breakdown.cryptoTotal, displayCurrency)}</span>
+              {t('Invest')}: <span className="net-worth-breakdown-amount">{formatMoney(breakdown.investTotal, displayCurrency)}</span>
             </span>
             <span>
               {t('Lent out')}: <span className="net-worth-breakdown-amount">{formatMoney(breakdown.loansTotal, displayCurrency)}</span>

@@ -4,7 +4,7 @@ import { ChevronDownIcon } from './ChevronDownIcon'
 
 interface Props {
   onEdit: () => void
-  onViewHistory: () => void
+  onViewHistory?: () => void
   onSeeNote?: () => void
 }
 
@@ -32,9 +32,11 @@ export function EntryActionMenu({ onEdit, onViewHistory, onSeeNote }: Props) {
               {t('See note')}
             </button>
           )}
-          <button type="button" className="entry-menu-option" onClick={() => choose(onViewHistory)}>
-            {t('View history')}
-          </button>
+          {onViewHistory && (
+            <button type="button" className="entry-menu-option" onClick={() => choose(onViewHistory)}>
+              {t('View history')}
+            </button>
+          )}
         </div>
       )}
       <button

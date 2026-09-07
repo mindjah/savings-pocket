@@ -6,7 +6,7 @@ import { BudgetIcon } from '../common/BudgetIcon'
 import { AnalyticsIcon } from '../common/AnalyticsIcon'
 import { SyncStatusBadge } from '../common/SyncStatusBadge'
 
-export type Tab = 'dashboard' | 'savings' | 'crypto' | 'spending' | 'planning' | 'budget' | 'analytics' | 'settings'
+export type Tab = 'dashboard' | 'savings' | 'invest' | 'spending' | 'planning' | 'budget' | 'analytics' | 'settings'
 
 // Font Awesome 6 Free (Solid) — Boucoup's own icon system (see
 // src/design-system/ README: tab bar glyphs are real FA icons, never
@@ -17,12 +17,12 @@ const TABS: { key: Tab; label: string; icon: ReactNode; desktopOnly?: boolean }[
   // room to make sense on a wider layout.
   { key: 'dashboard', label: 'Dashboard', icon: <i className="fa-solid fa-gauge" aria-hidden="true" />, desktopOnly: true },
   { key: 'savings', label: 'Savings', icon: <i className="fa-solid fa-piggy-bank" aria-hidden="true" /> },
-  { key: 'crypto', label: 'Crypto', icon: <i className="fa-solid fa-coins" aria-hidden="true" /> },
+  { key: 'invest', label: 'Invest', icon: <i className="fa-solid fa-coins" aria-hidden="true" /> },
   { key: 'spending', label: 'Spending', icon: <i className="fa-solid fa-calendar-days" aria-hidden="true" /> },
   // Desktop-only: on mobile these three stay reachable through Spending's
   // own Manage menu, as bottom sheets — a 7-item bottom bar doesn't fit a
   // phone screen. A laptop's sidebar has the room, so they get their own
-  // full-page tabs there instead, same as Savings/Crypto/Spending/Settings.
+  // full-page tabs there instead, same as Savings/Invest/Spending/Settings.
   { key: 'planning', label: 'Planning sandbox', icon: <SandboxIcon size={20} />, desktopOnly: true },
   { key: 'budget', label: 'Manage budget', icon: <BudgetIcon size={20} />, desktopOnly: true },
   { key: 'analytics', label: 'Analytics', icon: <AnalyticsIcon size={20} />, desktopOnly: true },

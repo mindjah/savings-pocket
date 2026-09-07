@@ -197,6 +197,19 @@ export const RU: Record<string, string> = {
   'e.g. LINK': 'напр. LINK',
   Name: 'Название',
   'e.g. Chainlink': 'напр. Chainlink',
+
+  // Invest view — Assets tab
+  Assets: 'Активы',
+  'No assets tracked yet. Tap + to add one.': 'Активов пока нет. Нажмите +, чтобы добавить.',
+  'Add asset': 'Добавить актив',
+  'Edit asset': 'Изменить актив',
+  'e.g. Vintage watch': 'напр. Старинные часы',
+  'Details about this asset': 'Подробности об этом активе',
+  'Asset added': 'Актив добавлен',
+  'Asset updated': 'Актив обновлён',
+  'Asset deleted': 'Актив удалён',
+  'Delete this asset? This cannot be undone.': 'Удалить этот актив? Это действие необратимо.',
+  'Go to Invest': 'К инвестициям',
   'CoinGecko id': 'ID на CoinGecko',
   "Find the id in the coin's CoinGecko URL, e.g. ": 'ID можно найти в ссылке на CoinGecko, напр. ',
   'e.g. Cold wallet, exchange name…': 'напр. Холодный кошелёк, название биржи…',
@@ -389,10 +402,10 @@ export const RU: Record<string, string> = {
   'Savings currencies': 'Валюты сбережений',
   'Shown as totals in Savings and Lent out — at least one required':
     'Показываются в итогах Сбережений и Одолженного — нужна минимум одна',
-  'Currency used to display the combined savings + crypto + lent-out total':
-    'Валюта для отображения общего итога сбережений, крипто и одолженного',
-  'Crypto currencies': 'Валюты крипто',
-  'Fiat currencies shown for crypto holdings and totals': 'Фиатные валюты для криптоактивов и итогов',
+  'Currency used to display the combined savings + invest + lent-out total':
+    'Валюта для отображения общего итога сбережений, инвестиций и одолженного',
+  'Invest currencies': 'Валюты инвестиций',
+  'Fiat currencies shown for invest holdings and totals': 'Фиатные валюты для инвестиций и итогов',
   'Spending currencies': 'Валюты расходов',
   'Shown in the spending calendar totals': 'Показываются в итогах календаря расходов',
   'Savings tracking': 'Учёт сбережений',
@@ -445,8 +458,8 @@ export const RU: Record<string, string> = {
     'Все данные хранятся локально в вашем браузере. Регулярно экспортируйте резервную копию, особенно перед очисткой данных браузера или сменой устройства.',
   'Export backup (.json)': 'Экспортировать копию (.json)',
   'Import backup (.json)': 'Импортировать копию (.json)',
-  'Importing will replace ALL current data (savings, crypto, spending, categories) with the contents of this backup file. Continue?':
-    'Импорт заменит ВСЕ текущие данные (сбережения, крипто, расходы, категории) содержимым этого файла резервной копии. Продолжить?',
+  'Importing will replace ALL current data (savings, invest, spending, categories) with the contents of this backup file. Continue?':
+    'Импорт заменит ВСЕ текущие данные (сбережения, инвестиции, расходы, категории) содержимым этого файла резервной копии. Продолжить?',
   'Backup exported': 'Резервная копия экспортирована',
   'Never backed up': 'Резервной копии ещё не было',
   'Last backup': 'Последняя копия:',
@@ -460,8 +473,8 @@ export const RU: Record<string, string> = {
   'Restore from Google Drive': 'Восстановить из Google Drive',
   'Backed up to Google Drive': 'Резервная копия сохранена в Google Drive',
   'Failed to back up to Google Drive': 'Не удалось создать резервную копию в Google Drive',
-  'Restoring will replace ALL current data (savings, crypto, spending, categories) with your Google Drive backup. Continue?':
-    'Восстановление заменит ВСЕ текущие данные (сбережения, крипто, расходы, категории) резервной копией из Google Drive. Продолжить?',
+  'Restoring will replace ALL current data (savings, invest, spending, categories) with your Google Drive backup. Continue?':
+    'Восстановление заменит ВСЕ текущие данные (сбережения, инвестиции, расходы, категории) резервной копией из Google Drive. Продолжить?',
   "You have local changes that haven't been backed up to Google Drive yet — restoring now will replace them with your Google Drive backup and they'll be permanently lost. Continue?":
     'У вас есть локальные изменения, которые ещё не сохранены в Google Drive — восстановление сейчас заменит их резервной копией из Google Drive, и они будут потеряны навсегда. Продолжить?',
   'Failed to restore from Google Drive': 'Не удалось восстановить из Google Drive',

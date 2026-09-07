@@ -7,7 +7,7 @@ import { DashboardCell } from './DashboardCell'
 import { NetWorthSummaryCard } from './NetWorthSummaryCard'
 import { SavingsSummaryCard } from './SavingsSummaryCard'
 import { BalanceSummaryCard } from './BalanceSummaryCard'
-import { CryptoSummaryCard } from './CryptoSummaryCard'
+import { InvestSummaryCard } from './InvestSummaryCard'
 import { SpendingSummaryCard } from './SpendingSummaryCard'
 import { BudgetStatusDashboardCard } from './BudgetStatusDashboardCard'
 import { AnalyticsDashboardCard } from './AnalyticsDashboardCard'
@@ -21,7 +21,7 @@ interface Props {
 const GAP = 16
 const COLUMNS = 4
 
-const CARD_KEYS = ['networth', 'savings', 'balance', 'crypto', 'spending', 'budget', 'analytics'] as const
+const CARD_KEYS = ['networth', 'savings', 'balance', 'invest', 'spending', 'budget', 'analytics'] as const
 type CardKey = (typeof CARD_KEYS)[number]
 
 // Each card's own size — standard cards are 1x1, auto-promoting to 1x2 if
@@ -35,7 +35,7 @@ const CARD_TIER: Record<CardKey, { widthUnits: 1 | 2; heightUnits: 1 | 2; autoPr
   networth: { widthUnits: 1, heightUnits: 1, autoPromote: true },
   savings: { widthUnits: 1, heightUnits: 1, autoPromote: true },
   balance: { widthUnits: 1, heightUnits: 1, autoPromote: true },
-  crypto: { widthUnits: 1, heightUnits: 1, autoPromote: true },
+  invest: { widthUnits: 1, heightUnits: 1, autoPromote: true },
   spending: { widthUnits: 1, heightUnits: 1, autoPromote: true },
   budget: { widthUnits: 2, heightUnits: 2 },
   analytics: { widthUnits: 2, heightUnits: 2 },
@@ -68,7 +68,7 @@ export function DashboardView({ onNavigate }: Props) {
     networth: <NetWorthSummaryCard blurBalances={blurBalances} onToggleBlur={() => setBlurBalances((b) => !b)} />,
     savings: <SavingsSummaryCard onNavigate={() => onNavigate('savings')} />,
     balance: <BalanceSummaryCard onNavigate={() => onNavigate('savings')} />,
-    crypto: <CryptoSummaryCard onNavigate={() => onNavigate('crypto')} />,
+    invest: <InvestSummaryCard onNavigate={() => onNavigate('invest')} />,
     spending: <SpendingSummaryCard onNavigate={() => onNavigate('spending')} />,
     budget: <BudgetStatusDashboardCard />,
     analytics: <AnalyticsDashboardCard onNavigate={() => onNavigate('analytics')} />,

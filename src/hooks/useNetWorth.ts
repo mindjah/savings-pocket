@@ -11,6 +11,7 @@ export function useNetWorth(displayCurrency: Currency, includeCreditsInNetWorth:
   const savings = useLiveQuery(() => db.savingsEntries.toArray(), []) ?? []
   const loans = useLiveQuery(() => db.loanEntries.toArray(), []) ?? []
   const cryptoEntries = useLiveQuery(() => db.cryptoEntries.toArray(), []) ?? []
+  const assetEntries = useLiveQuery(() => db.assetEntries.toArray(), []) ?? []
 
   const coinIds = useMemo(() => Array.from(new Set(cryptoEntries.map((e) => e.coinId))), [cryptoEntries])
   const { prices, loading: cryptoLoading, stale: cryptoStale } = useCryptoRates(coinIds)
@@ -25,20 +26,21 @@ export function useNetWorth(displayCurrency: Currency, includeCreditsInNetWorth:
     const spendingTotal = sumIn(pockets.filter((e) => e.purpose === 'spending'))
     const creditsTotal = sumIn(savings.filter((e) => e.kind === 'credit'))
     const loansTotal = sumIn(loans)
-    const cryptoTotal = cryptoEntries.reduce(
-      (sum, e) => sum + e.amount * priceIn(prices[e.coinId], displayCurrency),
-      0,
-    )
+    // Invest = Crypto + Assets combined, one figure — see InvestSummaryCard
+    // for the dashboard's own split-by-a-line breakdown of the two.
+    const cryptoTotal = cryptoEntries.reduce((sum, e) => sum + e.amount * priceIn(prices[e.coinId], displayCurrency), 0)
+    const assetsTotal = sumIn(assetEntries)
+    const investTotal = cryptoTotal + assetsTotal
     return {
       savingsTotal,
       spendingTotal,
       creditsTotal,
       loansTotal,
-      cryptoTotal,
+      investTotal,
       grandTotal:
-        savingsTotal + spendingTotal + loansTotal + cryptoTotal + (includeCreditsInNetWorth ? creditsTotal : 0),
+        savingsTotal + spendingTotal + loansTotal + investTotal + (includeCreditsInNetWorth ? creditsTotal : 0),
     }
-  }, [fx, savings, loans, cryptoEntries, prices, displayCurrency, includeCreditsInNetWorth])
+  }, [fx, savings, loans, cryptoEntries, assetEntries, prices, displayCurrency, includeCreditsInNetWorth])
 
   return {
     breakdown,

@@ -57,8 +57,8 @@ export function NetWorthSummaryCard({ blurBalances, onToggleBlur }: Props) {
               <span className="dashboard-networth-line">{formatMoney(breakdown.spendingTotal, displayCurrency)}</span>
             </div>
             <div className="dashboard-card-list-row">
-              <span className="muted">{t('Crypto')}</span>
-              <span className="dashboard-networth-line">{formatMoney(breakdown.cryptoTotal, displayCurrency)}</span>
+              <span className="muted">{t('Invest')}</span>
+              <span className="dashboard-networth-line">{formatMoney(breakdown.investTotal, displayCurrency)}</span>
             </div>
             <div className="dashboard-card-list-row">
               <span className="muted">{t('Lent out')}</span>
