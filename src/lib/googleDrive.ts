@@ -31,7 +31,7 @@ declare global {
             client_id: string
             scope: string
             callback: (response: { access_token?: string; expires_in?: number; error?: string }) => void
-          }): { requestAccessToken: () => void }
+          }): { requestAccessToken: (overrideConfig?: { prompt?: string }) => void }
         }
       }
     }
@@ -75,7 +75,16 @@ function getCachedToken(): string | null {
   return cachedToken && cachedToken.expiresAt > Date.now() ? cachedToken.token : null
 }
 
-async function requestAccessToken(): Promise<string> {
+// silent: true passes prompt: 'none' to Google Identity Services, which
+// asks it to resolve (or fail) using an existing Google session with no
+// popup or other UI of its own — used for the automatic app-open freshness
+// check (see checkDriveForNewerBackup), which previously relied entirely on
+// the BROWSER's own popup blocker to stay invisible. That's not a real
+// guarantee: a visitor who's allowed auto popups for this site got a live
+// Google sign-in window on every single app open. Explicit connect/restore
+// flows (a real click behind them) still ask silent: false (the default),
+// since those are exactly when an interactive picker is wanted.
+async function requestAccessToken(options?: { silent?: boolean }): Promise<string> {
   if (!CLIENT_ID) throw new Error('Google Drive is not configured for this deployment.')
   await waitForGoogleIdentityServices()
   return new Promise((resolve, reject) => {
@@ -92,7 +101,7 @@ async function requestAccessToken(): Promise<string> {
         }
       },
     })
-    tokenClient.requestAccessToken()
+    tokenClient.requestAccessToken(options?.silent ? { prompt: 'none' } : undefined)
   })
 }
 
@@ -225,18 +234,19 @@ export interface DriveStartupCheckResult {
   remoteModifiedAt: string
 }
 
-// Called once on app open. Only attempts a token request — which may not be
-// silent, occasionally showing Google's sign-in UI — if this device has
+// Called once on app open. Only attempts a token request — silently, no
+// popup or other Google UI (see requestAccessToken) — if this device has
 // signed in to Drive at least once before, so a visitor who's never touched
 // Google Drive is never surprised by an auth prompt. Any failure (revoked
-// access, offline, dismissed prompt) is swallowed — this is a courtesy
-// check, not a required step.
+// access, needs re-consent, offline) is swallowed — this is a courtesy
+// check, not a required step; shouldOfferDriveReconnect's own banner is
+// what offers an interactive reconnect afterward.
 export async function checkDriveForNewerBackup(): Promise<DriveStartupCheckResult | null> {
   if (!isGoogleDriveConfigured()) return null
   if (!(await hasEverConnectedToDrive())) return null
   let token: string
   try {
-    token = await requestAccessToken()
+    token = await requestAccessToken({ silent: true })
   } catch {
     return null
   }
@@ -255,22 +265,20 @@ let lastReconnectPromptAt = 0
 
 // Auto-backup only ever uses an already-cached token (see
 // attemptSilentAutoBackup) — it never prompts on its own. That token dies
-// after under an hour, and a purely automatic request to refresh it (fired
-// from app-open or foreground-resume, with no tap behind it) is liable to be
-// silently blocked by the browser, same as checkDriveForNewerBackup's own
-// best-effort attempt above. This decides WHETHER to offer an interactive
-// reconnect prompt: only when auto-backup is actually turned on, this device
-// has connected to Drive before, there's currently no valid token, and it's
+// after under an hour, and refreshing it needs real user interaction (an
+// expired grant can't be silently renewed, see requestAccessToken's own
+// silent mode) — this decides WHETHER to offer an interactive reconnect
+// prompt: only when auto-backup is actually turned on, this device has
+// connected to Drive before, there's currently no valid token, and it's
 // been at least an hour since the last time this was offered. Marks the
 // cooldown as soon as it returns true, regardless of whether the caller's
 // resulting prompt gets accepted — same "ask at most once an hour" either way.
 //
-// Deliberately does NOT itself call requestAccessToken() or use
-// window.confirm()/alert() to ask — neither is a real DOM-dispatched user
-// gesture, so a popup requested from inside either would still be silently
-// blocked, same as a fully automatic attempt. The caller must render an
-// actual clickable element and call connectDriveForAutoBackup() directly
-// from its onClick handler.
+// Deliberately does NOT itself call requestAccessToken() — an interactive
+// (non-silent) request needs a real DOM-dispatched user gesture behind it or
+// browsers with a popup blocker enabled will still block it. The caller must
+// render an actual clickable element and call connectDriveForAutoBackup()
+// directly from its onClick handler.
 export async function shouldOfferDriveReconnect(autoBackupEnabled: boolean): Promise<boolean> {
   if (!autoBackupEnabled) return false
   if (!isGoogleDriveConfigured()) return false
