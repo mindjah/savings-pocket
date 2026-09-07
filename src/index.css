@@ -325,6 +325,12 @@ h1, h2, h3, p {
     border-radius: var(--radius-sm);
     font-size: 0.92rem;
     text-align: left;
+    /* The mobile bottom nav needs nowrap (see the base .nav-item rule) so a
+       longer label can't grow past its equal-width column — the sidebar has
+       no such column to protect, and longer Russian labels ("Песочница
+       планирования") need to wrap back to 2 lines here instead of
+       overflowing its fixed 220px width. */
+    white-space: normal;
   }
 
   .nav-item.active {
