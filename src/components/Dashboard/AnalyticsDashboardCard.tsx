@@ -1,11 +1,12 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import type { CategoryBudget, SpendingEntry } from '../../db/types'
 import { todayIso } from '../../lib/format'
 import { useTranslation } from '../../hooks/useTranslation'
+import { useIsDesktop } from '../../hooks/useIsDesktop'
 import { AnalyticsIcon } from '../common/AnalyticsIcon'
-import { groupByMonth } from '../Spending/AnalyticsModal'
+import { groupByMonth, AnalyticsModal } from '../Spending/AnalyticsModal'
 import { HabitsTab } from '../Spending/analytics/HabitsTab'
 
 interface Props {
@@ -19,6 +20,8 @@ interface Props {
 // (see AnalyticsBody's own comment on this).
 export function AnalyticsDashboardCard({ onNavigate }: Props) {
   const { t } = useTranslation()
+  const isDesktop = useIsDesktop()
+  const [showModal, setShowModal] = useState(false)
 
   const entriesRaw = useLiveQuery(() => db.spendingEntries.toArray(), []) ?? []
   const categories = useLiveQuery(() => db.categories.toArray(), []) ?? []
@@ -39,9 +42,14 @@ export function AnalyticsDashboardCard({ onNavigate }: Props) {
       <div className="dashboard-card-body no-scroll">
         <HabitsTab entriesByMonth={entriesByMonth} categoryBudgetsByMonth={categoryBudgetsByMonth} categories={categories} />
       </div>
-      <button className="btn btn-ghost dashboard-card-link" onClick={onNavigate} type="button">
+      <button
+        className="btn btn-ghost dashboard-card-link"
+        onClick={isDesktop ? onNavigate : () => setShowModal(true)}
+        type="button"
+      >
         {t('Go to Analytics')} →
       </button>
+      {showModal && <AnalyticsModal onClose={() => setShowModal(false)} />}
     </div>
   )
 }
