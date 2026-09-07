@@ -125,7 +125,9 @@ export function BalanceSummaryCard({ onNavigate }: Props) {
             ) : (
               topPockets.map((p) => (
                 <div className="dashboard-card-list-row" key={p.id}>
-                  <span className="muted">{p.location}</span>
+                  <span className="muted">
+                    {p.location} {t(p.type === 'cash' ? 'Cash' : 'Card')}
+                  </span>
                   <span className="dashboard-amount">{formatMoney(p.amount, p.currency)}</span>
                 </div>
               ))
