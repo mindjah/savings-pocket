@@ -79,7 +79,7 @@ export function DashboardCell({
   return (
     <div
       ref={ref}
-      className={`dashboard-cell dashboard-cell-${layout}${dragging ? ' dragging' : ''}${dragOver ? ' drag-over' : ''}`}
+      className={`dashboard-cell dashboard-cell-${layout}${!autoPromote ? ' dashboard-cell-fixed' : ''}${dragging ? ' dragging' : ''}${dragOver ? ' drag-over' : ''}`}
       style={gridStyle}
       data-card-key={cardKey}
     >

@@ -474,20 +474,20 @@ h1, h2, h3, p {
   -webkit-touch-callout: none;
 }
 
-/* Desktop grid only (mobile's stacked cards should keep growing freely to
-   fit their own content — see .dashboard-cell-stack .dashboard-card below).
+/* Desktop grid only, and only the two fixed-tier cards that never
+   auto-promote (Budget status, Analytics — see DashboardCell/CARD_TIER).
    A grid item's own automatic minimum size is content-based (like flex's)
    whenever its overflow is visible — the default here — which let a dense
    card's own content quietly stretch its row PAST the fixed grid-auto-rows
-   size that DashboardCell's auto-promote/fixed tiers are supposed to be the
-   only thing controlling. That silent growth is what let a busy Analytics
-   card end up taller than its fixed-2x2 peers, and (since every row shares
-   one grid-auto-rows value) could shift a promoted card's last section
-   under whatever the dense-packing algorithm placed in the row after it.
-   overflow: hidden opts this item out of that automatic sizing, so the
-   explicit tier height always wins and .dashboard-card-body's own overflow
-   (no-scroll, or auto-promotion) is what actually decides what's visible. */
-.dashboard-cell-grid {
+   size its tier is supposed to be the only thing controlling; that's what
+   let a busy Analytics card end up taller than its fixed-2x2 peers.
+   overflow: hidden opts it out of that automatic sizing, so the explicit
+   tier height always wins and .dashboard-card-body's own no-scroll is what
+   actually decides what's visible. NOT applied to the auto-promoting cards
+   (Savings, Invest, ...) — those are meant to keep growing to fit their own
+   content past a single promotion if they still need to; clipping those
+   too cuts off real content instead. */
+.dashboard-cell-grid.dashboard-cell-fixed {
   overflow: hidden;
 }
 
