@@ -9,7 +9,6 @@ import { useFiatRates } from '../../hooks/useFiatRates'
 import { convertFiat } from '../../lib/fxRates'
 import { SavingsEntryForm } from './SavingsEntryForm'
 import { LoanEntryForm } from './LoanEntryForm'
-import { NetWorthCard } from './NetWorthCard'
 import { ExchangeRatesModal } from './ExchangeRatesModal'
 import { AdjustPocketModal } from './AdjustPocketModal'
 import { PocketHistoryModal } from './PocketHistoryModal'
@@ -171,8 +170,6 @@ export function SavingsView({ resetKey }: Props) {
           <i className="fa-solid fa-money-bill-transfer" style={{ fontSize: 18 }} aria-hidden="true" />
         </button>
       </HeaderPortal>
-
-      <NetWorthCard blurBalances={blurBalances} onToggleBlur={() => setBlurBalances((b) => !b)} />
 
       <div className="segmented">
         <button type="button" className={subTab === 'mine' ? 'active' : ''} onClick={() => setSubTab('mine')}>

@@ -8,6 +8,7 @@ import { budgetCardLevel, categoryPaceLevel, computeBudgetStatus, monthProgress 
 import type { BudgetCardLevel, BudgetStatusLevel } from '../../lib/planning'
 import { convertFiat } from '../../lib/fxRates'
 import { useFiatRates } from '../../hooks/useFiatRates'
+import { useIsDesktop } from '../../hooks/useIsDesktop'
 import { Modal } from '../common/Modal'
 import { useTranslation } from '../../hooks/useTranslation'
 import { tSpentConvertedFrom, tOverspentButOverallFine, tBudgetStatusExplanation } from '../../i18n/translations'
@@ -213,6 +214,7 @@ function BudgetDonut({
 // split AnalyticsModal's own AnalyticsBody already established.
 export function BudgetStatusBody({ monthPrefix: monthPrefixProp, compact, largeDonuts }: BodyProps) {
   const { t, lang } = useTranslation()
+  const isDesktop = useIsDesktop()
   const categories = useLiveQuery(() => db.categories.toArray(), []) ?? []
   const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories])
   const { rates: fx } = useFiatRates()
@@ -619,7 +621,7 @@ export function BudgetStatusBody({ monthPrefix: monthPrefixProp, compact, largeD
                     marginBottom: 16,
                     color: CARD_LEVEL_COLOR[cardLevel],
                     fontWeight: 600,
-                    fontSize: '1rem',
+                    fontSize: isDesktop ? '1rem' : '0.85rem',
                   }}
                 >
                   <span style={{ flexShrink: 0 }}>

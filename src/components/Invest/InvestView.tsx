@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import type { AssetEntry, CryptoEntry, Currency } from '../../db/types'
 import { useCryptoRates } from '../../hooks/useCryptoRates'
+import { useCryptoPriceHistory30d } from '../../hooks/useCryptoPriceHistory30d'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { CURRENCIES, DEFAULT_CRYPTO_CURRENCIES } from '../../lib/constants'
 import { formatMoney } from '../../lib/format'
@@ -15,6 +16,7 @@ import { NoteViewModal } from '../common/NoteViewModal'
 import { useTranslation } from '../../hooks/useTranslation'
 import { PinIcon } from '../common/PinIcon'
 import { EntryActionMenu } from '../common/EntryActionMenu'
+import { Sparkline } from '../common/Sparkline'
 
 interface Props {
   resetKey: number
@@ -51,6 +53,34 @@ export function InvestView({ resetKey }: Props) {
 
   const coinIds = useMemo(() => Array.from(new Set((entries ?? []).map((e) => e.coinId))), [entries])
   const { prices, loading, stale, error, refresh, fetchedAt } = useCryptoRates(coinIds)
+  const priceHistories = useCryptoPriceHistory30d(coinIds)
+
+  // Same 30-day portfolio trend as the Dashboard's own Invest card (see
+  // InvestSummaryCard) — each held coin's real daily price history weighted
+  // by its CURRENT holding amount, today's holdings treated as constant
+  // across the window since amount-history isn't tracked day-by-day.
+  const portfolioTrend = useMemo(() => {
+    if (!entries || entries.length === 0) return null
+    const validHistories = Object.fromEntries(Object.entries(priceHistories).filter(([, points]) => points.length > 1))
+    const lengths = Object.values(validHistories).map((h) => h.length)
+    if (lengths.length === 0) return null
+    const minLen = Math.min(...lengths)
+    if (minLen < 2) return null
+
+    const values: number[] = []
+    for (let i = 0; i < minLen; i++) {
+      let total = 0
+      for (const e of entries) {
+        const hist = validHistories[e.coinId]
+        if (!hist) continue
+        total += e.amount * hist[hist.length - minLen + i].usd
+      }
+      values.push(total)
+    }
+    if (values[0] === 0) return null
+    return { values, pct: ((values[values.length - 1] - values[0]) / values[0]) * 100 }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entries, priceHistories])
 
   // Capture each entry's baseline price the first time a live price arrives after
   // creation, and again after any amount edit (updatedAt moves forward) — the trend
@@ -96,15 +126,6 @@ export function InvestView({ resetKey }: Props) {
 
   return (
     <div className="view boucoup-scope">
-      <div className="totals-row">
-        {visibleCurrencies.map((c) => (
-          <div className="total-chip" key={c.code}>
-            <div className="muted">{t('Total')} ({c.code})</div>
-            <div className="amount">{formatMoney(totals[c.code], c.code)}</div>
-          </div>
-        ))}
-      </div>
-
       <div className="segmented">
         <button type="button" className={subTab === 'crypto' ? 'active' : ''} onClick={() => setSubTab('crypto')}>
           {t('Crypto')}
@@ -114,11 +135,34 @@ export function InvestView({ resetKey }: Props) {
         </button>
       </div>
 
+      <div className="totals-row">
+        {visibleCurrencies.map((c) => (
+          <div className="total-chip" key={c.code}>
+            <div className="muted">{t('Total')} ({c.code})</div>
+            <div className="amount">{formatMoney(totals[c.code], c.code)}</div>
+          </div>
+        ))}
+      </div>
+
+      {subTab === 'crypto' && portfolioTrend && (
+        <div className="dashboard-card-trend">
+          <Sparkline points={portfolioTrend.values} color={portfolioTrend.pct >= 0 ? 'var(--accent)' : 'var(--danger)'} />
+          <span className={`dashboard-trend-badge${portfolioTrend.pct >= 0 ? ' dashboard-trend-up' : ' dashboard-trend-down'}`}>
+            {portfolioTrend.pct >= 0 ? '↑' : '↓'} {Math.abs(portfolioTrend.pct).toFixed(1)}% {t('over 30 days')}
+          </span>
+        </div>
+      )}
+
       {subTab === 'crypto' && (
         <>
           <div className="section-title">
-            <h2>{t('Crypto')}</h2>
-            <button className="btn btn-ghost" onClick={() => refresh({ force: true })} disabled={loading} type="button">
+            <button
+              className="btn btn-ghost"
+              style={{ marginLeft: 'auto' }}
+              onClick={() => refresh({ force: true })}
+              disabled={loading}
+              type="button"
+            >
               {loading ? t('Refreshing…') : t('↻ Refresh rates')}
             </button>
           </div>

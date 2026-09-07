@@ -35,6 +35,8 @@ export function SyncStatusBadge({ variant = 'sidebar' }: Props) {
   const daysSinceBackup = lastBackup ? (Date.now() - new Date(lastBackup.at).getTime()) / 86400000 : null
   const color = daysSinceBackup == null ? 'var(--danger-strong)' : daysSinceBackup < BACKUP_FRESH_DAYS ? 'var(--accent)' : 'var(--warning)'
   const text = lastBackup == null ? t('Never backed up') : `${t('Last backup')} ${formatDateOrTime(lastBackup.at, lang)}`
+  const iconSize = variant === 'header' ? 32 : 24
+  const icon = lastBackup?.method === 'manual' ? <ManualSyncIcon size={iconSize} /> : <CloudSyncIcon size={iconSize} />
 
   return (
     <span
@@ -48,8 +50,17 @@ export function SyncStatusBadge({ variant = 'sidebar' }: Props) {
         ...(variant === 'header' ? { maxWidth: 'calc(50vw - 16px)', verticalAlign: 'top', lineHeight: 1.3 } : {}),
       }}
     >
-      <span>{text}</span>
-      {lastBackup?.method === 'manual' ? <ManualSyncIcon size={24} /> : <CloudSyncIcon size={24} />}
+      {variant === 'header' ? (
+        <>
+          {icon}
+          <span>{text}</span>
+        </>
+      ) : (
+        <>
+          <span>{text}</span>
+          {icon}
+        </>
+      )}
     </span>
   )
 }
