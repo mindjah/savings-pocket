@@ -6,6 +6,7 @@ import { CURRENCIES } from '../../lib/constants'
 import { parseAmount, roundFiat } from '../../lib/format'
 import { Modal } from '../common/Modal'
 import { ExpandableTextarea } from '../common/ExpandableTextarea'
+import { DeleteConfirmModal } from './DeleteConfirmModal'
 import { useToast } from '../../hooks/useToast'
 import { useTranslation } from '../../hooks/useTranslation'
 import { LoanCreditIcon } from '../common/LoanCreditIcon'
@@ -29,6 +30,7 @@ export function LoanEntryForm({ entry, defaultCurrency, availableCurrencies, onC
   const [note, setNote] = useState(entry?.note ?? '')
   const [amount, setAmount] = useState(entry ? String(entry.amount) : '')
   const [reason, setReason] = useState('')
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const toast = useToast()
 
   const knownNames = useLiveQuery(async () => {
@@ -177,7 +179,7 @@ export function LoanEntryForm({ entry, defaultCurrency, availableCurrencies, onC
 
       <div className="modal-actions">
         {isEdit && (
-          <button className="btn btn-danger" onClick={handleDelete} type="button">
+          <button className="btn btn-danger" onClick={() => setConfirmingDelete(true)} type="button">
             {t('Delete')}
           </button>
         )}
@@ -185,6 +187,14 @@ export function LoanEntryForm({ entry, defaultCurrency, availableCurrencies, onC
           {t(isEdit ? 'Save changes' : 'Add loan')}
         </button>
       </div>
+
+      {confirmingDelete && (
+        <DeleteConfirmModal
+          itemLabel={t('this loan')}
+          onConfirmed={handleDelete}
+          onClose={() => setConfirmingDelete(false)}
+        />
+      )}
     </Modal>
   )
 }

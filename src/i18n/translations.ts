@@ -73,6 +73,7 @@ export const RU: Record<string, string> = {
   'Credit updated': 'Кредит обновлён',
   'Credit deleted': 'Кредит удалён',
   'this credit': 'этот кредит',
+  'this loan': 'этот займ',
   'Amount owed': 'Сумма долга',
   Purpose: 'Назначение',
   Icon: 'Значок',
