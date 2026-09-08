@@ -1,5 +1,6 @@
 import { db } from '../db/db'
 import { applyAutoDebit } from './autoDebit'
+import { markBackgroundWrite } from './backgroundWrite'
 import { todayIso } from './format'
 
 // A manually-added expense dated in the future isn't charged to its pocket
@@ -25,4 +26,5 @@ export async function materializePendingAutoDebits(): Promise<void> {
       await applyAutoDebit(e.debitedFromPocketId!, e.amount, e.id!, comment)
     }
   })
+  markBackgroundWrite()
 }

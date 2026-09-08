@@ -4,6 +4,7 @@ import { BACKUP_TABLES, db } from '../db/db'
 import { useMetaSetting } from './useMetaSetting'
 import { useTranslation } from './useTranslation'
 import { attemptSilentAutoBackup, isGoogleDriveConfigured } from '../lib/googleDrive'
+import { isWithinBackgroundWriteWindow } from '../lib/backgroundWrite'
 import { tAutoBackupConflict } from '../i18n/translations'
 import { formatDateTime } from '../lib/format'
 
@@ -38,6 +39,11 @@ export function useAutoBackup() {
       isFirstRun.current = false
       return
     }
+    // A purely automatic write (recurring/auto-debit materialization, a
+    // crypto trend baseline refresh) just caused this — leave any
+    // already-pending timer from a real edit alone, and don't start a new
+    // one for this change on its own. See backgroundWrite's own reasoning.
+    if (isWithinBackgroundWriteWindow()) return
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => {
       attemptSilentAutoBackup((remoteModifiedAt) => {

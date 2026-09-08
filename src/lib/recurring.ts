@@ -2,6 +2,7 @@ import { db } from '../db/db'
 import type { Language, RecurrenceType, SavingsTrackingMode } from '../db/types'
 import { tDays, translate } from '../i18n/translations'
 import { applyAutoDebit } from './autoDebit'
+import { markBackgroundWrite } from './backgroundWrite'
 import { todayIso } from './format'
 
 function lastDayOfMonth(year: number, month0: number): number {
@@ -144,4 +145,7 @@ export async function materializeRecurringExpenses(): Promise<void> {
       }
     },
   )
+  // Whether or not anything was actually due this run — cheap and harmless
+  // if nothing was written (see backgroundWrite's own reasoning).
+  markBackgroundWrite()
 }

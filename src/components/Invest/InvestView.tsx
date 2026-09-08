@@ -19,6 +19,7 @@ import { EntryActionMenu } from '../common/EntryActionMenu'
 import { Sparkline } from '../common/Sparkline'
 import { BLURRABLE_SELECTOR } from '../../lib/blur'
 import { CRYPTO_ICON_BY_COIN_ID } from '../../lib/cryptoIcons'
+import { markBackgroundWrite } from '../../lib/backgroundWrite'
 
 interface Props {
   resetKey: number
@@ -111,6 +112,9 @@ export function InvestView({ resetKey }: Props) {
         !entry.baselineSetAt || new Date(entry.baselineSetAt).getTime() < new Date(entry.updatedAt).getTime()
       if (needsCapture) {
         db.cryptoEntries.update(entry.id, { baselinePriceUsd: price.usd, baselineSetAt: new Date().toISOString() })
+        // Not a real edit — just refreshing a trend-arrow reference point.
+        // See markBackgroundWrite's own reasoning.
+        markBackgroundWrite()
       }
     }
   }, [entries, prices])
