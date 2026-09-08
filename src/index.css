@@ -926,6 +926,14 @@ h1, h2, h3, p {
   gap: 10px;
 }
 
+/* Separates My Pockets' savings-purpose group from its spending-purpose
+   group (see SavingsView) — margin on both sides so it reads as space
+   around the line, not glued to either list. */
+.pocket-group-divider {
+  margin: 20px 0;
+  border-top: 1px solid var(--border);
+}
+
 /* Wraps each subtab's section-title + list/empty-state (SavingsView) so the
    entrance animation has a real element to replay on — a plain block div,
    so it needs its own gap to keep the spacing .view's flex column used to

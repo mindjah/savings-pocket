@@ -204,7 +204,21 @@ export function SavingsView({ resetKey }: Props) {
               {t('No savings tracked yet. Tap + to add your first entry.')}
             </div>
           ) : (
-            <div className="entry-list">{sortPockets(entries).map(renderPocketCard)}</div>
+            (() => {
+              const savingsPockets = entries.filter((e) => (e.purpose ?? 'savings') === 'savings')
+              const spendingPockets = entries.filter((e) => (e.purpose ?? 'savings') === 'spending')
+              return (
+                <>
+                  {savingsPockets.length > 0 && (
+                    <div className="entry-list">{sortPockets(savingsPockets).map(renderPocketCard)}</div>
+                  )}
+                  {savingsPockets.length > 0 && spendingPockets.length > 0 && <div className="pocket-group-divider" />}
+                  {spendingPockets.length > 0 && (
+                    <div className="entry-list">{sortPockets(spendingPockets).map(renderPocketCard)}</div>
+                  )}
+                </>
+              )
+            })()
           )}
         </>
       ) : subTab === 'credits' ? (
