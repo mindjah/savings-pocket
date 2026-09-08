@@ -356,6 +356,7 @@ export const RU: Record<string, string> = {
   'No budget set yet. Set one up in Manage budget.': 'Бюджет ещё не задан. Настройте его в разделе «Управление бюджетом».',
   'Categories not in budget': 'Категории вне бюджета',
   'This spending is not budgeted.': 'Эти расходы не включены в бюджет.',
+  'Those expenses are not included in budget, see below.': 'Эти расходы не включены в бюджет, смотрите ниже.',
   Budget: 'Бюджет',
   'Remove budget': 'Удалить бюджет',
   Spent: 'Потрачено',

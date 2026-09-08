@@ -86,11 +86,14 @@ function BudgetDonut({
   percentage,
   totalSpent,
   size,
-  onUnbudgetedInfoClick,
-  unbudgetedInfoLabel,
   overallOver,
-}: CurrencySummary & { size: number; onUnbudgetedInfoClick: () => void; unbudgetedInfoLabel: string; overallOver: boolean | null }) {
+}: CurrencySummary & { size: number; overallOver: boolean | null }) {
   const { t, lang } = useTranslation()
+  // Local to this donut — deliberately not the "Categories not in budget"
+  // section's own unbudgetedInfoOpen toggle (a different, sometimes far
+  // away or entirely absent-in-compact-mode section); tapping the marker
+  // should show its own hint right here, every time, regardless of mode.
+  const [hintOpen, setHintOpen] = useState(false)
   const strokeWidth = size * 0.13
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
@@ -153,8 +156,8 @@ function BudgetDonut({
         {unbudgetedMarker && (
           <button
             className="btn btn-ghost btn-icon"
-            onClick={onUnbudgetedInfoClick}
-            aria-label={unbudgetedInfoLabel}
+            onClick={() => setHintOpen((o) => !o)}
+            aria-label={t('Those expenses are not included in budget, see below.')}
             type="button"
             style={{
               position: 'absolute',
@@ -184,6 +187,11 @@ function BudgetDonut({
             justifyContent: 'center',
             textAlign: 'center',
             padding: '0 8px',
+            // Purely informational — spans the whole ring (inset: 0), which
+            // otherwise sits on top of the unbudgeted marker button below in
+            // paint order and swallows its clicks despite never visually
+            // covering it.
+            pointerEvents: 'none',
           }}
         >
           <div className="muted" style={{ fontSize: size > 160 ? '0.72rem' : '0.62rem', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
@@ -192,12 +200,17 @@ function BudgetDonut({
           <div style={{ fontSize: size > 160 ? '1.6rem' : '1.15rem', fontWeight: 800, lineHeight: 1.25 }}>{Math.round(percentage)}%</div>
         </div>
       </div>
-      <div style={{ fontSize: '0.85rem', marginTop: 12, width: '100%', textAlign: 'center' }}>
+      <div style={{ fontSize: '0.85rem', marginTop: 24, width: '100%', textAlign: 'center' }}>
         <strong>{formatMoney(segments.reduce((sum, s) => sum + s.amount, 0) + unbudgetedTotal, currency)}</strong>{' '}
         <span className="muted">
           {t('of')} {formatMoney(budget, currency)}
         </span>
       </div>
+      {hintOpen && (
+        <div className="muted" style={{ fontSize: '0.75rem', marginTop: 4, width: '100%', textAlign: 'center' }}>
+          {t('Those expenses are not included in budget, see below.')}
+        </div>
+      )}
       {totalSpent > budget && overallOver === false && (
         <div className="muted" style={{ fontSize: '0.75rem', marginTop: 2, width: '100%', textAlign: 'center' }}>
           {tOverspentButOverallFine(lang, currency)}
@@ -589,13 +602,7 @@ export function BudgetStatusBody({ monthPrefix: monthPrefixProp, compact, largeD
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '16px 12px', margin: largeDonuts ? '4px 0 36px' : '4px 0 20px' }}>
           {currencySummaries.map((s) => (
             <div key={s.currency} style={{ flex: currencySummaries.length > 1 ? '0 1 calc(50% - 6px)' : '0 1 100%', minWidth: 0 }}>
-              <BudgetDonut
-                {...s}
-                size={donutSize}
-                onUnbudgetedInfoClick={() => setUnbudgetedInfoOpen((o) => !o)}
-                unbudgetedInfoLabel={t('This spending is not budgeted.')}
-                overallOver={overallStatus?.over ?? null}
-              />
+              <BudgetDonut {...s} size={donutSize} overallOver={overallStatus?.over ?? null} />
             </div>
           ))}
         </div>
