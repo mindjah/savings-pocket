@@ -182,17 +182,21 @@ export function InvestView({ resetKey }: Props) {
         <>
           <div className="section-title">
             <h2>{t('Crypto')}</h2>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+            <div className="muted">
+              {fetchedAt && (
+                <>
+                  {t('Rates')} {t(stale ? '(offline, last known)' : 'updated')} {new Date(fetchedAt).toLocaleTimeString()}
+                  {error ? ` — ${error}` : ''}
+                </>
+              )}
+            </div>
             <button className="btn btn-accent-text" onClick={() => refresh({ force: true })} disabled={loading} type="button">
               {loading ? t('Refreshing…') : t('↻ Refresh rates')}
             </button>
           </div>
-
-          {fetchedAt && (
-            <div className="muted">
-              {t('Rates')} {t(stale ? '(offline, last known)' : 'updated')} {new Date(fetchedAt).toLocaleTimeString()}
-              {error ? ` — ${error}` : ''}
-            </div>
-          )}
 
           {!entries ? null : entries.length === 0 ? (
             <div className="empty-state">

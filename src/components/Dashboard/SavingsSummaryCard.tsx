@@ -61,7 +61,7 @@ export function SavingsSummaryCard({ onNavigate }: Props) {
     <div className="card dashboard-card">
       <div className="dashboard-card-header">
         <span className="pocket-type-icon tint-green" aria-hidden="true">
-          <i className="fa-solid fa-piggy-bank" aria-hidden="true" />
+          <i className="fa-solid fa-piggy-bank" style={{ fontSize: 20 }} aria-hidden="true" />
         </span>
         <h3>{t('Savings')}</h3>
       </div>

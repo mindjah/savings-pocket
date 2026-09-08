@@ -26,7 +26,7 @@ export function NetWorthSummaryCard({ blurBalances, onToggleBlur }: Props) {
     <div className="card dashboard-card dashboard-networth-card">
       <div className="dashboard-card-header">
         <span className="pocket-type-icon" aria-hidden="true">
-          <i className="fa-solid fa-wallet" aria-hidden="true" />
+          <i className="fa-solid fa-wallet" style={{ fontSize: 20 }} aria-hidden="true" />
         </span>
         <h3>{t('Total net worth')}</h3>
         <button
