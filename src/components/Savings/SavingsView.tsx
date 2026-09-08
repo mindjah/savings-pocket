@@ -146,11 +146,18 @@ export function SavingsView({ resetKey }: Props) {
     )
   }
 
+  // Auto tracking mode's default pocket is where recurring expenses/auto-debits
+  // land — a spending concept, so pinning it first only makes sense among
+  // spending pockets. Settings' own picker doesn't restrict the choice to
+  // spending-purpose pockets, so a savings pocket can end up as "the
+  // default" too; without this check it would then get pinned above every
+  // other savings pocket regardless of amount, which isn't what auto mode's
+  // pinning is for.
   function sortPockets(list: SavingsEntry[]) {
     return list.slice().sort((a, b) => {
       if (trackingMode === 'auto') {
-        const aDefault = a.id != null && defaultPocketIds.has(a.id)
-        const bDefault = b.id != null && defaultPocketIds.has(b.id)
+        const aDefault = (a.purpose ?? 'savings') === 'spending' && a.id != null && defaultPocketIds.has(a.id)
+        const bDefault = (b.purpose ?? 'savings') === 'spending' && b.id != null && defaultPocketIds.has(b.id)
         if (aDefault !== bDefault) return aDefault ? -1 : 1
       }
       return comparableValue(b) - comparableValue(a)
