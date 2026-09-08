@@ -17,7 +17,6 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { PinIcon } from '../common/PinIcon'
 import { EntryActionMenu } from '../common/EntryActionMenu'
 import { Sparkline } from '../common/Sparkline'
-import { HeaderPortal } from '../common/HeaderPortal'
 import { BLURRABLE_SELECTOR } from '../../lib/blur'
 import { CRYPTO_ICON_BY_COIN_ID } from '../../lib/cryptoIcons'
 
@@ -152,22 +151,6 @@ export function InvestView({ resetKey }: Props) {
         if (blurBalances && (e.target as HTMLElement).closest(BLURRABLE_SELECTOR)) setBlurBalances(false)
       }}
     >
-      {subTab === 'crypto' && (
-        <HeaderPortal>
-          <button className="btn btn-accent-text" onClick={() => refresh({ force: true })} disabled={loading} type="button">
-            {loading ? t('Refreshing…') : t('↻ Refresh rates')}
-          </button>
-        </HeaderPortal>
-      )}
-
-      {subTab === 'crypto' && (
-        <div className="desktop-header-row">
-          <button className="btn btn-accent-text" onClick={() => refresh({ force: true })} disabled={loading} type="button">
-            {loading ? t('Refreshing…') : t('↻ Refresh rates')}
-          </button>
-        </div>
-      )}
-
       <div className="segmented">
         <button type="button" className={subTab === 'crypto' ? 'active' : ''} onClick={() => setSubTab('crypto')}>
           {t('Crypto')}
@@ -197,6 +180,13 @@ export function InvestView({ resetKey }: Props) {
 
       {subTab === 'crypto' && (
         <>
+          <div className="section-title">
+            <h2>{t('Crypto')}</h2>
+            <button className="btn btn-accent-text" onClick={() => refresh({ force: true })} disabled={loading} type="button">
+              {loading ? t('Refreshing…') : t('↻ Refresh rates')}
+            </button>
+          </div>
+
           {fetchedAt && (
             <div className="muted">
               {t('Rates')} {t(stale ? '(offline, last known)' : 'updated')} {new Date(fetchedAt).toLocaleTimeString()}
