@@ -624,7 +624,7 @@ export function BudgetStatusBody({ monthPrefix: monthPrefixProp, compact, largeD
                     display: 'flex',
                     alignItems: 'flex-start',
                     gap: 8,
-                    marginTop: largeDonuts ? 24 : 8,
+                    marginTop: largeDonuts ? 12 : 4,
                     marginBottom: 16,
                     color: CARD_LEVEL_COLOR[cardLevel],
                     fontWeight: 600,
