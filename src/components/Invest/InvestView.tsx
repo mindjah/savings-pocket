@@ -19,6 +19,7 @@ import { EntryActionMenu } from '../common/EntryActionMenu'
 import { Sparkline } from '../common/Sparkline'
 import { HeaderPortal } from '../common/HeaderPortal'
 import { BLURRABLE_SELECTOR } from '../../lib/blur'
+import { CRYPTO_ICON_BY_COIN_ID } from '../../lib/cryptoIcons'
 
 interface Props {
   resetKey: number
@@ -228,12 +229,13 @@ export function InvestView({ resetKey }: Props) {
                           ? 'down'
                           : null
                       : null
+                  const CoinIcon = CRYPTO_ICON_BY_COIN_ID[entry.coinId]
                   return (
                     <div className="entry-card" key={entry.id}>
                       <div className="entry-top">
                         <span className="entry-top-left">
                           <span className="pocket-type-icon tint-indigo" aria-hidden="true">
-                            <i className="fa-solid fa-coins" />
+                            {CoinIcon ? <CoinIcon size={24} /> : <i className="fa-solid fa-coins" />}
                           </span>
                           <span className="entry-amount">
                             {entry.amount} {entry.symbol}
