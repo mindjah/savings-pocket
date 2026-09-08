@@ -34,6 +34,7 @@ export function RecurringExpensesModal({ onClose }: Props) {
   const [note, setNote] = useState('')
   const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>('monthly')
   const [intervalDays, setIntervalDays] = useState('30')
+  const [nextDate, setNextDate] = useState('')
 
   function startEdit(r: RecurringExpense) {
     setEditingId(r.id ?? null)
@@ -41,6 +42,10 @@ export function RecurringExpensesModal({ onClose }: Props) {
     setNote(r.note)
     setRecurrenceType(r.recurrenceType)
     setIntervalDays(String(r.intervalDays ?? 30))
+    // The raw nextDate can itself be a since-skipped date (see the list's
+    // own sort comment) — start the picker from the real upcoming
+    // occurrence, not a stale one editing here would otherwise resurrect.
+    setNextDate(recurringPreviewDates(r, 1)[0])
   }
 
   function cancelEdit() {
@@ -54,13 +59,15 @@ export function RecurringExpensesModal({ onClose }: Props) {
   const editValid =
     !Number.isNaN(parsedAmount) &&
     parsedAmount > 0 &&
+    nextDate.trim() !== '' &&
     (recurrenceType !== 'custom' || (Number.isFinite(parsedInterval) && parsedInterval > 0))
   const editDirty =
     editingEntry != null &&
     (amount !== String(editingEntry.amount) ||
       note !== editingEntry.note ||
       recurrenceType !== editingEntry.recurrenceType ||
-      intervalDays !== String(editingEntry.intervalDays ?? 30))
+      intervalDays !== String(editingEntry.intervalDays ?? 30) ||
+      nextDate !== recurringPreviewDates(editingEntry, 1)[0])
 
   async function saveEdit(r: RecurringExpense) {
     if (!r.id || !editValid) return
@@ -69,6 +76,10 @@ export function RecurringExpensesModal({ onClose }: Props) {
       note: note.trim(),
       recurrenceType,
       intervalDays: recurrenceType === 'custom' ? Math.round(parsedInterval) : undefined,
+      // Setting this directly (not appending to skippedDates) is what makes
+      // it the new base date — the next occurrence after it, and every one
+      // after that, count forward from here (see computeNextDate).
+      nextDate,
       updatedAt: new Date().toISOString(),
     })
     toast(t('Recurring expense updated'))
@@ -159,6 +170,18 @@ export function RecurringExpensesModal({ onClose }: Props) {
                         />
                       </div>
                     )}
+                    <div className="form-group">
+                      <label htmlFor={`nextdate-${r.id}`}>{t('Next charge date')}</label>
+                      <input
+                        id={`nextdate-${r.id}`}
+                        type="date"
+                        value={nextDate}
+                        onChange={(e) => setNextDate(e.target.value)}
+                      />
+                      <div className="muted" style={{ fontSize: '0.8rem', marginTop: 4 }}>
+                        {t('Changing this becomes the new base date — later occurrences count forward from it.')}
+                      </div>
+                    </div>
                     <div className="modal-actions">
                       <button className="btn btn-danger" onClick={() => stopRecurring(r)} type="button">
                         {t('Make not recurring')}

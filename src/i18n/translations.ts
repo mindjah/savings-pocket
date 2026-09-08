@@ -228,6 +228,8 @@ export const RU: Record<string, string> = {
   'No spending logged this month yet. Tap any day to add an expense.':
     'В этом месяце расходов пока нет. Нажмите на день, чтобы добавить расход.',
   'Recurring expense planned for this day': 'На этот день запланирован повторяющийся расход',
+  'You are editing a recurring expense. This edit only changes this occurrence. To edit the recurring cycle, go to Manage recurring expenses.':
+    'Вы редактируете повторяющийся расход. Это изменение затронет только этот случай. Чтобы изменить цикл повторения, перейдите в раздел «Управление повторяющимися расходами».',
   'By category': 'По категориям',
   Date: 'Дата',
   'Previous month': 'Предыдущий месяц',
@@ -246,6 +248,9 @@ export const RU: Record<string, string> = {
   Annually: 'Ежегодно',
   'Every X days': 'Каждые X дней',
   'Repeats every (days)': 'Повторять каждые (дней)',
+  'Next charge date': 'Дата следующего списания',
+  'Changing this becomes the new base date — later occurrences count forward from it.':
+    'Изменение этой даты сделает её новой базовой датой — последующие повторения будут отсчитываться от неё.',
   'e.g. 14': 'напр. 14',
   'Spending entry updated': 'Расход обновлён',
   'Spending entry added': 'Расход добавлен',

@@ -125,6 +125,9 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
   }
 
   function startEdit(entry: SpendingEntry) {
+    if (entry.recurringExpenseId != null) {
+      alert(t('You are editing a recurring expense. This edit only changes this occurrence. To edit the recurring cycle, go to Manage recurring expenses.'))
+    }
     setEditingId(entry.id ?? null)
     setCategoryId(entry.categoryId)
     setAmount(String(entry.amount))
@@ -166,6 +169,16 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
       // its own fallback branch).
       const newPocketId =
         mode === 'auto' && debitPocketId !== '' && editDate <= todayIso() ? (debitPocketId as number) : null
+      // Moving a recurring occurrence's own date detaches it from the
+      // series instead of leaving it linked — otherwise the series' own
+      // template (whose nextDate/cursor never learns the date moved) still
+      // thinks the ORIGINAL date hasn't happened yet, and materializes a
+      // fresh duplicate there once that date is reached. Recording it as
+      // skipped on the template stops that; recurringExpenseId cleared here
+      // means this moved entry is a one-off from here on, not (still,
+      // incorrectly) shown with the recurring badge.
+      const movedOffRecurring =
+        editingEntry?.recurringExpenseId != null && editDate !== editingEntry.date ? editingEntry.recurringExpenseId : null
       await db.transaction(
         'rw',
         db.spendingEntries,
@@ -182,7 +195,16 @@ export function DayEntriesModal({ initialDate, quickAdd = false, onClose, onMana
             date: editDate,
             updatedAt: now,
             debitedFromPocketId: mode === 'auto' ? (debitPocketId as number) : undefined,
+            ...(movedOffRecurring != null ? { recurringExpenseId: undefined } : {}),
           })
+          if (movedOffRecurring != null) {
+            const r = await db.recurringExpenses.get(movedOffRecurring)
+            if (r) {
+              await db.recurringExpenses.update(movedOffRecurring, {
+                skippedDates: [...(r.skippedDates ?? []), editingEntry!.date],
+              })
+            }
+          }
           // Only offered for an entry that wasn't already part of a
           // recurring series (see the form's own showRecurring check) —
           // turns this one-off expense into the first occurrence of a new
