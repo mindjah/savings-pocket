@@ -23,6 +23,18 @@ export interface BackupFile {
 // current values instead of letting the generic clear-then-bulkPut wipe them.
 const DEVICE_ONLY_META_KEYS = new Set(['faceIdEnabled', 'faceIdCredentialId', 'faceIdPasscodeHash'])
 
+// Each device keeps its own dashboard card order (desktop's grid vs
+// mobile's stack are reordered independently — see DashboardView). Unlike
+// Face ID these ARE meant to travel with a backup (restoring on the same
+// kind of device, or the device that made the backup, should bring the
+// arrangement back) — but a backup made on a device that's only ever used
+// ONE of the two layouts simply has no row at all for the other one, and
+// the generic clear-then-bulkPut would otherwise wipe the target device's
+// own value for it down to nothing (see applyBackupPayload). Preserved only
+// when the incoming backup doesn't mention a given key; a backup that does
+// have it still overwrites, same as everything else.
+const PRESERVE_IF_ABSENT_META_KEYS = new Set(['dashboardCardOrder', 'dashboardCardOrderMobile'])
+
 export async function buildBackupPayload(): Promise<BackupFile> {
   const data: Record<string, unknown[]> = {}
   for (const table of BACKUP_TABLES) {
@@ -48,13 +60,19 @@ export function parseBackupFile(text: string): BackupFile {
 export async function applyBackupPayload(parsed: BackupFile): Promise<{ imported: Record<string, number> }> {
   const imported: Record<string, number> = {}
   await db.transaction('rw', BACKUP_TABLES.map((t) => db.table(t)), async () => {
-    const preservedMetaRows =
-      BACKUP_TABLES.includes('meta') ? (await db.meta.toArray()).filter((row) => DEVICE_ONLY_META_KEYS.has(row.key)) : []
+    const existingMetaRows = BACKUP_TABLES.includes('meta') ? await db.meta.toArray() : []
+    const preservedMetaRows = existingMetaRows.filter((row) => DEVICE_ONLY_META_KEYS.has(row.key))
     for (const table of BACKUP_TABLES) {
       const rows = parsed.data[table]
       if (!Array.isArray(rows)) continue
-      const rowsToImport =
-        table === 'meta' ? rows.filter((row) => !DEVICE_ONLY_META_KEYS.has((row as { key: string }).key)) : rows
+      let rowsToImport = table === 'meta' ? rows.filter((row) => !DEVICE_ONLY_META_KEYS.has((row as { key: string }).key)) : rows
+      if (table === 'meta') {
+        const incomingKeys = new Set(rowsToImport.map((row) => (row as { key: string }).key))
+        const keptExisting = existingMetaRows.filter(
+          (row) => PRESERVE_IF_ABSENT_META_KEYS.has(row.key) && !incomingKeys.has(row.key),
+        )
+        rowsToImport = [...rowsToImport, ...keptExisting]
+      }
       await db.table(table).clear()
       if (rowsToImport.length) await db.table(table).bulkPut(rowsToImport)
       imported[table] = rowsToImport.length
