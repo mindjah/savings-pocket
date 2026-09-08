@@ -599,7 +599,7 @@ export function BudgetStatusBody({ monthPrefix: monthPrefixProp, compact, largeD
       )}
 
       {currencySummaries.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '16px 12px', margin: largeDonuts ? '4px 0 36px' : '4px 0 20px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '16px 12px', margin: largeDonuts ? '4px 0 16px' : '4px 0 8px' }}>
           {currencySummaries.map((s) => (
             <div key={s.currency} style={{ flex: currencySummaries.length > 1 ? '0 1 calc(50% - 6px)' : '0 1 100%', minWidth: 0 }}>
               <BudgetDonut {...s} size={donutSize} overallOver={overallStatus?.over ?? null} />
@@ -624,7 +624,7 @@ export function BudgetStatusBody({ monthPrefix: monthPrefixProp, compact, largeD
                     display: 'flex',
                     alignItems: 'flex-start',
                     gap: 8,
-                    marginTop: largeDonuts ? 12 : 4,
+                    marginTop: largeDonuts ? 4 : 0,
                     marginBottom: 16,
                     color: CARD_LEVEL_COLOR[cardLevel],
                     fontWeight: 600,
