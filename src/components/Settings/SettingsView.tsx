@@ -99,8 +99,13 @@ export function SettingsView({ resetKey }: Props) {
   const [autoBackupEnabled, setAutoBackupEnabled] = useMetaSetting<boolean>('autoBackupToGoogleDrive', false)
   const [includeCreditsInNetWorth, setIncludeCreditsInNetWorth] = useMetaSetting<boolean>('includeCreditsInNetWorth', false)
   const allPockets = useLiveQuery(() => db.savingsEntries.toArray(), []) ?? []
-  // Credits can't be picked as an auto-debit payment source.
-  const pockets = allPockets.filter((p) => p.kind !== 'credit')
+  // Only spending-purpose pockets can be picked as an auto-debit payment
+  // source — credits can't be, and neither can a savings pocket (auto mode's
+  // whole point is finding the recurring-expense target at a glance; a
+  // savings pocket ending up "the default" for a currency also broke My
+  // Pockets' own amount sort for every other savings pocket there — see
+  // SavingsView's sortPockets).
+  const pockets = allPockets.filter((p) => p.kind !== 'credit' && (p.purpose ?? 'savings') === 'spending')
 
   const [faceIdEnabled] = useMetaSetting<boolean>('faceIdEnabled', false)
   const [faceIdAvailable, setFaceIdAvailable] = useState<boolean | null>(null)
