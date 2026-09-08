@@ -205,16 +205,16 @@ export function SavingsView({ resetKey }: Props) {
             </div>
           ) : (
             (() => {
-              const savingsPockets = entries.filter((e) => (e.purpose ?? 'savings') === 'savings')
               const spendingPockets = entries.filter((e) => (e.purpose ?? 'savings') === 'spending')
+              const savingsPockets = entries.filter((e) => (e.purpose ?? 'savings') === 'savings')
               return (
                 <>
-                  {savingsPockets.length > 0 && (
-                    <div className="entry-list">{sortPockets(savingsPockets).map(renderPocketCard)}</div>
-                  )}
-                  {savingsPockets.length > 0 && spendingPockets.length > 0 && <div className="pocket-group-divider" />}
                   {spendingPockets.length > 0 && (
                     <div className="entry-list">{sortPockets(spendingPockets).map(renderPocketCard)}</div>
+                  )}
+                  {spendingPockets.length > 0 && savingsPockets.length > 0 && <div className="pocket-group-divider" />}
+                  {savingsPockets.length > 0 && (
+                    <div className="entry-list">{sortPockets(savingsPockets).map(renderPocketCard)}</div>
                   )}
                 </>
               )
