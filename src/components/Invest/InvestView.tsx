@@ -184,7 +184,7 @@ export function InvestView({ resetKey }: Props) {
             <h2>{t('Crypto')}</h2>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginTop: -20 }}>
             <div className="muted">
               {fetchedAt && (
                 <>
