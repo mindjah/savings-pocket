@@ -14,10 +14,20 @@ export interface BackupFile {
   data: Record<string, unknown[]>
 }
 
+// This device's own WebAuthn credential/passcode — meaningless (and
+// dangerous) on any other device: restoring faceIdEnabled: true onto a
+// device with no matching credential and no passcode would lock the app
+// with no way back in. Left out of the backup file entirely; a restore also
+// strips them from whatever it's importing (an older backup made before
+// this existed might still have them) and preserves this device's own
+// current values instead of letting the generic clear-then-bulkPut wipe them.
+const DEVICE_ONLY_META_KEYS = new Set(['faceIdEnabled', 'faceIdCredentialId', 'faceIdPasscodeHash'])
+
 export async function buildBackupPayload(): Promise<BackupFile> {
   const data: Record<string, unknown[]> = {}
   for (const table of BACKUP_TABLES) {
-    data[table] = await db.table(table).toArray()
+    const rows = await db.table(table).toArray()
+    data[table] = table === 'meta' ? rows.filter((row) => !DEVICE_ONLY_META_KEYS.has((row as { key: string }).key)) : rows
   }
   return {
     app: 'savings-pocket',
@@ -38,13 +48,18 @@ export function parseBackupFile(text: string): BackupFile {
 export async function applyBackupPayload(parsed: BackupFile): Promise<{ imported: Record<string, number> }> {
   const imported: Record<string, number> = {}
   await db.transaction('rw', BACKUP_TABLES.map((t) => db.table(t)), async () => {
+    const preservedMetaRows =
+      BACKUP_TABLES.includes('meta') ? (await db.meta.toArray()).filter((row) => DEVICE_ONLY_META_KEYS.has(row.key)) : []
     for (const table of BACKUP_TABLES) {
       const rows = parsed.data[table]
       if (!Array.isArray(rows)) continue
+      const rowsToImport =
+        table === 'meta' ? rows.filter((row) => !DEVICE_ONLY_META_KEYS.has((row as { key: string }).key)) : rows
       await db.table(table).clear()
-      if (rows.length) await db.table(table).bulkPut(rows)
-      imported[table] = rows.length
+      if (rowsToImport.length) await db.table(table).bulkPut(rowsToImport)
+      imported[table] = rowsToImport.length
     }
+    if (preservedMetaRows.length) await db.meta.bulkPut(preservedMetaRows)
   })
   return { imported }
 }
