@@ -2,6 +2,7 @@ export type Currency = 'EUR' | 'USD' | 'RUB' | 'JPY' | 'CNY'
 export type MoneyType = 'cash' | 'card'
 export type PocketKind = 'pocket' | 'credit'
 export type PocketPurpose = 'savings' | 'spending'
+export type PocketIconKind = 'card' | 'cash' | 'pig' | 'safebox'
 
 export interface SavingsEntry {
   id?: number
@@ -16,6 +17,11 @@ export interface SavingsEntry {
   // Only meaningful for kind: 'pocket' — credits are excluded from net worth
   // by default and don't need a savings/spending split.
   purpose?: PocketPurpose
+  // User-chosen override for the pocket's own icon — independent of `type`
+  // (which still drives the Cash/Account label). Unset for every pocket
+  // created before this existed; falls back to type's own icon then (see
+  // PocketIcon).
+  icon?: PocketIconKind
 }
 
 // One step in a savingsHistory row's edit trail — recorded when the

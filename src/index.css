@@ -1727,6 +1727,31 @@ h1, h2, h3, p {
   border-color: var(--text);
 }
 
+/* Pocket icon picker (SavingsEntryForm, pockets only) — same selected-ring
+   idea as .swatch-btn, sized to actually fit an icon rather than a bare
+   color dot. */
+.icon-picker {
+  display: flex;
+  gap: 10px;
+}
+
+.icon-picker-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.icon-picker-btn.selected {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .category-breakdown {
   display: flex;
   flex-direction: column;

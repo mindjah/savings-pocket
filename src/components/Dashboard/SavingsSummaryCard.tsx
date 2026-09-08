@@ -87,7 +87,7 @@ export function SavingsSummaryCard({ onNavigate }: Props) {
               topPockets.map((p) => (
                 <div className="dashboard-card-list-row" key={p.id}>
                   <span className="muted">
-                    {p.location} {t(p.type === 'cash' ? 'Cash' : 'Card')}
+                    {p.location} {t(p.type === 'cash' ? 'Cash' : 'Account')}
                   </span>
                   <span className="dashboard-amount">{formatMoney(p.amount, p.currency)}</span>
                 </div>

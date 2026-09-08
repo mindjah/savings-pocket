@@ -14,8 +14,8 @@ import { PocketHistoryModal } from './PocketHistoryModal'
 import { HistoryModal } from '../common/HistoryModal'
 import { NoteViewModal } from '../common/NoteViewModal'
 import { useTranslation } from '../../hooks/useTranslation'
-import { CardIcon } from '../common/CardIcon'
-import { CashIcon } from '../common/CashIcon'
+import { PocketIcon } from '../common/PocketIcon'
+import { LoanCreditIcon } from '../common/LoanCreditIcon'
 import { TransferIcon } from '../common/TransferIcon'
 import { TransferModal } from './TransferModal'
 import { EntryActionMenu } from '../common/EntryActionMenu'
@@ -115,7 +115,7 @@ export function SavingsView({ resetKey }: Props) {
         <div className="entry-top">
           <span className="entry-top-left">
             <span className={`pocket-type-icon ${pocketTint(entry)}`} aria-hidden="true">
-              {entry.type === 'cash' ? <CashIcon size={24} /> : <CardIcon size={24} />}
+              <PocketIcon icon={entry.icon} fallbackType={entry.type} size={24} />
             </span>
             <span className="entry-amount">{formatMoney(entry.amount, entry.currency)}</span>
             {entry.kind === 'pocket' && entry.purpose && (
@@ -134,7 +134,7 @@ export function SavingsView({ resetKey }: Props) {
         </div>
         <div className="entry-sub-row">
           <div className="entry-sub pocket-name">
-            📍 {entry.location} {t(entry.type === 'cash' ? 'Cash' : 'Card')}
+            📍 {entry.location} {t(entry.type === 'cash' ? 'Cash' : 'Account')}
           </div>
         </div>
         <EntryActionMenu
@@ -274,7 +274,12 @@ export function SavingsView({ resetKey }: Props) {
                 .map((loan) => (
                   <div className="entry-card" key={loan.id}>
                     <div className="entry-top">
-                      <span className="entry-amount">{formatMoney(loan.amount, loan.currency)}</span>
+                      <span className="entry-top-left">
+                        <span className="pocket-type-icon tint-indigo" aria-hidden="true">
+                          <LoanCreditIcon size={24} />
+                        </span>
+                        <span className="entry-amount">{formatMoney(loan.amount, loan.currency)}</span>
+                      </span>
                       <span className="badge">{loan.borrowerName}</span>
                     </div>
                     <EntryActionMenu

@@ -54,6 +54,7 @@ export const RU: Record<string, string> = {
     'Сбережения ещё не добавлены. Нажмите +, чтобы добавить первую запись.',
   Cash: 'Наличные',
   Card: 'Карта',
+  Account: 'Счёт',
   Default: 'По умолчанию',
   'See note': 'Посмотреть заметку',
   'View history': 'Смотреть историю',
@@ -74,6 +75,7 @@ export const RU: Record<string, string> = {
   'this credit': 'этот кредит',
   'Amount owed': 'Сумма долга',
   Purpose: 'Назначение',
+  Icon: 'Значок',
   'Include credits in net worth': 'Учитывать кредиты в общем капитале',
   'Credits are excluded from Total net worth by default': 'По умолчанию кредиты не учитываются в общем капитале',
 

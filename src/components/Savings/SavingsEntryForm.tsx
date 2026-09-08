@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
-import type { Currency, MoneyType, PocketKind, PocketPurpose, SavingsEntry } from '../../db/types'
+import type { Currency, MoneyType, PocketIconKind, PocketKind, PocketPurpose, SavingsEntry } from '../../db/types'
 import { CURRENCIES } from '../../lib/constants'
 import { parseAmount, roundFiat } from '../../lib/format'
 import { Modal } from '../common/Modal'
@@ -10,6 +10,9 @@ import { DeleteConfirmModal } from './DeleteConfirmModal'
 import { useToast } from '../../hooks/useToast'
 import { useTranslation } from '../../hooks/useTranslation'
 import { LoanCreditIcon } from '../common/LoanCreditIcon'
+import { PocketIcon } from '../common/PocketIcon'
+
+const POCKET_ICON_CHOICES: PocketIconKind[] = ['card', 'cash', 'pig', 'safebox']
 
 interface Props {
   entry: SavingsEntry | null
@@ -28,6 +31,7 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
     (c) => availableCurrencies.includes(c.code) || c.code === entry?.currency,
   )
   const [type, setType] = useState<MoneyType>(entry?.type ?? 'card')
+  const [icon, setIcon] = useState<PocketIconKind>(entry?.icon ?? entry?.type ?? 'card')
   const [purpose, setPurpose] = useState<PocketPurpose>(entry?.purpose ?? 'savings')
   const [location, setLocation] = useState(entry?.location ?? '')
   const [note, setNote] = useState(entry?.note ?? '')
@@ -53,6 +57,7 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
   const dirty = entry
     ? currency !== entry.currency ||
       type !== entry.type ||
+      icon !== (entry.icon ?? entry.type) ||
       purpose !== (entry.purpose ?? 'savings') ||
       location !== entry.location ||
       note !== entry.note ||
@@ -60,6 +65,7 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
       reason.trim() !== ''
     : currency !== defaultCurrency ||
       type !== 'card' ||
+      icon !== 'card' ||
       purpose !== 'savings' ||
       location !== '' ||
       note !== '' ||
@@ -82,6 +88,7 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
       await db.savingsEntries.update(entry.id, {
         currency,
         type,
+        icon: kind === 'pocket' ? icon : undefined,
         purpose: kind === 'pocket' ? purpose : undefined,
         location: location.trim(),
         note: note.trim(),
@@ -94,6 +101,7 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
         currency,
         type,
         kind,
+        icon: kind === 'pocket' ? icon : undefined,
         purpose: kind === 'pocket' ? purpose : undefined,
         location: location.trim(),
         note: note.trim(),
@@ -159,7 +167,7 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
               {t('Cash')}
             </button>
             <button type="button" className={type === 'card' ? 'active' : ''} onClick={() => setType('card')}>
-              {t('Card')}
+              {t('Account')}
             </button>
           </div>
         </div>
@@ -175,6 +183,25 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
             <button type="button" className={purpose === 'spending' ? 'active' : ''} onClick={() => setPurpose('spending')}>
               {t('Spending')}
             </button>
+          </div>
+        </div>
+      )}
+
+      {kind === 'pocket' && (
+        <div className="form-group">
+          <label>{t('Icon')}</label>
+          <div className="icon-picker">
+            {POCKET_ICON_CHOICES.map((choice) => (
+              <button
+                key={choice}
+                type="button"
+                className={`icon-picker-btn${icon === choice ? ' selected' : ''}`}
+                onClick={() => setIcon(choice)}
+                aria-label={choice}
+              >
+                <PocketIcon icon={choice} fallbackType={type} size={20} />
+              </button>
+            ))}
           </div>
         </div>
       )}
