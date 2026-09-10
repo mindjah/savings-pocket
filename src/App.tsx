@@ -12,6 +12,7 @@ import { ToastProvider } from './hooks/useToast'
 import { HEADER_ACTIONS_ID, HEADER_TITLE_ID, HeaderTitlePortal } from './components/common/HeaderPortal'
 import { materializeRecurringExpenses } from './lib/recurring'
 import { materializePendingAutoDebits } from './lib/pendingDebits'
+import { isStandalonePwa } from './lib/pwaStandalone'
 import { LockScreen } from './components/Lock/LockScreen'
 import { useMetaSetting } from './hooks/useMetaSetting'
 import { useTranslation } from './hooks/useTranslation'
@@ -139,10 +140,17 @@ function AppShell() {
   // Only installed/standalone PWAs are allowed to lock orientation — and only on
   // browsers that support the Screen Orientation API (notably not iOS Safari's
   // home-screen PWAs, which get index.css's own CSS rotation trick instead —
-  // see its display-mode: standalone + orientation: landscape rule).
+  // see its .pwa-standalone + orientation: landscape rule).
   useEffect(() => {
     const orientation = screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> }
     orientation?.lock?.('portrait').catch(() => {})
+    // A plain class, set once from JS, rather than relying only on the CSS
+    // display-mode: standalone media feature — that's the general/spec way
+    // to detect this, but isn't reliably matched by every real iOS Safari
+    // home-screen PWA. isStandalonePwa() checks navigator.standalone first
+    // (iOS Safari's own purpose-built property for this) before falling
+    // back to the media feature for other platforms.
+    if (isStandalonePwa()) document.documentElement.classList.add('pwa-standalone')
   }, [])
 
   useAutoBackup()

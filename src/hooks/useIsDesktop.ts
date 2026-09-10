@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { isStandalonePwa } from '../lib/pwaStandalone'
 
 // Mirrors the app's own CSS desktop breakpoint (the @media (min-width: 860px)
 // rules in index.css that turn the bottom nav into a sidebar) — kept as one
@@ -6,7 +7,7 @@ import { useEffect, useState } from 'react'
 // vs. bottom sheets) never drifts from what the layout actually looks like.
 export const DESKTOP_BREAKPOINT = 860
 
-// index.css's own landscape rotation-lock trick (display-mode: standalone +
+// index.css's own landscape rotation-lock trick (.pwa-standalone +
 // orientation: landscape) keeps the app's rendered layout in its original
 // portrait dimensions regardless of the phone's physical orientation — but
 // window.innerWidth/innerHeight themselves never change, since a CSS
@@ -16,10 +17,11 @@ export const DESKTOP_BREAKPOINT = 860
 // physically rotated, even though the rotation trick is deliberately still
 // showing it the portrait one — the two would visibly disagree. Swapping
 // which dimension counts as "width" for the breakpoint check exactly when
-// that trick is active keeps them in sync.
+// that trick is active keeps them in sync. Uses isStandalonePwa() directly
+// (not the .pwa-standalone class App.tsx sets) so this is correct even on
+// the very first render, before that class-setting effect has run.
 function computeIsDesktop(): boolean {
-  const rotationLockActive =
-    window.matchMedia('(display-mode: standalone)').matches && window.matchMedia('(orientation: landscape)').matches
+  const rotationLockActive = isStandalonePwa() && window.matchMedia('(orientation: landscape)').matches
   const width = rotationLockActive ? window.innerHeight : window.innerWidth
   return width >= DESKTOP_BREAKPOINT
 }
