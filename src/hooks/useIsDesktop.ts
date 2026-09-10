@@ -6,14 +6,42 @@ import { useEffect, useState } from 'react'
 // vs. bottom sheets) never drifts from what the layout actually looks like.
 export const DESKTOP_BREAKPOINT = 860
 
+// index.css's own landscape rotation-lock trick (display-mode: standalone +
+// orientation: landscape) keeps the app's rendered layout in its original
+// portrait dimensions regardless of the phone's physical orientation — but
+// window.innerWidth/innerHeight themselves never change, since a CSS
+// transform doesn't affect the viewport's own reported size. Without this,
+// a phone whose LANDSCAPE width happens to cross 860px (some larger phones
+// do) would get switched into the desktop sidebar layout the instant it's
+// physically rotated, even though the rotation trick is deliberately still
+// showing it the portrait one — the two would visibly disagree. Swapping
+// which dimension counts as "width" for the breakpoint check exactly when
+// that trick is active keeps them in sync.
+function computeIsDesktop(): boolean {
+  const rotationLockActive =
+    window.matchMedia('(display-mode: standalone)').matches && window.matchMedia('(orientation: landscape)').matches
+  const width = rotationLockActive ? window.innerHeight : window.innerWidth
+  return width >= DESKTOP_BREAKPOINT
+}
+
 export function useIsDesktop(): boolean {
-  const [isDesktop, setIsDesktop] = useState(() => window.matchMedia(`(min-width: ${DESKTOP_BREAKPOINT}px)`).matches)
+  const [isDesktop, setIsDesktop] = useState(computeIsDesktop)
 
   useEffect(() => {
-    const mql = window.matchMedia(`(min-width: ${DESKTOP_BREAKPOINT}px)`)
-    const onChange = () => setIsDesktop(mql.matches)
-    mql.addEventListener('change', onChange)
-    return () => mql.removeEventListener('change', onChange)
+    function onChange() {
+      setIsDesktop(computeIsDesktop())
+    }
+    const widthMql = window.matchMedia(`(min-width: ${DESKTOP_BREAKPOINT}px)`)
+    const heightMql = window.matchMedia(`(min-height: ${DESKTOP_BREAKPOINT}px)`)
+    const orientationMql = window.matchMedia('(orientation: landscape)')
+    widthMql.addEventListener('change', onChange)
+    heightMql.addEventListener('change', onChange)
+    orientationMql.addEventListener('change', onChange)
+    return () => {
+      widthMql.removeEventListener('change', onChange)
+      heightMql.removeEventListener('change', onChange)
+      orientationMql.removeEventListener('change', onChange)
+    }
   }, [])
 
   return isDesktop

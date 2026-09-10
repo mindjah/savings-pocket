@@ -137,8 +137,9 @@ function AppShell() {
   }, [autoBackupEnabled, locked])
 
   // Only installed/standalone PWAs are allowed to lock orientation — and only on
-  // browsers that support the Screen Orientation API (notably not iOS Safari, where
-  // the CSS landscape-block overlay is the only available fallback).
+  // browsers that support the Screen Orientation API (notably not iOS Safari's
+  // home-screen PWAs, which get index.css's own CSS rotation trick instead —
+  // see its display-mode: standalone + orientation: landscape rule).
   useEffect(() => {
     const orientation = screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> }
     orientation?.lock?.('portrait').catch(() => {})
