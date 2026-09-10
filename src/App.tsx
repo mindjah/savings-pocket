@@ -137,6 +137,11 @@ function AppShell() {
     return () => clearTimeout(timer)
   }, [autoBackupEnabled, locked])
 
+  // TEMPORARY — diagnosing why the landscape rotation-lock isn't engaging
+  // on a real device. Remove this state + the badge that renders it once
+  // that's sorted out.
+  const [rotateDebug, setRotateDebug] = useState('')
+
   // Only installed/standalone PWAs are allowed to lock orientation — and only on
   // browsers that support the Screen Orientation API (notably not iOS Safari's
   // home-screen PWAs, which get index.css's own CSS rotation trick instead —
@@ -145,7 +150,8 @@ function AppShell() {
     const orientation = screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> }
     orientation?.lock?.('portrait').catch(() => {})
 
-    if (!isStandalonePwa()) return
+    const standalone = isStandalonePwa()
+
     // Measures actual pixel dimensions directly, rather than the CSS
     // orientation: landscape media feature — that's the standard way to
     // detect this, but a home-screen PWA whose manifest also declares
@@ -155,7 +161,12 @@ function AppShell() {
     // plain width/height comparison can't be ambiguous either way.
     function update() {
       const isLandscape = window.innerWidth > window.innerHeight
-      document.documentElement.classList.toggle('force-portrait-rotate', isLandscape)
+      if (standalone) document.documentElement.classList.toggle('force-portrait-rotate', isLandscape)
+      setRotateDebug(
+        `standalone(nav)=${String((navigator as Navigator & { standalone?: boolean }).standalone)} ` +
+          `standalone(fn)=${standalone} iw=${window.innerWidth} ih=${window.innerHeight} ` +
+          `landscape=${isLandscape} class=${document.documentElement.classList.contains('force-portrait-rotate')}`,
+      )
     }
     update()
     window.addEventListener('resize', update)
@@ -226,6 +237,26 @@ function AppShell() {
 
   return (
     <div className="app-shell">
+      {/* TEMPORARY diagnostic badge — remove along with rotateDebug once the
+          landscape rotation-lock issue is sorted out. */}
+      <div
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 9999,
+          background: 'rgba(0,0,0,0.85)',
+          color: '#0f0',
+          fontSize: 10,
+          fontFamily: 'monospace',
+          padding: 4,
+          wordBreak: 'break-all',
+          pointerEvents: 'none',
+        }}
+      >
+        {rotateDebug}
+      </div>
       <header className="app-header">
         {/* Never given direct React children — always written to via
             HeaderTitlePortal below, for every tab, including the default
