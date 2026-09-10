@@ -129,15 +129,18 @@ body {
    here disables interaction, so the app stays fully usable, just fixed
    in its original portrait orientation on screen.
 
-   overflow-y here is what content actually scrolls through — #root's own
-   box never moves (it's position: fixed), so without this there was no
-   scrollable element at all for content taller than one screen, and
-   iOS Safari's touch-drag fell back to panning/bouncing the whole fixed
-   viewport layer instead, visibly dragging position: fixed descendants
-   like the nav bar along with it. With a real scrolling box here, .nav-
-   bottom's own position: fixed keeps it pinned to #root's (immobile) box
-   exactly as it does on any ordinary scrollable page — it doesn't scroll
-   with #root's content, only #root's content itself does. */
+   #root itself doesn't scroll (overflow: hidden below) — .app-shell > main
+   is the one real scrolling element (see its own rule further down). A
+   position: fixed nav bar or header nested inside a transformed ancestor
+   is a known iOS Safari bug: it isn't given the hardware-accelerated
+   pinned-to-viewport layer real fixed elements get, so it visibly lags
+   behind during any touch-scroll happening anywhere in this subtree —
+   confirmed on-device even after #root itself was made properly
+   scrollable, which ruled out "no real scroll container" as the cause.
+   The fix is to never rely on position: fixed for anything meant to stay
+   put while rotated — .app-header and .nav-bottom are plain, non-fixed
+   flex siblings of the one scrolling element instead, so there's nothing
+   for that bug to lag. */
 html.force-portrait-rotate #root {
   width: 100vh;
   height: 100vw;
@@ -147,9 +150,7 @@ html.force-portrait-rotate #root {
   left: 0;
   transform: rotate(-90deg);
   transform-origin: left top;
-  overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow: hidden;
 }
 
 /* The six @media (min-width: 860px) blocks elsewhere in this file (desktop
@@ -175,19 +176,44 @@ html.force-portrait-rotate .desktop-header-row {
 
 html.force-portrait-rotate .app-shell {
   flex-direction: column;
-  padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom));
+  /* Bounds .app-shell to #root's own local box (100vw, see above) instead
+     of the mobile default's min-height: 100dvh — dvh reads the real,
+     still-landscape viewport, which is far too short here — so that
+     main's flex: 1 below has an actual height to fill/shrink against. */
+  height: 100%;
+  min-height: 0;
+  /* .nav-bottom is a normal flex item now (see below), not an overlay, so
+     it needs no reserved clearance from its sibling any more. */
+  padding-bottom: 0;
 }
 
 html.force-portrait-rotate .app-header {
   display: flex;
+  /* No longer inside main's scrolling box (see below) so there's nothing
+     to stick to — and sticky nested in a transformed ancestor has the
+     same lag risk as fixed does. */
+  position: static;
+  flex-shrink: 0;
+}
+
+/* The one real scrolling element while rotated — bounded by .app-shell's
+   height above and flex: 1 (min-height: 0 lets it actually shrink to that
+   bound instead of growing to fit its content, the usual flex gotcha). */
+html.force-portrait-rotate .app-shell > main {
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 html.force-portrait-rotate .nav-bottom {
-  position: fixed;
-  top: auto;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  /* Was position: fixed, overlaying the bottom of the (formerly page-
+     scrolling) content — now a plain flex item after main in this same
+     column, pushed there by order since NavBar renders before <main> in
+     the DOM. Never fixed, so it can't lag behind main's internal scroll
+     the way it did before. */
+  position: static;
+  order: 2;
+  flex-shrink: 0;
   height: calc(var(--nav-height) + env(safe-area-inset-bottom));
   width: auto;
   flex-direction: row;
