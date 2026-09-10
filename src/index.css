@@ -108,29 +108,29 @@ body {
    call already does this properly on browsers that support it, but that API
    throws/no-ops outside a standalone/installed context (and isn't supported
    by iOS Safari's home-screen PWAs at all), so this is the CSS-only
-   fallback for exactly that case. Scoped to .pwa-standalone (a class
-   App.tsx adds via isStandalonePwa(), which checks navigator.standalone —
-   iOS Safari's own reliable way to detect this — before falling back to
-   the display-mode media feature) rather than that media feature directly,
-   since it isn't reliably matched by every real iOS home-screen PWA; a
-   regular browser tab never gets this class and is left free to rotate.
-   Rotating <html> itself by -90deg and swapping width/height is the
-   standard trick for this: the page's own layout never learns the
-   viewport "became" landscape (100vh/100vw here read the *unrotated*
-   physical viewport, same as always), it just gets repainted rotated to
-   fill it — nothing here disables interaction, so the app stays fully
-   usable, just fixed in its original portrait orientation on screen. */
-@media (orientation: landscape) {
-  html.pwa-standalone {
-    width: 100vh;
-    height: 100vw;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    transform: rotate(-90deg);
-    transform-origin: left top;
-    overflow-x: hidden;
-  }
+   fallback for exactly that case. .force-portrait-rotate is toggled purely
+   from JS (App.tsx measuring window.innerWidth/innerHeight directly), not
+   an @media (orientation: landscape) query here — a home-screen PWA whose
+   manifest also declares orientation: 'portrait' (see vite.config.ts) is
+   exactly the kind of case where a browser's own orientation reporting is
+   riskiest to trust sight-unseen; a plain width/height comparison in JS
+   can't be ambiguous either way. A regular browser tab never gets this
+   class and is left free to rotate normally. Rotating <html> itself by
+   -90deg and swapping width/height is the standard trick for this: the
+   page's own layout never learns the viewport "became" landscape (100vh/
+   100vw here read the *unrotated* physical viewport, same as always), it
+   just gets repainted rotated to fill it — nothing here disables
+   interaction, so the app stays fully usable, just fixed in its original
+   portrait orientation on screen. */
+html.force-portrait-rotate {
+  width: 100vh;
+  height: 100vw;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  transform: rotate(-90deg);
+  transform-origin: left top;
+  overflow-x: hidden;
 }
 
 button,

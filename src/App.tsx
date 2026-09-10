@@ -140,17 +140,26 @@ function AppShell() {
   // Only installed/standalone PWAs are allowed to lock orientation — and only on
   // browsers that support the Screen Orientation API (notably not iOS Safari's
   // home-screen PWAs, which get index.css's own CSS rotation trick instead —
-  // see its .pwa-standalone + orientation: landscape rule).
+  // see its .force-portrait-rotate rule, toggled below).
   useEffect(() => {
     const orientation = screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> }
     orientation?.lock?.('portrait').catch(() => {})
-    // A plain class, set once from JS, rather than relying only on the CSS
-    // display-mode: standalone media feature — that's the general/spec way
-    // to detect this, but isn't reliably matched by every real iOS Safari
-    // home-screen PWA. isStandalonePwa() checks navigator.standalone first
-    // (iOS Safari's own purpose-built property for this) before falling
-    // back to the media feature for other platforms.
-    if (isStandalonePwa()) document.documentElement.classList.add('pwa-standalone')
+
+    if (!isStandalonePwa()) return
+    // Measures actual pixel dimensions directly, rather than the CSS
+    // orientation: landscape media feature — that's the standard way to
+    // detect this, but a home-screen PWA whose manifest also declares
+    // orientation: 'portrait' (see vite.config.ts) is exactly the kind of
+    // case where relying on a browser's own orientation reporting is
+    // riskiest to get right without a real device to check it against; a
+    // plain width/height comparison can't be ambiguous either way.
+    function update() {
+      const isLandscape = window.innerWidth > window.innerHeight
+      document.documentElement.classList.toggle('force-portrait-rotate', isLandscape)
+    }
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
   }, [])
 
   useAutoBackup()
