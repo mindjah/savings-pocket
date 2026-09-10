@@ -127,7 +127,17 @@ body {
    landscape (100vh/100vw here read the *unrotated* physical viewport,
    same as always), it just gets repainted rotated to fill it — nothing
    here disables interaction, so the app stays fully usable, just fixed
-   in its original portrait orientation on screen. */
+   in its original portrait orientation on screen.
+
+   overflow-y here is what content actually scrolls through — #root's own
+   box never moves (it's position: fixed), so without this there was no
+   scrollable element at all for content taller than one screen, and
+   iOS Safari's touch-drag fell back to panning/bouncing the whole fixed
+   viewport layer instead, visibly dragging position: fixed descendants
+   like the nav bar along with it. With a real scrolling box here, .nav-
+   bottom's own position: fixed keeps it pinned to #root's (immobile) box
+   exactly as it does on any ordinary scrollable page — it doesn't scroll
+   with #root's content, only #root's content itself does. */
 html.force-portrait-rotate #root {
   width: 100vh;
   height: 100vw;
@@ -138,6 +148,8 @@ html.force-portrait-rotate #root {
   transform: rotate(-90deg);
   transform-origin: left top;
   overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* The six @media (min-width: 860px) blocks elsewhere in this file (desktop
