@@ -110,22 +110,29 @@ body {
    by iOS Safari's home-screen PWAs at all), so this is the CSS-only
    fallback for exactly that case. .force-portrait-rotate is toggled purely
    from JS (App.tsx measuring window.innerWidth/innerHeight directly), not
-   an @media (orientation: landscape) query here — a home-screen PWA whose
+   an @media (orientation: landscape) query — a home-screen PWA whose
    manifest also declares orientation: 'portrait' (see vite.config.ts) is
    exactly the kind of case where a browser's own orientation reporting is
    riskiest to trust sight-unseen; a plain width/height comparison in JS
    can't be ambiguous either way. A regular browser tab never gets this
-   class and is left free to rotate normally. Rotating <html> itself by
-   -90deg and swapping width/height is the standard trick for this: the
-   page's own layout never learns the viewport "became" landscape (100vh/
-   100vw here read the *unrotated* physical viewport, same as always), it
-   just gets repainted rotated to fill it — nothing here disables
-   interaction, so the app stays fully usable, just fixed in its original
-   portrait orientation on screen. */
-html.force-portrait-rotate {
+   class and is left free to rotate normally.
+
+   Transforming #root (confirmed via an on-device diagnostic: the class
+   DID land on <html>, but nothing visibly rotated) rather than <html>
+   itself — some WebKit versions don't reliably apply a transform to the
+   root <html> element the same way as an ordinary one. #root is a plain
+   div with no special root-level treatment, so it isn't subject to that.
+   The rotate -90deg + swapped width/height is the standard trick either
+   way: the page's own layout never learns the viewport "became"
+   landscape (100vh/100vw here read the *unrotated* physical viewport,
+   same as always), it just gets repainted rotated to fill it — nothing
+   here disables interaction, so the app stays fully usable, just fixed
+   in its original portrait orientation on screen. */
+html.force-portrait-rotate #root {
   width: 100vh;
   height: 100vw;
-  position: absolute;
+  min-height: 0;
+  position: fixed;
   top: 100%;
   left: 0;
   transform: rotate(-90deg);
