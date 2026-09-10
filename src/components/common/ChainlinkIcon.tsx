@@ -1,15 +1,7 @@
 export function ChainlinkIcon({ size = 20 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden="true">
-      <circle cx="16" cy="16" r="16" fill="#2A5ADA" />
-      <path
-        fill="#fff"
-        d="M16 7.5 21.7 10.75V17.25L16 20.5 10.3 17.25V10.75Z"
-        fillOpacity="0"
-        stroke="#fff"
-        strokeWidth="2"
-      />
-      <path fill="#fff" d="m16 11 3.2 1.85v3.7L16 18.4l-3.2-1.85v-3.7Z" />
+      <g fill="none"><circle fill="#2A5ADA" cx="16" cy="16" r="16"/><path d="M16 6l-1.799 1.055L9.3 9.945 7.5 11v10l1.799 1.055 4.947 2.89L16.045 26l1.799-1.055 4.857-2.89L24.5 21V11l-1.799-1.055-4.902-2.89L16 6zm-4.902 12.89v-5.78L16 10.22l4.902 2.89v5.78L16 21.78l-4.902-2.89z" fill="#FFF"/></g>
     </svg>
   )
 }
