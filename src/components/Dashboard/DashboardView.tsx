@@ -118,17 +118,12 @@ export function DashboardView({ onNavigate }: Props) {
             type="button"
             style={{
               display: 'inline-flex',
+              verticalAlign: 'bottom',
               padding: 0,
               border: 'none',
               background: 'none',
               cursor: 'pointer',
-              // The avatar (42px) is taller than a plain text title's own
-              // line box, which otherwise inflates .app-header past every
-              // other screen's height (a fixed padding + the tallest
-              // child). Negative margin lets it visually fill the header
-              // without growing it — same trick as .fab intentionally
-              // floating past its own row elsewhere.
-              margin: '-16px 0',
+              marginTop: -6,
             }}
           >
             <img
