@@ -270,10 +270,7 @@ export function SettingsView({ resetKey }: Props) {
   return (
     <div className="view boucoup-scope">
       {driveIdentity && (
-        <div className="card settings-list" style={{ position: 'relative' }}>
-          <div style={{ position: 'absolute', top: 12, right: 12 }}>
-            <SyncStatusBadge variant="compact" />
-          </div>
+        <div className="card settings-list">
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {driveIdentity.picture ? (
               <img
@@ -286,21 +283,30 @@ export function SettingsView({ resetKey }: Props) {
               <GoogleDriveIcon size={32} />
             )}
             <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ fontWeight: 700 }}>{driveIdentity.name || driveIdentity.email}</div>
-              <div className="muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {driveIdentity.email}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <div style={{ fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {driveIdentity.name || driveIdentity.email}
+                </div>
+                <span style={{ flexShrink: 0 }}>
+                  <SyncStatusBadge variant="compact" />
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <div className="muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {driveIdentity.email}
+                </div>
+                <button
+                  className="btn btn-ghost btn-icon"
+                  onClick={handleDriveDisconnect}
+                  disabled={busy || !isGoogleDriveConfigured()}
+                  aria-label={t('Disconnect Google Drive')}
+                  type="button"
+                  style={{ flexShrink: 0 }}
+                >
+                  <i className="fa-solid fa-arrow-right-from-bracket" aria-hidden="true" />
+                </button>
               </div>
             </div>
-            <button
-              className="btn btn-ghost btn-icon"
-              onClick={handleDriveDisconnect}
-              disabled={busy || !isGoogleDriveConfigured()}
-              aria-label={t('Disconnect Google Drive')}
-              type="button"
-              style={{ flexShrink: 0 }}
-            >
-              <i className="fa-solid fa-arrow-right-from-bracket" aria-hidden="true" />
-            </button>
           </div>
         </div>
       )}

@@ -10,12 +10,15 @@ import { useTranslation } from '../../hooks/useTranslation'
 interface Props {
   entryId: number
   currency: Currency
+  // Only pockets with an interest rate currently set get an Interest tab —
+  // one that's never had it enabled has nothing to show there anyway.
+  hasInterest: boolean
   onClose: () => void
 }
 
 type Tab = 'manual' | 'spending' | 'interest'
 
-export function PocketHistoryModal({ entryId, currency, onClose }: Props) {
+export function PocketHistoryModal({ entryId, currency, hasInterest, onClose }: Props) {
   const { t, lang } = useTranslation()
   const [tab, setTab] = useState<Tab>('manual')
 
@@ -35,9 +38,11 @@ export function PocketHistoryModal({ entryId, currency, onClose }: Props) {
         <button type="button" className={tab === 'spending' ? 'active' : ''} onClick={() => setTab('spending')}>
           {t('Spending')}
         </button>
-        <button type="button" className={tab === 'interest' ? 'active' : ''} onClick={() => setTab('interest')}>
-          {t('Interest')}
-        </button>
+        {hasInterest && (
+          <button type="button" className={tab === 'interest' ? 'active' : ''} onClick={() => setTab('interest')}>
+            {t('Interest')}
+          </button>
+        )}
       </div>
 
       {rows.length === 0 ? (

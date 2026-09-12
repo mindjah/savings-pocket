@@ -44,6 +44,10 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
   const [interestRate, setInterestRate] = useState(entry?.interestRateAER != null ? String(entry.interestRateAER) : '')
   const [interestTaxRate, setInterestTaxRate] = useState(entry?.interestTaxRate != null ? String(entry.interestTaxRate) : '')
   const [interestTaxMode, setInterestTaxMode] = useState<'withheld' | 'tracked'>(entry?.interestTaxMode ?? 'withheld')
+  const [interestMode, setInterestMode] = useState<'compound' | 'simple'>(entry?.interestMode ?? 'compound')
+  const [interestPrincipal, setInterestPrincipal] = useState(
+    entry?.interestPrincipal != null ? String(entry.interestPrincipal) : entry ? String(Math.abs(entry.amount)) : '',
+  )
   const toast = useToast()
 
   const knownLocations = useLiveQuery(async () => {
@@ -58,13 +62,17 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
   const showInterest = kind === 'pocket' && purpose === 'savings'
   const parsedInterestRate = interestRate.trim() === '' ? undefined : parseAmount(interestRate)
   const parsedInterestTaxRate = interestTaxRate.trim() === '' ? undefined : parseAmount(interestTaxRate)
+  const parsedInterestPrincipal = interestPrincipal.trim() === '' ? undefined : parseAmount(interestPrincipal)
   const interestEnabled = showInterest && parsedInterestRate != null && !Number.isNaN(parsedInterestRate) && parsedInterestRate > 0
   const valid =
     location.trim().length > 0 &&
     amount.trim() !== '' &&
     !Number.isNaN(parsedMagnitude) &&
     (interestRate.trim() === '' || (parsedInterestRate != null && !Number.isNaN(parsedInterestRate) && parsedInterestRate >= 0)) &&
-    (interestTaxRate.trim() === '' || (parsedInterestTaxRate != null && !Number.isNaN(parsedInterestTaxRate) && parsedInterestTaxRate >= 0))
+    (interestTaxRate.trim() === '' || (parsedInterestTaxRate != null && !Number.isNaN(parsedInterestTaxRate) && parsedInterestTaxRate >= 0)) &&
+    (!interestEnabled ||
+      interestMode !== 'simple' ||
+      (parsedInterestPrincipal != null && !Number.isNaN(parsedInterestPrincipal) && parsedInterestPrincipal >= 0))
 
   const dirty = entry
     ? currency !== entry.currency ||
@@ -77,7 +85,9 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
       reason.trim() !== '' ||
       interestRate !== (entry.interestRateAER != null ? String(entry.interestRateAER) : '') ||
       interestTaxRate !== (entry.interestTaxRate != null ? String(entry.interestTaxRate) : '') ||
-      interestTaxMode !== (entry.interestTaxMode ?? 'withheld')
+      interestTaxMode !== (entry.interestTaxMode ?? 'withheld') ||
+      interestMode !== (entry.interestMode ?? 'compound') ||
+      interestPrincipal !== (entry.interestPrincipal != null ? String(entry.interestPrincipal) : String(Math.abs(entry.amount)))
     : currency !== defaultCurrency ||
       type !== 'card' ||
       icon !== 'card' ||
@@ -102,12 +112,16 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
           interestRateAER: parsedInterestRate,
           interestTaxRate: parsedInterestTaxRate ?? 0,
           interestTaxMode,
+          interestMode,
+          interestPrincipal: interestMode === 'simple' ? (parsedInterestPrincipal ?? storedAmount) : undefined,
           interestLastAccrued: wasInterestEnabled ? entry?.interestLastAccrued : todayIso(),
         }
       : {
           interestRateAER: undefined,
           interestTaxRate: undefined,
           interestTaxMode: undefined,
+          interestMode: undefined,
+          interestPrincipal: undefined,
           interestLastAccrued: undefined,
         }
     if (isEdit && entry?.id != null) {
@@ -244,6 +258,48 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
 
       {showInterest && interestEnabled && (
         <>
+          <div className="form-group">
+            <label>{t('Interest mode')}</label>
+            <div className="segmented">
+              <button
+                type="button"
+                className={interestMode === 'compound' ? 'active' : ''}
+                onClick={() => setInterestMode('compound')}
+              >
+                {t('Compound')}
+              </button>
+              <button
+                type="button"
+                className={interestMode === 'simple' ? 'active' : ''}
+                onClick={() => setInterestMode('simple')}
+              >
+                {t('Simple')}
+              </button>
+            </div>
+            <p className="muted" style={{ fontSize: '0.8rem' }}>
+              {interestMode === 'compound'
+                ? t('Each day\'s interest is calculated on this pocket\'s current balance, including interest already added.')
+                : t("Each day's interest is calculated on a fixed amount you set below, so it never compounds on its own interest.")}
+            </p>
+          </div>
+
+          {interestMode === 'simple' && (
+            <div className="form-group">
+              <label htmlFor="interestPrincipal">{t('Calculate interest on')}</label>
+              <input
+                id="interestPrincipal"
+                type="text"
+                inputMode="decimal"
+                value={interestPrincipal}
+                onChange={(e) => setInterestPrincipal(e.target.value)}
+                placeholder={amount || '0.00'}
+              />
+              <p className="muted" style={{ fontSize: '0.8rem' }}>
+                {t("Set this to the account's real original deposit if this pocket's own balance already includes interest earned before you set this up.")}
+              </p>
+            </div>
+          )}
+
           <div className="form-group">
             <label htmlFor="interestTaxRate">{t('Tax on interest (%)')}</label>
             <input

@@ -38,6 +38,21 @@ export interface SavingsEntry {
   // Running total of tax NOT withheld from this pocket — only accumulates
   // when interestTaxMode is 'tracked'.
   interestTaxTracked?: number
+  // 'compound' (default when unset): each day's interest is calculated on
+  // the pocket's current (already-grown) balance, same as most flexible
+  // savings accounts that quote AER. 'simple': each day's interest is
+  // calculated on interestPrincipal instead, which never grows from
+  // interest itself — for accounts that pay interest without capitalizing
+  // it (typically fixed-term deposits), or for a pocket that already held
+  // real-world accrued interest before this feature existed and shouldn't
+  // have new interest compounding on top of that.
+  interestMode?: 'compound' | 'simple'
+  // Only meaningful when interestMode is 'simple' — the fixed base each
+  // day's interest is calculated on. Defaults to the pocket's amount at the
+  // moment simple mode is chosen, but is independently editable afterward
+  // (e.g. to reflect the account's true original deposit separately from
+  // whatever the pocket's own balance has grown to since).
+  interestPrincipal?: number
   // The last calendar day (YYYY-MM-DD) whose interest has already been
   // credited — set to today the moment interestRateAER is first enabled
   // (so accrual starts from the NEXT day, not retroactively), then advanced

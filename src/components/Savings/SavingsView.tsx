@@ -69,7 +69,9 @@ export function SavingsView({ resetKey }: Props) {
   const [editingSavings, setEditingSavings] = useState<SavingsEntry | null | 'new'>(null)
   const [editingLoan, setEditingLoan] = useState<LoanEntry | null | 'new'>(null)
   const [adjustingPocket, setAdjustingPocket] = useState<SavingsEntry | null>(null)
-  const [pocketHistoryFor, setPocketHistoryFor] = useState<{ id: number; currency: Currency } | null>(null)
+  const [pocketHistoryFor, setPocketHistoryFor] = useState<{ id: number; currency: Currency; hasInterest: boolean } | null>(
+    null,
+  )
   const [loanHistoryFor, setLoanHistoryFor] = useState<{ id: number; currency: Currency } | null>(null)
   const [viewingNote, setViewingNote] = useState<string | null>(null)
   const [showTransfer, setShowTransfer] = useState(false)
@@ -140,7 +142,10 @@ export function SavingsView({ resetKey }: Props) {
         </div>
         <EntryActionMenu
           onEdit={() => setEditingSavings(entry)}
-          onViewHistory={() => entry.id != null && setPocketHistoryFor({ id: entry.id, currency: entry.currency })}
+          onViewHistory={() =>
+            entry.id != null &&
+            setPocketHistoryFor({ id: entry.id, currency: entry.currency, hasInterest: (entry.interestRateAER ?? 0) > 0 })
+          }
           onSeeNote={entry.note ? () => setViewingNote(entry.note) : undefined}
         />
       </div>
@@ -329,6 +334,7 @@ export function SavingsView({ resetKey }: Props) {
         <PocketHistoryModal
           entryId={pocketHistoryFor.id}
           currency={pocketHistoryFor.currency}
+          hasInterest={pocketHistoryFor.hasInterest}
           onClose={() => setPocketHistoryFor(null)}
         />
       )}

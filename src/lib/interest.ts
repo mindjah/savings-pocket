@@ -45,17 +45,22 @@ export async function materializeSavingsInterest(): Promise<void> {
       const dailyRate = pocket.interestRateAER! / 100 / 365
       const taxRatePct = pocket.interestTaxRate ?? 0
       const withheld = (pocket.interestTaxMode ?? 'withheld') === 'withheld'
-      const comment = withheld
-        ? `Daily interest — ${pocket.interestRateAER}% AER, ${taxRatePct}% tax withheld`
-        : `Daily interest — ${pocket.interestRateAER}% AER, ${taxRatePct}% tax tracked separately`
+      const simple = (pocket.interestMode ?? 'compound') === 'simple'
+      const comment = `Daily interest — ${pocket.interestRateAER}% AER${simple ? ' (simple)' : ''}, ${taxRatePct}% tax ${withheld ? 'withheld' : 'tracked separately'}`
 
       let balance = pocket.amount
       let cursor = addOneDay(pocket.interestLastAccrued!)
       let taxTrackedDelta = 0
       let creditedAnyDay = false
+      // Fixed for the whole catch-up in simple mode — never grows from the
+      // interest it itself produces, unlike balance below (which still
+      // grows every day regardless of mode, since credited interest always
+      // lands in the pocket; only the BASIS interest is calculated on
+      // differs between the two modes).
+      const basis = simple ? (pocket.interestPrincipal ?? pocket.amount) : null
 
       while (cursor <= today) {
-        const grossPrecise = balance * dailyRate
+        const grossPrecise = (simple ? basis! : balance) * dailyRate
         const taxPrecise = grossPrecise * (taxRatePct / 100)
         const gross = roundFiat(grossPrecise, pocket.currency)
         const tax = roundFiat(taxPrecise, pocket.currency)

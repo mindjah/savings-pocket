@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { useTranslation } from '../../hooks/useTranslation'
 import { useIsDesktop } from '../../hooks/useIsDesktop'
+import { getDriveIdentity } from '../../lib/backup'
 import { SandboxIcon } from '../common/SandboxIcon'
 import { BudgetIcon } from '../common/BudgetIcon'
 import { AnalyticsIcon } from '../common/AnalyticsIcon'
@@ -35,9 +37,27 @@ export function NavBar({ active, onChange }: Props) {
   const { t } = useTranslation()
   const isDesktop = useIsDesktop()
   const visibleTabs = TABS.filter((tab) => !tab.desktopOnly || isDesktop)
+  const driveIdentity = useLiveQuery(() => getDriveIdentity(), [])
   return (
     <nav className="nav-bottom">
-      <span className="nav-brand">Savings Pocket</span>
+      {/* The inline flex layout lives on an inner span, not .nav-brand
+          itself — .nav-brand's own display: none (mobile) / block (desktop)
+          comes from index.css and must stay in charge of whether this
+          renders at all; an inline display here would out-specificity that
+          CSS rule and show the brand (and this avatar) on mobile too. */}
+      <span className="nav-brand">
+        <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {driveIdentity?.picture && (
+            <img
+              src={driveIdentity.picture}
+              alt=""
+              referrerPolicy="no-referrer"
+              style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0 }}
+            />
+          )}
+          <span>Savings Pocket</span>
+        </span>
+      </span>
       {visibleTabs.map((tab) => (
         <button
           key={tab.key}

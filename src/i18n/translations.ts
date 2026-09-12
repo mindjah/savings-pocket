@@ -81,6 +81,16 @@ export const RU: Record<string, string> = {
   'Interest rate (AER %)': 'Процентная ставка (AER, %)',
   'If set, interest is added to this pocket daily and shown in its own History tab.':
     'Если указано, проценты будут ежедневно начисляться на эту копилку и отображаться во вкладке «История» → «Проценты».',
+  'Interest mode': 'Тип начисления процентов',
+  Compound: 'Сложные (капитализация)',
+  Simple: 'Простые',
+  "Each day's interest is calculated on this pocket's current balance, including interest already added.":
+    'Проценты каждый день считаются от текущего баланса копилки, включая уже начисленные ранее проценты.',
+  "Each day's interest is calculated on a fixed amount you set below, so it never compounds on its own interest.":
+    'Проценты каждый день считаются от фиксированной суммы, указанной ниже, поэтому проценты на проценты не начисляются.',
+  'Calculate interest on': 'Начислять проценты от суммы',
+  "Set this to the account's real original deposit if this pocket's own balance already includes interest earned before you set this up.":
+    'Укажите здесь реальную исходную сумму вклада, если баланс этой копилки уже включает проценты, начисленные до того, как вы это настроили.',
   'Tax on interest (%)': 'Налог на проценты (%)',
   'Tax handling': 'Учёт налога',
   'Withheld daily': 'Удерживать ежедневно',

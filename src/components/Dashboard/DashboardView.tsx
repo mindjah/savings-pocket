@@ -118,7 +118,7 @@ export function DashboardView({ onNavigate }: Props) {
               src={driveIdentity.picture}
               alt=""
               referrerPolicy="no-referrer"
-              style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0 }}
+              style={{ width: 42, height: 42, borderRadius: '50%', flexShrink: 0 }}
             />
           )}
           <SyncStatusBadge variant="header" />

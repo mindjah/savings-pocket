@@ -12,11 +12,13 @@ interface Props {
   // 'sidebar' (default): desktop's own usage at the bottom of NavBar's
   // sidebar — text then icon, full "Last backup ..."/"Never backed up"
   // wording, a fixed narrow column already so no wrap handling needed.
-  // 'header': mobile Dashboard's own header (see DashboardView) — icon
-  // then a bare date/time (or "Never"), no label wording, tightly spaced,
-  // since this sits right next to the account avatar in a limited header.
-  // 'compact': Settings' signed-in-as card — icon then the same full
-  // wording 'sidebar' uses, just left-to-right instead of right-aligned.
+  // 'header': mobile Dashboard's own header (see DashboardView) — icon and
+  // text sized to match the header's own Exchange rates button (18px icon,
+  // 0.9rem text, 6px gap) since they sit side by side there. Bare date/time
+  // (or "Never"), no label wording — there's less room here than Settings'
+  // own card, next to the account avatar.
+  // 'compact': Settings' signed-in-as card — icon then the same bare
+  // date/time (or "Never") 'header' shows, at the card's own (larger) size.
   variant?: 'sidebar' | 'header' | 'compact'
 }
 
@@ -30,15 +32,15 @@ export function SyncStatusBadge({ variant = 'sidebar' }: Props) {
   const lastBackup = lastBackupRec?.value as LastBackup | undefined
   const daysSinceBackup = lastBackup ? (Date.now() - new Date(lastBackup.at).getTime()) / 86400000 : null
   const color = daysSinceBackup == null ? 'var(--danger-strong)' : daysSinceBackup < BACKUP_FRESH_DAYS ? 'var(--accent)' : 'var(--warning)'
-  const text =
-    variant === 'header'
-      ? lastBackup == null
-        ? t('Never')
-        : formatDateOrTime(lastBackup.at, lang)
-      : lastBackup == null
-        ? t('Never backed up')
-        : `${t('Last backup')} ${formatDateOrTime(lastBackup.at, lang)}`
-  const iconSize = variant === 'header' ? 14 : 24
+  const bare = variant === 'header' || variant === 'compact'
+  const text = bare
+    ? lastBackup == null
+      ? t('Never')
+      : formatDateOrTime(lastBackup.at, lang)
+    : lastBackup == null
+      ? t('Never backed up')
+      : `${t('Last backup')} ${formatDateOrTime(lastBackup.at, lang)}`
+  const iconSize = variant === 'header' ? 18 : 24
   const icon = lastBackup?.method === 'manual' ? <ManualSyncIcon size={iconSize} /> : <CloudSyncIcon size={iconSize} />
 
   return (
@@ -46,13 +48,13 @@ export function SyncStatusBadge({ variant = 'sidebar' }: Props) {
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: variant === 'header' ? 4 : 6,
+        gap: 6,
         color,
-        fontSize: variant === 'header' ? '0.75rem' : '0.8rem',
+        fontSize: variant === 'header' ? '0.9rem' : '0.8rem',
         fontWeight: 600,
       }}
     >
-      {variant === 'header' || variant === 'compact' ? (
+      {bare ? (
         <>
           {icon}
           <span>{text}</span>
