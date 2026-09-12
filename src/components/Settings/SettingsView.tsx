@@ -4,8 +4,17 @@ import { db } from '../../db/db'
 import { CURRENCIES, DEFAULT_CRYPTO_CURRENCIES, DEFAULT_SAVINGS_CURRENCIES, DEFAULT_SPENDING_CURRENCIES } from '../../lib/constants'
 import { formatDateTime, formatMoney } from '../../lib/format'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
-import { exportBackup, importBackup } from '../../lib/backup'
-import { backupToGoogleDrive, DriveBackupCancelled, isGoogleDriveConfigured, restoreFromGoogleDrive } from '../../lib/googleDrive'
+import { exportBackup, getDriveIdentity, hasEverConnectedToDrive, importBackup } from '../../lib/backup'
+import {
+  backupToGoogleDrive,
+  disconnectGoogleDrive,
+  DriveBackupCancelled,
+  isGoogleDriveConfigured,
+  listGoogleDriveBackupHistory,
+  restoreFromGoogleDrive,
+  restoreGoogleDriveBackupHistoryEntry,
+  type DriveBackupHistoryEntry,
+} from '../../lib/googleDrive'
 import { useToast } from '../../hooks/useToast'
 import type { Currency, Language, SavingsTrackingMode } from '../../db/types'
 import { CurrencyMultiSelect } from '../common/CurrencyMultiSelect'
@@ -13,7 +22,7 @@ import { CurrencySingleSelect } from '../common/CurrencySingleSelect'
 import { disableFaceId, isFaceIdAvailable, registerFaceId } from '../../lib/webauthn'
 import { clearPasscode } from '../../lib/passcode'
 import { useTranslation } from '../../hooks/useTranslation'
-import { tDriveBackupConflict, tImportComplete, tNoPocketYet } from '../../i18n/translations'
+import { tDriveBackupConflict, tImportComplete, tNoPocketYet, tRestoreBackupHistoryEntry } from '../../i18n/translations'
 import { PasscodeSetupModal } from './PasscodeSetupModal'
 import { GoogleDriveIcon } from '../common/GoogleDriveIcon'
 
@@ -204,6 +213,54 @@ export function SettingsView({ resetKey }: Props) {
     } catch (err) {
       if (err instanceof DriveBackupCancelled) return
       alert(err instanceof Error ? err.message : t('Failed to restore from Google Drive'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const driveIdentity = useLiveQuery(() => getDriveIdentity(), [])
+  const driveEverConnected = useLiveQuery(() => hasEverConnectedToDrive(), []) ?? false
+
+  async function handleDriveDisconnect() {
+    if (!confirm(t('Disconnect Google Drive? Auto-backup will turn off and this device will stop checking for newer backups on open.'))) {
+      return
+    }
+    setBusy(true)
+    try {
+      await disconnectGoogleDrive()
+      setBackupHistory(null)
+      toast(t('Disconnected from Google Drive'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const [backupHistory, setBackupHistory] = useState<DriveBackupHistoryEntry[] | null>(null)
+  const [historyBusy, setHistoryBusy] = useState(false)
+
+  async function handleLoadBackupHistory() {
+    setHistoryBusy(true)
+    try {
+      const entries = await listGoogleDriveBackupHistory()
+      setBackupHistory(entries)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : t('Failed to load backup history'))
+    } finally {
+      setHistoryBusy(false)
+    }
+  }
+
+  async function handleRestoreBackupHistoryEntry(entry: DriveBackupHistoryEntry) {
+    setBusy(true)
+    try {
+      const { imported } = await restoreGoogleDriveBackupHistoryEntry(entry.id, () =>
+        confirm(tRestoreBackupHistoryEntry(lang, formatDateTime(entry.createdAt, lang))),
+      )
+      const total = Object.values(imported).reduce((a, b) => a + b, 0)
+      toast(tImportComplete(language, total))
+    } catch (err) {
+      if (err instanceof DriveBackupCancelled) return
+      alert(err instanceof Error ? err.message : t('Failed to restore this backup'))
     } finally {
       setBusy(false)
     }
@@ -496,6 +553,29 @@ export function SettingsView({ resetKey }: Props) {
         />
       </div>
 
+      {driveIdentity && (
+        <div className="card settings-list">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {driveIdentity.picture ? (
+              <img
+                src={driveIdentity.picture}
+                alt=""
+                referrerPolicy="no-referrer"
+                style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0 }}
+              />
+            ) : (
+              <GoogleDriveIcon size={32} />
+            )}
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontWeight: 700 }}>{driveIdentity.name || driveIdentity.email}</div>
+              <div className="muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {driveIdentity.email}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="card settings-list">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
@@ -561,7 +641,58 @@ export function SettingsView({ resetKey }: Props) {
             </label>
           </div>
         )}
+
+        {driveEverConnected && (
+          <button
+            className="btn btn-block"
+            onClick={handleDriveDisconnect}
+            disabled={busy || !isGoogleDriveConfigured()}
+            type="button"
+          >
+            {t('Disconnect Google Drive')}
+          </button>
+        )}
       </div>
+
+      {driveEverConnected && (
+        <div className="card settings-list">
+          <div style={{ fontWeight: 700 }}>{t('Backup history')}</div>
+          <p className="muted">
+            {t('Every backup also keeps a dated snapshot, in case you need to go back further than the latest one.')}
+          </p>
+          <button
+            className="btn btn-block"
+            onClick={handleLoadBackupHistory}
+            disabled={historyBusy || !isGoogleDriveConfigured()}
+            type="button"
+          >
+            {historyBusy ? t('Loading…') : t('Load backup history')}
+          </button>
+          {backupHistory && backupHistory.length === 0 && (
+            <p className="muted">{t('No dated backups yet — the next backup will start one.')}</p>
+          )}
+          {backupHistory && backupHistory.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {backupHistory.map((entry) => (
+                <div key={entry.id} className="settings-row">
+                  <span className="muted" style={{ flex: 1, minWidth: 0 }}>
+                    {formatDateTime(entry.createdAt, lang)}
+                  </span>
+                  <button
+                    className="btn btn-ghost"
+                    style={{ flexShrink: 0 }}
+                    onClick={() => handleRestoreBackupHistoryEntry(entry)}
+                    disabled={busy}
+                    type="button"
+                  >
+                    {t('Restore')}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {showPasscodeSetup && (
         <PasscodeSetupModal

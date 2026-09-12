@@ -124,6 +124,34 @@ export async function hasEverConnectedToDrive(): Promise<boolean> {
   return row?.value === true
 }
 
+export interface DriveIdentity {
+  email: string
+  name?: string
+  picture?: string
+}
+
+// Persisted (not just kept in memory) so Settings can still show "signed in
+// as" between reloads, same as driveEverConnected — even though the actual
+// access token itself is never persisted (see googleDrive.ts's cachedToken).
+export async function recordDriveIdentity(identity: DriveIdentity): Promise<void> {
+  await db.meta.put({ key: 'driveIdentity', value: identity })
+}
+
+export async function getDriveIdentity(): Promise<DriveIdentity | null> {
+  const row = await db.meta.get('driveIdentity')
+  return (row?.value as DriveIdentity | undefined) ?? null
+}
+
+// Called when the user explicitly disconnects Google Drive from Settings —
+// stops the silent app-open freshness check (see checkDriveForNewerBackup,
+// gated on hasEverConnectedToDrive) and turns off auto-backup, since neither
+// can do anything useful without a fresh sign-in anyway.
+export async function clearDriveConnection(): Promise<void> {
+  await db.meta.delete('driveEverConnected')
+  await db.meta.delete('driveIdentity')
+  await db.meta.put({ key: 'autoBackupToGoogleDrive', value: false })
+}
+
 // Warns before a Drive restore silently discards edits this device made
 // since it last backed up to or restored from Drive.
 export async function hasUnsyncedLocalChanges(): Promise<boolean> {

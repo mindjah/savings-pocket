@@ -1,12 +1,14 @@
 import {
   applyBackupPayload,
   buildBackupPayload,
+  clearDriveConnection,
   getDriveSyncState,
   hasEverConnectedToDrive,
   hasUnsyncedLocalChanges,
   parseBackupFile,
   recordBackup,
   recordDriveConnected,
+  recordDriveIdentity,
   recordDriveSync,
 } from './backup'
 
@@ -18,9 +20,21 @@ const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
 // appDataFolder is a hidden, per-app space Drive gives each OAuth client —
 // invisible in the user's normal Drive UI and cleaned up if they ever revoke
 // access, which is exactly the right shape for "this app's own backup blob"
-// rather than a file cluttering their regular Drive.
-const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata'
+// rather than a file cluttering their regular Drive. openid/email/profile
+// are along for the ride purely to show "signed in as" in Settings — they
+// grant no access beyond basic profile info, and (like drive.appdata) are
+// non-sensitive scopes, so this never triggers Google's "unverified app"
+// warning screen or needs a security review.
+const DRIVE_SCOPE = 'openid email profile https://www.googleapis.com/auth/drive.appdata'
 const BACKUP_FILENAME = 'savings-pocket-backup.json'
+// Separate, timestamped snapshots kept alongside the single canonical file
+// above — the canonical file is always overwritten in place (that's what
+// every conflict/sync check compares against), so on its own there's no way
+// back if a bad backup or restore clobbers something. These are pure
+// history: written best-effort after every successful backup, never read by
+// the sync/conflict logic, browsable from Settings.
+const BACKUP_HISTORY_PREFIX = 'savings-pocket-history-'
+const MAX_BACKUP_HISTORY_ENTRIES = 10
 
 declare global {
   interface Window {
@@ -32,6 +46,7 @@ declare global {
             scope: string
             callback: (response: { access_token?: string; expires_in?: number; error?: string }) => void
           }): { requestAccessToken: (overrideConfig?: { prompt?: string }) => void }
+          revoke(token: string, callback: () => void): void
         }
       }
     }
@@ -75,6 +90,22 @@ function getCachedToken(): string | null {
   return cachedToken && cachedToken.expiresAt > Date.now() ? cachedToken.token : null
 }
 
+// Best-effort and fire-and-forget — purely so Settings can show "signed in
+// as", never something a backup/restore should fail or even wait on.
+async function fetchAndStoreIdentity(token: string): Promise<void> {
+  try {
+    const res = await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) return
+    const json = (await res.json()) as { email?: string; name?: string; picture?: string }
+    if (!json.email) return
+    await recordDriveIdentity({ email: json.email, name: json.name, picture: json.picture })
+  } catch {
+    // Ignored — see comment above.
+  }
+}
+
 // silent: true passes prompt: 'none' to Google Identity Services, which
 // asks it to resolve (or fail) using an existing Google session with no
 // popup or other UI of its own — used for the automatic app-open freshness
@@ -97,6 +128,7 @@ async function requestAccessToken(options?: { silent?: boolean }): Promise<strin
         } else {
           cacheToken(response.access_token, response.expires_in)
           void recordDriveConnected()
+          void fetchAndStoreIdentity(response.access_token)
           resolve(response.access_token)
         }
       },
@@ -119,6 +151,63 @@ async function findBackupFile(token: string): Promise<{ id: string; modifiedTime
   const json = (await res.json()) as { files?: { id: string; modifiedTime: string }[] }
   const file = json.files?.[0]
   return file ? { id: file.id, modifiedTime: file.modifiedTime } : null
+}
+
+// A random-per-request boundary (rather than one fixed string) so it can
+// never collide with the JSON body it's wrapping, however unlikely that was
+// in practice.
+function buildMultipartBody(name: string, jsonBody: string): { boundary: string; body: string } {
+  const boundary = `savings_pocket_${crypto.randomUUID()}`
+  const metadata = { name, parents: ['appDataFolder'] }
+  const body =
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n` +
+    `--${boundary}\r\nContent-Type: application/json\r\n\r\n${jsonBody}\r\n` +
+    `--${boundary}--`
+  return { boundary, body }
+}
+
+export interface DriveBackupHistoryEntry {
+  id: string
+  createdAt: string
+}
+
+async function listBackupHistoryFiles(token: string): Promise<{ id: string; name: string; modifiedTime: string }[]> {
+  const url = new URL('https://www.googleapis.com/drive/v3/files')
+  url.searchParams.set('spaces', 'appDataFolder')
+  url.searchParams.set('q', `name contains '${BACKUP_HISTORY_PREFIX}' and trashed = false`)
+  url.searchParams.set('fields', 'files(id,name,modifiedTime)')
+  url.searchParams.set('orderBy', 'modifiedTime desc')
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+  if (!res.ok) throw new Error('Could not reach Google Drive.')
+  const json = (await res.json()) as { files?: { id: string; name: string; modifiedTime: string }[] }
+  return json.files ?? []
+}
+
+// Best-effort — a hiccup here shouldn't make the user think their actual
+// backup (the canonical file) failed, since that's already succeeded by the
+// time this runs.
+async function saveBackupHistoryEntry(token: string, body: string): Promise<void> {
+  try {
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const { boundary, body: multipartBody } = buildMultipartBody(`${BACKUP_HISTORY_PREFIX}${stamp}.json`, body)
+    await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': `multipart/related; boundary=${boundary}` },
+      body: multipartBody,
+    })
+    const files = await listBackupHistoryFiles(token)
+    const excess = files.slice(MAX_BACKUP_HISTORY_ENTRIES)
+    await Promise.all(
+      excess.map((f) =>
+        fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(f.id)}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ),
+    )
+  } catch {
+    // Ignored — see comment above.
+  }
 }
 
 // onConflict is asked (and must return true to proceed) only when Drive
@@ -157,12 +246,7 @@ async function uploadBackup(token: string, onConflict: (remoteModifiedAt: string
     if (!res.ok) throw new Error('Failed to update the Google Drive backup.')
     uploadedModifiedTime = ((await res.json()) as { modifiedTime: string }).modifiedTime
   } else {
-    const boundary = 'savings_pocket_backup_boundary'
-    const metadata = { name: BACKUP_FILENAME, parents: ['appDataFolder'] }
-    const multipartBody =
-      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n` +
-      `--${boundary}\r\nContent-Type: application/json\r\n\r\n${body}\r\n` +
-      `--${boundary}--`
+    const { boundary, body: multipartBody } = buildMultipartBody(BACKUP_FILENAME, body)
     const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=modifiedTime', {
       method: 'POST',
       headers: {
@@ -176,6 +260,7 @@ async function uploadBackup(token: string, onConflict: (remoteModifiedAt: string
   }
   await recordBackup('google')
   await recordDriveSync(uploadedModifiedTime)
+  await saveBackupHistoryEntry(token, body)
 }
 
 export async function backupToGoogleDrive(onConflict: (remoteModifiedAt: string) => boolean): Promise<void> {
@@ -228,6 +313,35 @@ export async function restoreFromGoogleDrive(
   // look like a conflict with the file it just restored from.
   await recordDriveSync(existing.modifiedTime)
   return result
+}
+
+// Requires a real click behind it — same reasoning as restoreFromGoogleDrive
+// above (token request first, before any UI of ours).
+export async function listGoogleDriveBackupHistory(): Promise<DriveBackupHistoryEntry[]> {
+  const token = await requestAccessToken()
+  const files = await listBackupHistoryFiles(token)
+  return files.map((f) => ({ id: f.id, createdAt: f.modifiedTime }))
+}
+
+// Restoring an old snapshot is still a full local overwrite, same as
+// restoreFromGoogleDrive — but since the user is deliberately reaching past
+// the current canonical state to an older one, this also pushes a fresh
+// backup of whatever's on this device FIRST, so picking the wrong entry (or
+// changing their mind) never costs the device's current, unsaved state.
+export async function restoreGoogleDriveBackupHistoryEntry(
+  fileId: string,
+  onConfirm: () => boolean,
+): Promise<{ imported: Record<string, number> }> {
+  const token = await requestAccessToken()
+  if (!onConfirm()) throw new DriveBackupCancelled()
+  await uploadBackup(token, () => true)
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) throw new Error('Failed to download the selected backup.')
+  const text = await res.text()
+  const parsed = parseBackupFile(text)
+  return applyBackupPayload(parsed)
 }
 
 export interface DriveStartupCheckResult {
@@ -298,4 +412,18 @@ export async function connectDriveForAutoBackup(): Promise<void> {
   } catch {
     // Best-effort only — silently try again next time the cooldown clears.
   }
+}
+
+// Revokes the grant with Google (so it no longer shows up under this app in
+// the user's Google Account access list) when a token is available to revoke
+// it with, then always clears this device's own local connection state
+// regardless — a revoke failure (or no cached token to revoke with, e.g.
+// after a reload) shouldn't leave the app still thinking it's connected.
+export async function disconnectGoogleDrive(): Promise<void> {
+  const token = getCachedToken()
+  cachedToken = null
+  if (token && window.google?.accounts?.oauth2) {
+    await new Promise<void>((resolve) => window.google!.accounts.oauth2.revoke(token, () => resolve()))
+  }
+  await clearDriveConnection()
 }

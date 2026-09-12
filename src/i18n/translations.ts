@@ -498,6 +498,18 @@ export const RU: Record<string, string> = {
   'Auto-backup to Google Drive': 'Авто-бэкап в Google Drive',
   'Silently back up to Google Drive a few seconds after each change, using your last sign-in. Only works while the app is open.':
     'Автоматически сохранять резервную копию в Google Drive через несколько секунд после каждого изменения, используя последний вход. Работает только пока приложение открыто.',
+  'Disconnect Google Drive': 'Отключить Google Drive',
+  'Disconnect Google Drive? Auto-backup will turn off and this device will stop checking for newer backups on open.':
+    'Отключить Google Drive? Авто-бэкап выключится, и это устройство перестанет проверять наличие новых резервных копий при открытии.',
+  'Disconnected from Google Drive': 'Google Drive отключён',
+  'Backup history': 'История резервных копий',
+  'Every backup also keeps a dated snapshot, in case you need to go back further than the latest one.':
+    'Каждая резервная копия также сохраняет копию с датой — на случай, если понадобится вернуться раньше, чем к последней.',
+  'Load backup history': 'Загрузить историю',
+  'No dated backups yet — the next backup will start one.': 'Пока нет копий с датой — следующая резервная копия начнёт историю.',
+  'Failed to load backup history': 'Не удалось загрузить историю резервных копий',
+  Restore: 'Восстановить',
+  'Failed to restore this backup': 'Не удалось восстановить эту копию',
   'Savings Pocket — your data never leaves this device.': 'Savings Pocket — ваши данные никогда не покидают это устройство.',
 
   // Month names
@@ -671,6 +683,13 @@ export function tBudgetExceeded(lang: Language, remainingLabel: string): string 
   return lang === 'ru'
     ? `Это превышает общий бюджет. Осталось распределить: ${remainingLabel}.`
     : `This exceeds your total budget. You have ${remainingLabel} left to allocate.`
+}
+
+export function tRestoreBackupHistoryEntry(lang: Language, createdAt: string): string {
+  if (lang === 'ru') {
+    return `Восстановить копию от ${createdAt}? Текущее состояние сначала будет сохранено отдельной резервной копией. Продолжить?`
+  }
+  return `Restore the backup from ${createdAt}? Your current state will be saved as its own backup first. Continue?`
 }
 
 export function tDriveBackupConflict(lang: Language, remoteModifiedAt: string): string {
