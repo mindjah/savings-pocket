@@ -25,6 +25,7 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { tDriveBackupConflict, tImportComplete, tNoPocketYet, tRestoreBackupHistoryEntry } from '../../i18n/translations'
 import { PasscodeSetupModal } from './PasscodeSetupModal'
 import { GoogleDriveIcon } from '../common/GoogleDriveIcon'
+import { SyncStatusBadge } from '../common/SyncStatusBadge'
 
 interface Props {
   resetKey: number
@@ -268,6 +269,42 @@ export function SettingsView({ resetKey }: Props) {
 
   return (
     <div className="view boucoup-scope">
+      {driveIdentity && (
+        <div className="card settings-list">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {driveIdentity.picture ? (
+              <img
+                src={driveIdentity.picture}
+                alt=""
+                referrerPolicy="no-referrer"
+                style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0 }}
+              />
+            ) : (
+              <GoogleDriveIcon size={32} />
+            )}
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontWeight: 700 }}>{driveIdentity.name || driveIdentity.email}</div>
+              <div className="muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {driveIdentity.email}
+              </div>
+              <div style={{ marginTop: 4 }}>
+                <SyncStatusBadge />
+              </div>
+            </div>
+            <button
+              className="btn btn-ghost btn-icon"
+              onClick={handleDriveDisconnect}
+              disabled={busy || !isGoogleDriveConfigured()}
+              aria-label={t('Disconnect Google Drive')}
+              type="button"
+              style={{ flexShrink: 0 }}
+            >
+              <i className="fa-solid fa-arrow-right-from-bracket" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="section-title">
         <h2>{t('General')}</h2>
       </div>
@@ -553,29 +590,6 @@ export function SettingsView({ resetKey }: Props) {
         />
       </div>
 
-      {driveIdentity && (
-        <div className="card settings-list">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {driveIdentity.picture ? (
-              <img
-                src={driveIdentity.picture}
-                alt=""
-                referrerPolicy="no-referrer"
-                style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0 }}
-              />
-            ) : (
-              <GoogleDriveIcon size={32} />
-            )}
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontWeight: 700 }}>{driveIdentity.name || driveIdentity.email}</div>
-              <div className="muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {driveIdentity.email}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="card settings-list">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
@@ -640,17 +654,6 @@ export function SettingsView({ resetKey }: Props) {
               </span>
             </label>
           </div>
-        )}
-
-        {driveEverConnected && (
-          <button
-            className="btn btn-block"
-            onClick={handleDriveDisconnect}
-            disabled={busy || !isGoogleDriveConfigured()}
-            type="button"
-          >
-            {t('Disconnect Google Drive')}
-          </button>
         )}
       </div>
 

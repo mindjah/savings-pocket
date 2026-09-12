@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import type { Tab } from '../Layout/NavBar'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
+import { getDriveIdentity } from '../../lib/backup'
 import { useIsDesktop } from '../../hooks/useIsDesktop'
 import { useDashboardDrag, sanitizeOrder } from '../../hooks/useDashboardDrag'
 import { useDashboardCellSize } from '../../hooks/useDashboardCellSize'
@@ -52,6 +54,7 @@ const CARD_TIER: Record<CardKey, { widthUnits: 1 | 2; heightUnits: 1 | 2; autoPr
 // screen) alongside the desktop grid.
 export function DashboardView({ onNavigate }: Props) {
   const isDesktop = useIsDesktop()
+  const driveIdentity = useLiveQuery(() => getDriveIdentity(), [])
 
   // Same local-override-of-a-persisted-default pattern SavingsView uses for
   // its own NetWorthCard — only Settings' own toggle writes the persisted
@@ -104,7 +107,22 @@ export function DashboardView({ onNavigate }: Props) {
           its own in-body row instead: theme toggle (duplicating Settings'
           own control) + the same exchange rates button. */}
       <HeaderTitlePortal>
-        <SyncStatusBadge variant="header" />
+        {/* Same maxWidth budget SyncStatusBadge's own 'header' variant uses
+            (roughly half the header, the other half being the exchange-
+            rates button) — applied to this whole group now that the avatar
+            sits outside the badge itself, so the pair doesn't grow past
+            what used to be just the badge's own share of the header. */}
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, maxWidth: 'calc(50vw - 16px)' }}>
+          {driveIdentity?.picture && (
+            <img
+              src={driveIdentity.picture}
+              alt=""
+              referrerPolicy="no-referrer"
+              style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0 }}
+            />
+          )}
+          <SyncStatusBadge variant="header" />
+        </span>
       </HeaderTitlePortal>
       <HeaderPortal>
         <CurrencyRatesButton />
