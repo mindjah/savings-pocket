@@ -477,6 +477,7 @@ export const RU: Record<string, string> = {
     'Импорт заменит ВСЕ текущие данные (сбережения, инвестиции, расходы, категории) содержимым этого файла резервной копии. Продолжить?',
   'Backup exported': 'Резервная копия экспортирована',
   'Never backed up': 'Резервной копии ещё не было',
+  Never: 'Никогда',
   'Last backup': 'Последняя копия:',
   'Failed to import backup': 'Не удалось импортировать резервную копию',
   'Sign in with Google to back up or restore from your own Google Drive — no file to save yourself.':

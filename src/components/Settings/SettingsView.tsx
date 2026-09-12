@@ -288,7 +288,7 @@ export function SettingsView({ resetKey }: Props) {
                 {driveIdentity.email}
               </div>
               <div style={{ marginTop: 4 }}>
-                <SyncStatusBadge />
+                <SyncStatusBadge variant="compact" />
               </div>
             </div>
             <button
