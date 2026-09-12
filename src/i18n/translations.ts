@@ -77,6 +77,19 @@ export const RU: Record<string, string> = {
   'Amount owed': 'Сумма долга',
   Purpose: 'Назначение',
   Icon: 'Значок',
+  None: 'Нет',
+  'Interest rate (AER %)': 'Процентная ставка (AER, %)',
+  'If set, interest is added to this pocket daily and shown in its own History tab.':
+    'Если указано, проценты будут ежедневно начисляться на эту копилку и отображаться во вкладке «История» → «Проценты».',
+  'Tax on interest (%)': 'Налог на проценты (%)',
+  'Tax handling': 'Учёт налога',
+  'Withheld daily': 'Удерживать ежедневно',
+  'Tracked separately': 'Учитывать отдельно',
+  'Tax is deducted from interest before it reaches this pocket, same as most banks do.':
+    'Налог вычитается из процентов до зачисления в копилку — так же, как обычно делают банки.',
+  "The full interest is added to this pocket instead — tax owed is only tracked for your own records, not deducted here.":
+    'В копилку зачисляются проценты полностью — сумма налога только учитывается для ваших записей, но не вычитается здесь.',
+  'Tax tracked so far': 'Учтено налога на данный момент',
   'Include credits in net worth': 'Учитывать кредиты в общем капитале',
   'Credits are excluded from Total net worth by default': 'По умолчанию кредиты не учитываются в общем капитале',
 
@@ -164,6 +177,10 @@ export const RU: Record<string, string> = {
   'Manual changes': 'Ручные изменения',
   'No manual changes logged yet.': 'Ручных изменений пока нет.',
   'No spending debited from this pocket yet.': 'Списаний расходов с этой копилки пока нет.',
+  Interest: 'Проценты',
+  'No interest earned yet.': 'Процентов пока не начислялось.',
+  Gross: 'Начислено',
+  Tax: 'Налог',
   'Deleted — this spending no longer counts': 'Удалено — этот расход больше не учитывается',
   Edited: 'Изменено',
   'Amount history': 'История сумм',

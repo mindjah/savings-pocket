@@ -121,6 +121,7 @@ export function SavingsView({ resetKey }: Props) {
             {entry.kind === 'pocket' && entry.purpose && (
               <span className={`badge badge-${entry.purpose}`}>
                 {t(entry.purpose === 'savings' ? 'Savings' : 'Spending')}
+                {entry.purpose === 'savings' && (entry.interestRateAER ?? 0) > 0 ? ` · ${entry.interestRateAER}%` : ''}
               </span>
             )}
           </span>

@@ -22,6 +22,27 @@ export interface SavingsEntry {
   // created before this existed; falls back to type's own icon then (see
   // PocketIcon).
   icon?: PocketIconKind
+  // Daily interest accrual — only meaningful for purpose: 'savings' pockets.
+  // Unset/0 means no interest. See lib/interest.ts for how these actually
+  // get applied.
+  interestRateAER?: number
+  // Percentage of each day's gross interest withheld/tracked as tax —
+  // unset/0 means no tax.
+  interestTaxRate?: number
+  // 'withheld' (default when unset): tax is deducted before crediting this
+  // pocket, same as most banks actually do. 'tracked': the full gross
+  // interest is credited instead, and the tax that would've applied is only
+  // accumulated in interestTaxTracked below for the user's own records —
+  // e.g. a pocket where tax is settled separately, not withheld at source.
+  interestTaxMode?: 'withheld' | 'tracked'
+  // Running total of tax NOT withheld from this pocket — only accumulates
+  // when interestTaxMode is 'tracked'.
+  interestTaxTracked?: number
+  // The last calendar day (YYYY-MM-DD) whose interest has already been
+  // credited — set to today the moment interestRateAER is first enabled
+  // (so accrual starts from the NEXT day, not retroactively), then advanced
+  // by materializeSavingsInterest on every later day it catches up.
+  interestLastAccrued?: string
 }
 
 // One step in a savingsHistory row's edit trail — recorded when the
@@ -54,8 +75,14 @@ export interface SavingsHistory {
   newAmount: number
   date: string
   comment: string
-  source: 'manual' | 'spending'
+  source: 'manual' | 'spending' | 'interest'
   spendingEntryId?: number
+  // Only set for source: 'interest' rows — that day's gross interest and
+  // tax, kept alongside previousAmount/newAmount (which only reflect the
+  // amount actually credited) so the breakdown survives independently of
+  // whichever tax mode was active that day.
+  interestGross?: number
+  interestTax?: number
   // Set once the spending entry that caused this debit gets deleted — the
   // pocket balance is corrected (see reverseAutoDebit), but the record stays
   // so the history keeps a full trail rather than making the deletion

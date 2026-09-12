@@ -13,7 +13,7 @@ interface Props {
   onClose: () => void
 }
 
-type Tab = 'manual' | 'spending'
+type Tab = 'manual' | 'spending' | 'interest'
 
 export function PocketHistoryModal({ entryId, currency, onClose }: Props) {
   const { t, lang } = useTranslation()
@@ -35,12 +35,21 @@ export function PocketHistoryModal({ entryId, currency, onClose }: Props) {
         <button type="button" className={tab === 'spending' ? 'active' : ''} onClick={() => setTab('spending')}>
           {t('Spending')}
         </button>
+        <button type="button" className={tab === 'interest' ? 'active' : ''} onClick={() => setTab('interest')}>
+          {t('Interest')}
+        </button>
       </div>
 
       {rows.length === 0 ? (
         <div className="empty-state">
           <span className="icon">🕓</span>
-          {t(tab === 'manual' ? 'No manual changes logged yet.' : 'No spending debited from this pocket yet.')}
+          {t(
+            tab === 'manual'
+              ? 'No manual changes logged yet.'
+              : tab === 'spending'
+                ? 'No spending debited from this pocket yet.'
+                : 'No interest earned yet.',
+          )}
         </div>
       ) : (
         <div className="history-list">
@@ -71,6 +80,11 @@ export function PocketHistoryModal({ entryId, currency, onClose }: Props) {
                 <div className="muted">
                   {formatMoney(h.previousAmount, currency)} → {formatMoney(displayedNewAmount, currency)}
                 </div>
+                {h.source === 'interest' && h.interestGross != null && (
+                  <div className="muted">
+                    {t('Gross')} {formatMoney(h.interestGross, currency)} · {t('Tax')} {formatMoney(h.interestTax ?? 0, currency)}
+                  </div>
+                )}
                 {h.comment && <div className="entry-note">{h.comment}</div>}
                 {h.reversed && (
                   <div className="muted history-item-reversed-label">{t('Deleted — this spending no longer counts')}</div>

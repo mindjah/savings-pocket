@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import type { Currency, MoneyType, PocketIconKind, PocketKind, PocketPurpose, SavingsEntry } from '../../db/types'
 import { CURRENCIES } from '../../lib/constants'
-import { parseAmount, roundFiat } from '../../lib/format'
+import { formatMoney, parseAmount, roundFiat, todayIso } from '../../lib/format'
 import { Modal } from '../common/Modal'
 import { ExpandableTextarea } from '../common/ExpandableTextarea'
 import { DeleteConfirmModal } from './DeleteConfirmModal'
@@ -41,6 +41,9 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
   const [amount, setAmount] = useState(entry ? String(Math.abs(entry.amount)) : '')
   const [reason, setReason] = useState('')
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [interestRate, setInterestRate] = useState(entry?.interestRateAER != null ? String(entry.interestRateAER) : '')
+  const [interestTaxRate, setInterestTaxRate] = useState(entry?.interestTaxRate != null ? String(entry.interestTaxRate) : '')
+  const [interestTaxMode, setInterestTaxMode] = useState<'withheld' | 'tracked'>(entry?.interestTaxMode ?? 'withheld')
   const toast = useToast()
 
   const knownLocations = useLiveQuery(async () => {
@@ -52,7 +55,16 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
   // Credits are stored as a negative debt; regular pockets stay positive.
   const storedAmount = kind === 'credit' ? -parsedMagnitude : parsedMagnitude
   const amountChanged = isEdit && entry && storedAmount !== entry.amount
-  const valid = location.trim().length > 0 && amount.trim() !== '' && !Number.isNaN(parsedMagnitude)
+  const showInterest = kind === 'pocket' && purpose === 'savings'
+  const parsedInterestRate = interestRate.trim() === '' ? undefined : parseAmount(interestRate)
+  const parsedInterestTaxRate = interestTaxRate.trim() === '' ? undefined : parseAmount(interestTaxRate)
+  const interestEnabled = showInterest && parsedInterestRate != null && !Number.isNaN(parsedInterestRate) && parsedInterestRate > 0
+  const valid =
+    location.trim().length > 0 &&
+    amount.trim() !== '' &&
+    !Number.isNaN(parsedMagnitude) &&
+    (interestRate.trim() === '' || (parsedInterestRate != null && !Number.isNaN(parsedInterestRate) && parsedInterestRate >= 0)) &&
+    (interestTaxRate.trim() === '' || (parsedInterestTaxRate != null && !Number.isNaN(parsedInterestTaxRate) && parsedInterestTaxRate >= 0))
 
   const dirty = entry
     ? currency !== entry.currency ||
@@ -62,18 +74,42 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
       location !== entry.location ||
       note !== entry.note ||
       amount !== String(Math.abs(entry.amount)) ||
-      reason.trim() !== ''
+      reason.trim() !== '' ||
+      interestRate !== (entry.interestRateAER != null ? String(entry.interestRateAER) : '') ||
+      interestTaxRate !== (entry.interestTaxRate != null ? String(entry.interestTaxRate) : '') ||
+      interestTaxMode !== (entry.interestTaxMode ?? 'withheld')
     : currency !== defaultCurrency ||
       type !== 'card' ||
       icon !== 'card' ||
       purpose !== 'savings' ||
       location !== '' ||
       note !== '' ||
-      amount !== ''
+      amount !== '' ||
+      interestRate !== '' ||
+      interestTaxRate !== ''
 
   async function handleSubmit() {
     if (!valid) return
     const now = new Date().toISOString()
+    // interestLastAccrued starts the moment interest is first turned on —
+    // accrual then begins from tomorrow (see materializeSavingsInterest),
+    // never retroactively from whenever the pocket itself was created. An
+    // already-enabled pocket keeps its existing cursor even if the rate
+    // changes; only unset -> set resets it.
+    const wasInterestEnabled = (entry?.interestRateAER ?? 0) > 0
+    const interestFields = interestEnabled
+      ? {
+          interestRateAER: parsedInterestRate,
+          interestTaxRate: parsedInterestTaxRate ?? 0,
+          interestTaxMode,
+          interestLastAccrued: wasInterestEnabled ? entry?.interestLastAccrued : todayIso(),
+        }
+      : {
+          interestRateAER: undefined,
+          interestTaxRate: undefined,
+          interestTaxMode: undefined,
+          interestLastAccrued: undefined,
+        }
     if (isEdit && entry?.id != null) {
       if (amountChanged) {
         await db.savingsHistory.add({
@@ -94,6 +130,7 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
         note: note.trim(),
         amount: storedAmount,
         updatedAt: now,
+        ...interestFields,
       })
       toast(t(kind === 'credit' ? 'Credit updated' : 'Savings entry updated'))
     } else {
@@ -108,6 +145,7 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
         amount: storedAmount,
         createdAt: now,
         updatedAt: now,
+        ...interestFields,
       })
       toast(t(kind === 'credit' ? 'Credit added' : 'Savings entry added'))
     }
@@ -185,6 +223,68 @@ export function SavingsEntryForm({ entry, kind, defaultCurrency, availableCurren
             </button>
           </div>
         </div>
+      )}
+
+      {showInterest && (
+        <div className="form-group">
+          <label htmlFor="interestRate">{t('Interest rate (AER %)')}</label>
+          <input
+            id="interestRate"
+            type="text"
+            inputMode="decimal"
+            value={interestRate}
+            onChange={(e) => setInterestRate(e.target.value)}
+            placeholder={t('None')}
+          />
+          <p className="muted" style={{ fontSize: '0.8rem' }}>
+            {t('If set, interest is added to this pocket daily and shown in its own History tab.')}
+          </p>
+        </div>
+      )}
+
+      {showInterest && interestEnabled && (
+        <>
+          <div className="form-group">
+            <label htmlFor="interestTaxRate">{t('Tax on interest (%)')}</label>
+            <input
+              id="interestTaxRate"
+              type="text"
+              inputMode="decimal"
+              value={interestTaxRate}
+              onChange={(e) => setInterestTaxRate(e.target.value)}
+              placeholder="0"
+            />
+          </div>
+          <div className="form-group">
+            <label>{t('Tax handling')}</label>
+            <div className="segmented">
+              <button
+                type="button"
+                className={interestTaxMode === 'withheld' ? 'active' : ''}
+                onClick={() => setInterestTaxMode('withheld')}
+              >
+                {t('Withheld daily')}
+              </button>
+              <button
+                type="button"
+                className={interestTaxMode === 'tracked' ? 'active' : ''}
+                onClick={() => setInterestTaxMode('tracked')}
+              >
+                {t('Tracked separately')}
+              </button>
+            </div>
+            <p className="muted" style={{ fontSize: '0.8rem' }}>
+              {interestTaxMode === 'withheld'
+                ? t('Tax is deducted from interest before it reaches this pocket, same as most banks do.')
+                : t("The full interest is added to this pocket instead — tax owed is only tracked for your own records, not deducted here.")}
+            </p>
+            {interestTaxMode === 'tracked' && entry?.interestTaxTracked ? (
+              <p className="muted" style={{ fontSize: '0.8rem' }}>
+                {t('Tax tracked so far')}: {formatMoney(entry.interestTaxTracked, currency)}
+              </p>
+            ) : null}
+          </div>
+        </>
       )}
 
       {kind === 'pocket' && (

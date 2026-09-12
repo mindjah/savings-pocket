@@ -12,6 +12,7 @@ import { ToastProvider } from './hooks/useToast'
 import { HEADER_ACTIONS_ID, HEADER_TITLE_ID, HeaderTitlePortal } from './components/common/HeaderPortal'
 import { materializeRecurringExpenses } from './lib/recurring'
 import { materializePendingAutoDebits } from './lib/pendingDebits'
+import { materializeSavingsInterest } from './lib/interest'
 import { isStandalonePwa } from './lib/pwaStandalone'
 import { LockScreen } from './components/Lock/LockScreen'
 import { useMetaSetting } from './hooks/useMetaSetting'
@@ -115,6 +116,7 @@ function AppShell() {
   useEffect(() => {
     materializeRecurringExpenses()
     materializePendingAutoDebits()
+    materializeSavingsInterest()
   }, [])
 
   // Give useDriveStartupCheck's own silent token attempt (below) a head
@@ -190,6 +192,7 @@ function AppShell() {
       if (locked) return // still (or already) behind the lock screen — skip until unlocked
       materializeRecurringExpenses()
       materializePendingAutoDebits()
+      materializeSavingsInterest()
       shouldOfferDriveReconnect(autoBackupEnabled).then((should) => {
         if (should) setShowDriveReconnect(true)
       })
