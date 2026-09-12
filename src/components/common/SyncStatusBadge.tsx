@@ -13,7 +13,7 @@ interface Props {
   // sidebar — text then icon, full "Last backup ..."/"Never backed up"
   // wording, a fixed narrow column already so no wrap handling needed.
   // 'header': mobile Dashboard's own header (see DashboardView) — icon
-  // above a bare date/time (or "Never"), no label wording, tightly spaced,
+  // then a bare date/time (or "Never"), no label wording, tightly spaced,
   // since this sits right next to the account avatar in a limited header.
   // 'compact': Settings' signed-in-as card — icon then the same full
   // wording 'sidebar' uses, just left-to-right instead of right-aligned.
@@ -41,18 +41,18 @@ export function SyncStatusBadge({ variant = 'sidebar' }: Props) {
   const iconSize = variant === 'header' ? 32 : 24
   const icon = lastBackup?.method === 'manual' ? <ManualSyncIcon size={iconSize} /> : <CloudSyncIcon size={iconSize} />
 
-  if (variant === 'header') {
-    return (
-      <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 2, color, fontSize: '0.75rem', fontWeight: 600 }}>
-        {icon}
-        <span>{text}</span>
-      </span>
-    )
-  }
-
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color, fontSize: '0.8rem', fontWeight: 600 }}>
-      {variant === 'compact' ? (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: variant === 'header' ? 4 : 6,
+        color,
+        fontSize: variant === 'header' ? '0.75rem' : '0.8rem',
+        fontWeight: 600,
+      }}
+    >
+      {variant === 'header' || variant === 'compact' ? (
         <>
           {icon}
           <span>{text}</span>
