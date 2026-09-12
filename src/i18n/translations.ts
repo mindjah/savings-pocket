@@ -526,6 +526,7 @@ export const RU: Record<string, string> = {
   'Auto-backup to Google Drive': 'Авто-бэкап в Google Drive',
   'Silently back up to Google Drive a few seconds after each change, using your last sign-in. Only works while the app is open.':
     'Автоматически сохранять резервную копию в Google Drive через несколько секунд после каждого изменения, используя последний вход. Работает только пока приложение открыто.',
+  'Google account': 'Google аккаунт',
   'Disconnect Google Drive': 'Отключить Google Drive',
   'Disconnect Google Drive? Auto-backup will turn off and this device will stop checking for newer backups on open.':
     'Отключить Google Drive? Авто-бэкап выключится, и это устройство перестанет проверять наличие новых резервных копий при открытии.',

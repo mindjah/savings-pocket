@@ -16,9 +16,10 @@ import { BudgetStatusDashboardCard } from './BudgetStatusDashboardCard'
 import { AnalyticsDashboardCard } from './AnalyticsDashboardCard'
 import { ThemeQuickToggle } from './ThemeQuickToggle'
 import { CurrencyRatesButton } from './CurrencyRatesButton'
-import { SyncStatusBadge } from '../common/SyncStatusBadge'
+import { GoogleAccountModal } from '../common/GoogleAccountModal'
 import { HeaderPortal, HeaderTitlePortal } from '../common/HeaderPortal'
 import { BLURRABLE_SELECTOR } from '../../lib/blur'
+import { useTranslation } from '../../hooks/useTranslation'
 
 interface Props {
   onNavigate: (tab: Tab) => void
@@ -53,8 +54,10 @@ const CARD_TIER: Record<CardKey, { widthUnits: 1 | 2; heightUnits: 1 | 2; autoPr
 // (a single stacked column, full-width cards, like every other mobile
 // screen) alongside the desktop grid.
 export function DashboardView({ onNavigate }: Props) {
+  const { t } = useTranslation()
   const isDesktop = useIsDesktop()
   const driveIdentity = useLiveQuery(() => getDriveIdentity(), [])
+  const [showAccountModal, setShowAccountModal] = useState(false)
 
   // Same local-override-of-a-persisted-default pattern SavingsView uses for
   // its own NetWorthCard — only Settings' own toggle writes the persisted
@@ -101,32 +104,46 @@ export function DashboardView({ onNavigate }: Props) {
       }}
     >
       {/* Mobile: the real app header (see App.tsx excluding 'dashboard' from
-          its own generic title portal) — sync status where the title would
-          otherwise go, exchange rates where every other mobile screen's own
+          its own generic title portal) — the account avatar where the title
+          would otherwise go (tapping it opens the full account/Drive
+          popup), exchange rates where every other mobile screen's own
           action button goes. Desktop hides that header entirely and shows
           its own in-body row instead: theme toggle (duplicating Settings'
           own control) + the same exchange rates button. */}
-      <HeaderTitlePortal>
-        {/* Same maxWidth budget SyncStatusBadge's own 'header' variant uses
-            (roughly half the header, the other half being the exchange-
-            rates button) — applied to this whole group now that the avatar
-            sits outside the badge itself, so the pair doesn't grow past
-            what used to be just the badge's own share of the header. */}
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, maxWidth: 'calc(50vw - 16px)' }}>
-          {driveIdentity?.picture && (
+      {driveIdentity?.picture && (
+        <HeaderTitlePortal>
+          <button
+            onClick={() => setShowAccountModal(true)}
+            aria-label={t('Google account')}
+            type="button"
+            style={{
+              display: 'inline-flex',
+              padding: 0,
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              // The avatar (42px) is taller than a plain text title's own
+              // line box, which otherwise inflates .app-header past every
+              // other screen's height (a fixed padding + the tallest
+              // child). Negative margin lets it visually fill the header
+              // without growing it — same trick as .fab intentionally
+              // floating past its own row elsewhere.
+              margin: '-16px 0',
+            }}
+          >
             <img
               src={driveIdentity.picture}
               alt=""
               referrerPolicy="no-referrer"
               style={{ width: 42, height: 42, borderRadius: '50%', flexShrink: 0 }}
             />
-          )}
-          <SyncStatusBadge variant="header" />
-        </span>
-      </HeaderTitlePortal>
+          </button>
+        </HeaderTitlePortal>
+      )}
       <HeaderPortal>
         <CurrencyRatesButton />
       </HeaderPortal>
+      {showAccountModal && <GoogleAccountModal onClose={() => setShowAccountModal(false)} />}
 
       {isDesktop && (
         <div className="dashboard-top-row">

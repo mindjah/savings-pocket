@@ -4,14 +4,11 @@ import { db } from '../../db/db'
 import { CURRENCIES, DEFAULT_CRYPTO_CURRENCIES, DEFAULT_SAVINGS_CURRENCIES, DEFAULT_SPENDING_CURRENCIES } from '../../lib/constants'
 import { formatDateTime, formatMoney } from '../../lib/format'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
-import { exportBackup, getDriveIdentity, hasEverConnectedToDrive, importBackup } from '../../lib/backup'
+import { exportBackup, hasEverConnectedToDrive, importBackup } from '../../lib/backup'
 import {
-  backupToGoogleDrive,
-  disconnectGoogleDrive,
   DriveBackupCancelled,
   isGoogleDriveConfigured,
   listGoogleDriveBackupHistory,
-  restoreFromGoogleDrive,
   restoreGoogleDriveBackupHistoryEntry,
   type DriveBackupHistoryEntry,
 } from '../../lib/googleDrive'
@@ -22,10 +19,10 @@ import { CurrencySingleSelect } from '../common/CurrencySingleSelect'
 import { disableFaceId, isFaceIdAvailable, registerFaceId } from '../../lib/webauthn'
 import { clearPasscode } from '../../lib/passcode'
 import { useTranslation } from '../../hooks/useTranslation'
-import { tDriveBackupConflict, tImportComplete, tNoPocketYet, tRestoreBackupHistoryEntry } from '../../i18n/translations'
+import { tImportComplete, tNoPocketYet, tRestoreBackupHistoryEntry } from '../../i18n/translations'
 import { PasscodeSetupModal } from './PasscodeSetupModal'
-import { GoogleDriveIcon } from '../common/GoogleDriveIcon'
-import { SyncStatusBadge } from '../common/SyncStatusBadge'
+import { GoogleIdentityCard } from '../common/GoogleIdentityCard'
+import { GoogleDriveCard } from '../common/GoogleDriveCard'
 
 interface Props {
   resetKey: number
@@ -105,8 +102,6 @@ export function SettingsView({ resetKey }: Props) {
   }
 
   const [modeInfoOpen, setModeInfoOpen] = useState(false)
-  const [driveInfoOpen, setDriveInfoOpen] = useState(false)
-  const [autoBackupEnabled, setAutoBackupEnabled] = useMetaSetting<boolean>('autoBackupToGoogleDrive', false)
   const [includeCreditsInNetWorth, setIncludeCreditsInNetWorth] = useMetaSetting<boolean>('includeCreditsInNetWorth', false)
   const allPockets = useLiveQuery(() => db.savingsEntries.toArray(), []) ?? []
   // Only spending-purpose pockets can be picked as an auto-debit payment
@@ -134,7 +129,6 @@ export function SettingsView({ resetKey }: Props) {
       return
     }
     setModeInfoOpen(false)
-    setDriveInfoOpen(false)
     setShowPasscodeSetup(false)
   }, [resetKey])
 
@@ -187,54 +181,7 @@ export function SettingsView({ resetKey }: Props) {
     }
   }
 
-  async function handleDriveBackup() {
-    setBusy(true)
-    try {
-      await backupToGoogleDrive((remoteModifiedAt) => confirm(tDriveBackupConflict(lang, formatDateTime(remoteModifiedAt, lang))))
-      toast(t('Backed up to Google Drive'))
-    } catch (err) {
-      if (err instanceof DriveBackupCancelled) return
-      alert(err instanceof Error ? err.message : t('Failed to back up to Google Drive'))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function handleDriveRestore() {
-    setBusy(true)
-    try {
-      const { imported } = await restoreFromGoogleDrive((hasLocalChanges) => {
-        const confirmMessage = hasLocalChanges
-          ? t("You have local changes that haven't been backed up to Google Drive yet — restoring now will replace them with your Google Drive backup and they'll be permanently lost. Continue?")
-          : t('Restoring will replace ALL current data (savings, invest, spending, categories) with your Google Drive backup. Continue?')
-        return confirm(confirmMessage)
-      })
-      const total = Object.values(imported).reduce((a, b) => a + b, 0)
-      toast(tImportComplete(language, total))
-    } catch (err) {
-      if (err instanceof DriveBackupCancelled) return
-      alert(err instanceof Error ? err.message : t('Failed to restore from Google Drive'))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const driveIdentity = useLiveQuery(() => getDriveIdentity(), [])
   const driveEverConnected = useLiveQuery(() => hasEverConnectedToDrive(), []) ?? false
-
-  async function handleDriveDisconnect() {
-    if (!confirm(t('Disconnect Google Drive? Auto-backup will turn off and this device will stop checking for newer backups on open.'))) {
-      return
-    }
-    setBusy(true)
-    try {
-      await disconnectGoogleDrive()
-      setBackupHistory(null)
-      toast(t('Disconnected from Google Drive'))
-    } finally {
-      setBusy(false)
-    }
-  }
 
   const [backupHistory, setBackupHistory] = useState<DriveBackupHistoryEntry[] | null>(null)
   const [historyBusy, setHistoryBusy] = useState(false)
@@ -269,47 +216,7 @@ export function SettingsView({ resetKey }: Props) {
 
   return (
     <div className="view boucoup-scope">
-      {driveIdentity && (
-        <div className="card settings-list">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {driveIdentity.picture ? (
-              <img
-                src={driveIdentity.picture}
-                alt=""
-                referrerPolicy="no-referrer"
-                style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0 }}
-              />
-            ) : (
-              <GoogleDriveIcon size={32} />
-            )}
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                <div style={{ fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {driveIdentity.name || driveIdentity.email}
-                </div>
-                <span style={{ flexShrink: 0 }}>
-                  <SyncStatusBadge variant="compact" />
-                </span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                <div className="muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {driveIdentity.email}
-                </div>
-                <button
-                  className="btn btn-ghost btn-icon"
-                  onClick={handleDriveDisconnect}
-                  disabled={busy || !isGoogleDriveConfigured()}
-                  aria-label={t('Disconnect Google Drive')}
-                  type="button"
-                  style={{ flexShrink: 0 }}
-                >
-                  <i className="fa-solid fa-arrow-right-from-bracket" aria-hidden="true" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <GoogleIdentityCard />
 
       <div className="section-title">
         <h2>{t('General')}</h2>
@@ -596,72 +503,7 @@ export function SettingsView({ resetKey }: Props) {
         />
       </div>
 
-      <div className="card settings-list">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
-            <GoogleDriveIcon size={20} />
-            Google Drive
-          </div>
-          {isGoogleDriveConfigured() && (
-            <button
-              className="btn btn-ghost btn-icon"
-              onClick={() => setDriveInfoOpen((o) => !o)}
-              aria-label={t("If sign-in doesn't work, ask the app's owner to add your Google account as a test user.")}
-              type="button"
-            >
-              ⓘ
-            </button>
-          )}
-        </div>
-        {driveInfoOpen && (
-          <p className="muted" style={{ fontSize: '0.8rem' }}>
-            {t("If sign-in doesn't work, ask the app's owner to add your Google account as a test user.")}
-          </p>
-        )}
-        <p className="muted">
-          {isGoogleDriveConfigured()
-            ? t('Sign in with Google to back up or restore from your own Google Drive — no file to save yourself.')
-            : t('Google Drive backup is not set up for this deployment.')}
-        </p>
-        <button
-          className="btn btn-primary btn-block"
-          onClick={handleDriveBackup}
-          disabled={busy || !isGoogleDriveConfigured()}
-          type="button"
-        >
-          {t('Backup to Google Drive')}
-        </button>
-        <button
-          className="btn btn-block"
-          onClick={handleDriveRestore}
-          disabled={busy || !isGoogleDriveConfigured()}
-          type="button"
-        >
-          {t('Restore from Google Drive')}
-        </button>
-
-        {isGoogleDriveConfigured() && (
-          <div className="settings-row">
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div>{t('Auto-backup to Google Drive')}</div>
-              <div className="muted">
-                {t('Silently back up to Google Drive a few seconds after each change, using your last sign-in. Only works while the app is open.')}
-              </div>
-            </div>
-            <label className="switch" style={{ flexShrink: 0 }}>
-              <input
-                type="checkbox"
-                checked={autoBackupEnabled}
-                onChange={(e) => setAutoBackupEnabled(e.target.checked)}
-                aria-label={t('Auto-backup to Google Drive')}
-              />
-              <span className="switch-track">
-                <span className="switch-thumb" />
-              </span>
-            </label>
-          </div>
-        )}
-      </div>
+      <GoogleDriveCard />
 
       {driveEverConnected && (
         <div className="card settings-list">
