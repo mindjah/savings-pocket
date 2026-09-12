@@ -38,7 +38,7 @@ export function SyncStatusBadge({ variant = 'sidebar' }: Props) {
       : lastBackup == null
         ? t('Never backed up')
         : `${t('Last backup')} ${formatDateOrTime(lastBackup.at, lang)}`
-  const iconSize = variant === 'header' ? 32 : 24
+  const iconSize = variant === 'header' ? 14 : 24
   const icon = lastBackup?.method === 'manual' ? <ManualSyncIcon size={iconSize} /> : <CloudSyncIcon size={iconSize} />
 
   return (

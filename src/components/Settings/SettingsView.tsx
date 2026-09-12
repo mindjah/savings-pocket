@@ -270,7 +270,10 @@ export function SettingsView({ resetKey }: Props) {
   return (
     <div className="view boucoup-scope">
       {driveIdentity && (
-        <div className="card settings-list">
+        <div className="card settings-list" style={{ position: 'relative' }}>
+          <div style={{ position: 'absolute', top: 12, right: 12 }}>
+            <SyncStatusBadge variant="compact" />
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {driveIdentity.picture ? (
               <img
@@ -286,9 +289,6 @@ export function SettingsView({ resetKey }: Props) {
               <div style={{ fontWeight: 700 }}>{driveIdentity.name || driveIdentity.email}</div>
               <div className="muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {driveIdentity.email}
-              </div>
-              <div style={{ marginTop: 4 }}>
-                <SyncStatusBadge variant="compact" />
               </div>
             </div>
             <button
