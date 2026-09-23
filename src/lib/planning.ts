@@ -1,5 +1,6 @@
 import type { CategoryBudget, Currency, PlannedExpense, RecurringExpense, SpendingEntry } from '../db/types'
 import { convertFiat, type FxRates } from './fxRates'
+import { computeNextDate } from './recurring'
 
 function daysInMonth(year: number, month0: number): number {
   return new Date(year, month0 + 1, 0).getDate()
@@ -33,6 +34,17 @@ export function monthProgress(monthPrefix: string, realMonthPrefix: string, toda
 // already fired this month. `spendingThisMonth` (this month's real spending
 // entries) recovers those: any entry with a `recurringExpenseId` marks that
 // recurring expense as already accounted for this month too.
+//
+// For a FUTURE month (planning next month while this month's own occurrence
+// hasn't fired yet — see materializeRecurringExpenses' own lazy advance),
+// `nextDate` still points somewhere in the current month and
+// spendingThisMonth can't help either (nothing's dated in the future yet) —
+// neither check alone would catch it, even though it's clearly still due to
+// recur before the target month. Walking `nextDate` forward with the same
+// computeNextDate the real materializer uses answers the actual question
+// ("does this recurring expense land in monthPrefix at all, whether or not
+// today's cursor has caught up to it yet") instead of trusting the cursor's
+// current position.
 export function fixedExpensesForMonth(
   recurring: RecurringExpense[],
   monthPrefix: string,
@@ -41,7 +53,16 @@ export function fixedExpensesForMonth(
   const materializedIds = new Set(
     spendingThisMonth.filter((e) => e.recurringExpenseId != null).map((e) => e.recurringExpenseId as number),
   )
-  return recurring.filter((r) => r.active && (r.nextDate.startsWith(monthPrefix) || materializedIds.has(r.id!)))
+  return recurring.filter((r) => {
+    if (!r.active) return false
+    if (materializedIds.has(r.id!)) return true
+    let cursor = r.nextDate
+    while (cursor.slice(0, 7) <= monthPrefix) {
+      if (cursor.startsWith(monthPrefix)) return true
+      cursor = computeNextDate(cursor, r.recurrenceType, r.intervalDays)
+    }
+    return false
+  })
 }
 
 export interface CategoryAmount {
