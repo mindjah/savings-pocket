@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import type { Currency } from '../../db/types'
@@ -21,6 +21,7 @@ interface Props {
 // as Monthly Expenses/Budget status) when the budget feature is on.
 export function BalanceSummaryCard({ onNavigate }: Props) {
   const { t } = useTranslation()
+  const [showInfo, setShowInfo] = useState(false)
   const [savingsCurrencies] = useMetaSetting<Currency[]>('enabledSavingsCurrencies', DEFAULT_SAVINGS_CURRENCIES)
   const [budgetEnabled] = useMetaSetting<boolean>('budgetEnabled', false)
   const { rates: fxRates } = useFiatRates()
@@ -78,7 +79,23 @@ export function BalanceSummaryCard({ onNavigate }: Props) {
           <CardIcon size={20} />
         </span>
         <h3>{t('Balance')}</h3>
+        <button
+          className="dashboard-card-eye-toggle"
+          type="button"
+          onClick={() => setShowInfo((o) => !o)}
+          aria-label={t('What does Balance show?')}
+        >
+          ⓘ
+        </button>
       </div>
+
+      {showInfo && (
+        <p className="muted" style={{ marginTop: -8, marginBottom: 12, fontSize: '0.8rem' }}>
+          {t(
+            'The total in your spending pockets, plus what you still have available to spend this month if a budget is enabled.',
+          )}
+        </p>
+      )}
 
       <div className="dashboard-card-body">
         {allEntries == null ? null : visibleCurrencies.length === 0 ? (

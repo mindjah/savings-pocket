@@ -5,6 +5,7 @@ import { pad2 } from '../../lib/format'
 import { Modal } from '../common/Modal'
 import { useToast } from '../../hooks/useToast'
 import { useTranslation } from '../../hooks/useTranslation'
+import { tPlanCopyName } from '../../i18n/translations'
 import { PlanEditorModal, PlanEditorScreen } from './PlanEditorModal'
 
 interface Props {
@@ -27,12 +28,13 @@ function PlanningInner({
   // new plan name here, or (once a plan is open) that plan editor's own.
   onDirtyChange?: (dirty: boolean) => void
 }) {
-  const { t } = useTranslation()
+  const { t, lang } = useTranslation()
   const toast = useToast()
   const plans = useLiveQuery(() => db.plans.toArray(), []) ?? []
   const sortedPlans = [...plans].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
 
   const [newName, setNewName] = useState('')
+  const [copyFromPlanId, setCopyFromPlanId] = useState<number | null>(null)
   const [openPlanId, setOpenPlanId] = useState<number | null>(null)
 
   // Only meaningful while the plan list itself is showing — once a plan is
@@ -49,9 +51,34 @@ function PlanningInner({
     if (!trimmed) return
     const now = new Date()
     const nowIso = now.toISOString()
+    // Always the real current month, even when copying an older plan's line
+    // items — appliesMonth is about what THIS plan is compared against, not
+    // a property of the plan it was copied from.
     const appliesMonth = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`
-    const id = await db.plans.add({ name: trimmed, createdAt: nowIso, updatedAt: nowIso, appliesMonth })
+
+    let id!: number
+    await db.transaction('rw', db.plans, db.plannedIncome, db.plannedExpenses, async () => {
+      id = await db.plans.add({ name: trimmed, createdAt: nowIso, updatedAt: nowIso, appliesMonth })
+      if (copyFromPlanId != null) {
+        const [incomeRows, expenseRows] = await Promise.all([
+          db.plannedIncome.where('planId').equals(copyFromPlanId).toArray(),
+          db.plannedExpenses.where('planId').equals(copyFromPlanId).toArray(),
+        ])
+        if (incomeRows.length > 0) {
+          await db.plannedIncome.bulkAdd(
+            incomeRows.map(({ id: _oldId, ...row }) => ({ ...row, planId: id, createdAt: nowIso, updatedAt: nowIso })),
+          )
+        }
+        if (expenseRows.length > 0) {
+          await db.plannedExpenses.bulkAdd(
+            expenseRows.map(({ id: _oldId, ...row }) => ({ ...row, planId: id, createdAt: nowIso, updatedAt: nowIso })),
+          )
+        }
+      }
+    })
+
     setNewName('')
+    setCopyFromPlanId(null)
     toast(t('Plan created'))
     setOpenPlanId(id)
   }
@@ -78,6 +105,36 @@ function PlanningInner({
               <span className="muted">›</span>
             </button>
           ))}
+        </div>
+      )}
+
+      {sortedPlans.length > 0 && (
+        <div className="form-group">
+          <label htmlFor="copyFromPlan">{t('Copy from')}</label>
+          <select
+            id="copyFromPlan"
+            value={copyFromPlanId ?? ''}
+            onChange={(e) => {
+              const value = e.target.value ? Number(e.target.value) : null
+              setCopyFromPlanId(value)
+              // Only when the name is still untouched — never overwrite
+              // something the user already typed themselves.
+              if (value != null && !newName.trim()) {
+                const source = sortedPlans.find((p) => p.id === value)
+                if (source) setNewName(tPlanCopyName(lang, source.name))
+              }
+            }}
+          >
+            <option value="">{t('Start empty')}</option>
+            {sortedPlans.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <p className="muted" style={{ fontSize: '0.8rem' }}>
+            {t("Copies that plan's income and planned expenses as a starting point — this month's own totals, not that plan's.")}
+          </p>
         </div>
       )}
 

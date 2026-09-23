@@ -19,6 +19,9 @@ export const RU: Record<string, string> = {
 
   // Dashboard
   Balance: 'Баланс',
+  'What does Balance show?': 'Что показывает Баланс?',
+  'The total in your spending pockets, plus what you still have available to spend this month if a budget is enabled.':
+    'Общая сумма в ваших копилках на расходы, плюс сколько ещё доступно потратить в этом месяце, если включён бюджет.',
   Invest: 'Инвестиции',
   'Monthly Expenses': 'Расходы за месяц',
   'Go to Savings': 'К сбережениям',
@@ -316,6 +319,10 @@ export const RU: Record<string, string> = {
   'Existing plans': 'Существующие планы',
   'No plans yet. Create one below to start sketching out a month.':
     'Пока нет планов. Создайте один ниже, чтобы начать планировать месяц.',
+  'Copy from': 'Скопировать из',
+  'Start empty': 'Начать с пустого',
+  "Copies that plan's income and planned expenses as a starting point — this month's own totals, not that plan's.":
+    'Копирует доходы и планируемые расходы этого плана как основу — с итогами текущего месяца, а не того плана.',
   'New plan name': 'Название нового плана',
   'e.g. Typical month': 'напр. Обычный месяц',
   'Create plan': 'Создать план',
@@ -712,6 +719,10 @@ export function tBudgetExceeded(lang: Language, remainingLabel: string): string 
   return lang === 'ru'
     ? `Это превышает общий бюджет. Осталось распределить: ${remainingLabel}.`
     : `This exceeds your total budget. You have ${remainingLabel} left to allocate.`
+}
+
+export function tPlanCopyName(lang: Language, sourceName: string): string {
+  return lang === 'ru' ? `${sourceName} копия` : `${sourceName} copy`
 }
 
 export function tRestoreBackupHistoryEntry(lang: Language, createdAt: string): string {
