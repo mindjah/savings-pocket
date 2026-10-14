@@ -7,10 +7,11 @@ import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { exportBackup, hasEverConnectedToDrive, importBackup } from '../../lib/backup'
 import {
   DriveBackupCancelled,
+  type DriveBackupHistoryEntry,
   isGoogleDriveConfigured,
   listGoogleDriveBackupHistory,
   restoreGoogleDriveBackupHistoryEntry,
-  type DriveBackupHistoryEntry,
+  takeResumedDriveIntent,
 } from '../../lib/googleDrive'
 import { useToast } from '../../hooks/useToast'
 import type { Currency, Language, SavingsTrackingMode } from '../../db/types'
@@ -192,11 +193,19 @@ export function SettingsView({ resetKey }: Props) {
       const entries = await listGoogleDriveBackupHistory()
       setBackupHistory(entries)
     } catch (err) {
+      if (err instanceof DriveBackupCancelled) return
       alert(err instanceof Error ? err.message : t('Failed to load backup history'))
     } finally {
       setHistoryBusy(false)
     }
   }
+
+  // Back from Google's sign-in page after tapping Load backup history (or
+  // Restore on an entry, once the token had expired) — show the list again.
+  useEffect(() => {
+    if (takeResumedDriveIntent(['history'])) void handleLoadBackupHistory()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function handleRestoreBackupHistoryEntry(entry: DriveBackupHistoryEntry) {
     setBusy(true)

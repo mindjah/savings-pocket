@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useToast } from './useToast'
 import { useTranslation } from './useTranslation'
-import { checkDriveForNewerBackup, restoreFromGoogleDrive } from '../lib/googleDrive'
+import { cameBackFromDriveSignIn, checkDriveForNewerBackup, restoreFromGoogleDrive } from '../lib/googleDrive'
 import { hasUnsyncedLocalChanges } from '../lib/backup'
 import { formatDateTime } from '../lib/format'
 import { tImportComplete, tStartupDriveOffer } from '../i18n/translations'
@@ -21,6 +21,9 @@ export function useDriveStartupCheck(enabled: boolean) {
     // mount again on the same instance) — not a real second app open, so no
     // cleanup/cancellation here: the ref alone makes this fire at most once.
     hasRunRef.current = true
+    // Just back from Google's sign-in to do a backup or restore — that action
+    // resumes on its own; asking about Drive's copy on top would double up.
+    if (cameBackFromDriveSignIn()) return
     ;(async () => {
       const result = await checkDriveForNewerBackup()
       if (!result) return

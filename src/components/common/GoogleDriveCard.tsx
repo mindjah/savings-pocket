@@ -1,5 +1,11 @@
-import { useState } from 'react'
-import { backupToGoogleDrive, DriveBackupCancelled, isGoogleDriveConfigured, restoreFromGoogleDrive } from '../../lib/googleDrive'
+import { useEffect, useRef, useState } from 'react'
+import {
+  backupToGoogleDrive,
+  DriveBackupCancelled,
+  isGoogleDriveConfigured,
+  restoreFromGoogleDrive,
+  takeResumedDriveIntent,
+} from '../../lib/googleDrive'
 import { formatDateTime } from '../../lib/format'
 import { useMetaSetting } from '../../hooks/useMetaSetting'
 import { useToast } from '../../hooks/useToast'
@@ -17,6 +23,7 @@ export function GoogleDriveCard() {
   const [busy, setBusy] = useState(false)
   const [driveInfoOpen, setDriveInfoOpen] = useState(false)
   const [autoBackupEnabled, setAutoBackupEnabled] = useMetaSetting<boolean>('autoBackupToGoogleDrive', false)
+  const cardRef = useRef<HTMLDivElement>(null)
 
   async function handleDriveBackup() {
     setBusy(true)
@@ -50,8 +57,19 @@ export function GoogleDriveCard() {
     }
   }
 
+  // Back from Google's sign-in page — finish the Backup/Restore tap that sent
+  // the user there, with this card in view so they can see it happen.
+  useEffect(() => {
+    const intent = takeResumedDriveIntent(['backup', 'restore'])
+    if (!intent) return
+    cardRef.current?.scrollIntoView({ block: 'center' })
+    if (intent === 'backup') void handleDriveBackup()
+    else void handleDriveRestore()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   return (
-    <div className="card settings-list">
+    <div className="card settings-list" ref={cardRef}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
           <GoogleDriveIcon size={20} />

@@ -20,7 +20,7 @@ import { useTranslation } from './hooks/useTranslation'
 import { useAutoBackup } from './hooks/useAutoBackup'
 import { useDriveStartupCheck } from './hooks/useDriveStartupCheck'
 import { useIsDesktop } from './hooks/useIsDesktop'
-import { connectDriveForAutoBackup, shouldOfferDriveReconnect } from './lib/googleDrive'
+import { connectDriveForAutoBackup, pendingResumedDriveIntent, shouldOfferDriveReconnect } from './lib/googleDrive'
 import { GoogleDriveIcon } from './components/common/GoogleDriveIcon'
 
 const TITLES: Record<Tab, string> = {
@@ -47,6 +47,10 @@ const STORAGE_KEY = 'savings-pocket:activeTab'
 const RELOCK_AFTER_MS = 5 * 60 * 1000
 
 function readInitialTab(isDesktop: boolean): Tab {
+  // Back from Google's sign-in for a Backup/Restore/history tap — those live
+  // in Settings, where they pick up again on their own.
+  const resumed = pendingResumedDriveIntent()
+  if (resumed && resumed !== 'connect') return 'settings'
   const stored = localStorage.getItem(STORAGE_KEY)
   const valid: Tab[] = ['dashboard', 'savings', 'invest', 'spending', 'planning', 'budget', 'analytics', 'settings']
   if (stored && (valid as string[]).includes(stored)) {

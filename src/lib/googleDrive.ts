@@ -2,6 +2,7 @@ import {
   applyBackupPayload,
   buildBackupPayload,
   clearDriveConnection,
+  getDriveIdentity,
   getDriveSyncState,
   hasEverConnectedToDrive,
   hasUnsyncedLocalChanges,
@@ -36,54 +37,57 @@ const BACKUP_FILENAME = 'savings-pocket-backup.json'
 const BACKUP_HISTORY_PREFIX = 'savings-pocket-history-'
 const MAX_BACKUP_HISTORY_ENTRIES = 10
 
-declare global {
-  interface Window {
-    google?: {
-      accounts: {
-        oauth2: {
-          initTokenClient(config: {
-            client_id: string
-            scope: string
-            callback: (response: { access_token?: string; expires_in?: number; error?: string }) => void
-          }): { requestAccessToken: (overrideConfig?: { prompt?: string }) => void }
-          revoke(token: string, callback: () => void): void
-        }
-      }
-    }
-  }
-}
-
 export function isGoogleDriveConfigured(): boolean {
   return !!CLIENT_ID
 }
 
-function waitForGoogleIdentityServices(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const start = Date.now()
-    function check() {
-      if (window.google?.accounts?.oauth2) {
-        resolve()
-        return
-      }
-      if (Date.now() - start > 10000) {
-        reject(new Error('Google Sign-In script failed to load.'))
-        return
-      }
-      setTimeout(check, 100)
-    }
-    check()
-  })
+// Sign-in is Google's OAuth flow for browser apps (response_type=token) as a
+// same-window redirect rather than the Google Identity Services popup: on an
+// iPhone home-screen app that popup opens as an extra sheet with Google's
+// account picker every time, and its silent mode (prompt: 'none') never works
+// there because Safari blocks Google's third-party cookies. The redirect
+// passes login_hint with the account this device last used, so Google comes
+// straight back without asking which account, and the token it returns is
+// kept in localStorage until it expires (about an hour) — reopening the app
+// within that hour needs no Google screen at all.
+const TOKEN_KEY = 'savings-pocket:driveToken'
+const PENDING_KEY = 'savings-pocket:driveSignIn'
+
+// What the user tapped before leaving for Google — resumed once they're back
+// (see takeResumedDriveIntent). Restoring a history entry resumes as
+// 'history' — the list is shown again rather than restoring an entry
+// unattended, since that's a full overwrite.
+export type DriveIntent = 'connect' | 'backup' | 'restore' | 'history'
+
+function readStorage<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? (JSON.parse(raw) as T) : null
+  } catch {
+    return null
+  }
 }
 
-// Cached in memory only (never persisted) so a debounced auto-backup can
-// reuse the token from the last explicit sign-in without re-prompting —
-// cleared on reload, at which point auto-backup just stays quiet until the
-// user interacts with Backup/Restore again.
-let cachedToken: { token: string; expiresAt: number } | null = null
+function writeStorage(key: string, value: unknown) {
+  try {
+    if (value == null) localStorage.removeItem(key)
+    else localStorage.setItem(key, JSON.stringify(value))
+  } catch {
+    // Private mode — kept for this page load only via the in-memory copy.
+  }
+}
+
+let cachedToken: { token: string; expiresAt: number } | null = readStorage(TOKEN_KEY)
 
 function cacheToken(token: string, expiresInSeconds: number | undefined) {
   // Refresh a bit early rather than racing an in-flight request against expiry.
-  cachedToken = { token, expiresAt: Date.now() + (expiresInSeconds ?? 3500) * 1000 - 30000 }
+  cachedToken = { token, expiresAt: Date.now() + (expiresInSeconds ?? 3500) * 1000 - 60000 }
+  writeStorage(TOKEN_KEY, cachedToken)
+}
+
+function clearCachedToken() {
+  cachedToken = null
+  writeStorage(TOKEN_KEY, null)
 }
 
 function getCachedToken(): string | null {
@@ -91,7 +95,8 @@ function getCachedToken(): string | null {
 }
 
 // Best-effort and fire-and-forget — purely so Settings can show "signed in
-// as", never something a backup/restore should fail or even wait on.
+// as" (and so the next sign-in can skip the account picker), never something
+// a backup/restore should fail or even wait on.
 async function fetchAndStoreIdentity(token: string): Promise<void> {
   try {
     const res = await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
@@ -106,40 +111,82 @@ async function fetchAndStoreIdentity(token: string): Promise<void> {
   }
 }
 
-// silent: true passes prompt: 'none' to Google Identity Services, which
-// asks it to resolve (or fail) using an existing Google session with no
-// popup or other UI of its own — used for the automatic app-open freshness
-// check (see checkDriveForNewerBackup), which previously relied entirely on
-// the BROWSER's own popup blocker to stay invisible. That's not a real
-// guarantee: a visitor who's allowed auto popups for this site got a live
-// Google sign-in window on every single app open. Explicit connect/restore
-// flows (a real click behind them) still ask silent: false (the default),
-// since those are exactly when an interactive picker is wanted.
-async function requestAccessToken(options?: { silent?: boolean }): Promise<string> {
-  if (!CLIENT_ID) throw new Error('Google Drive is not configured for this deployment.')
-  await waitForGoogleIdentityServices()
-  return new Promise((resolve, reject) => {
-    const tokenClient = window.google!.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: DRIVE_SCOPE,
-      callback: (response) => {
-        if (response.error || !response.access_token) {
-          reject(new Error(response.error || 'Google sign-in was cancelled.'))
-        } else {
-          cacheToken(response.access_token, response.expires_in)
-          void recordDriveConnected()
-          void fetchAndStoreIdentity(response.access_token)
-          resolve(response.access_token)
-        }
-      },
-    })
-    tokenClient.requestAccessToken(options?.silent ? { prompt: 'none' } : undefined)
-  })
-}
-
 // Thrown when the user declines the "this will overwrite unseen data"
 // warning, so callers can skip showing an error alert for it.
 export class DriveBackupCancelled extends Error {}
+
+// Thrown while the page is leaving for Google's sign-in — a cancellation as
+// far as callers are concerned (nothing to report); the action itself picks
+// up again after the redirect back.
+export class DriveSignInRedirect extends DriveBackupCancelled {}
+
+const redirectUri = () => new URL(import.meta.env.BASE_URL, location.href).href
+
+// Returns the stored token while it's valid; otherwise leaves the app for
+// Google's sign-in page and throws DriveSignInRedirect.
+async function requestAccessToken(intent: DriveIntent): Promise<string> {
+  if (!CLIENT_ID) throw new Error('Google Drive is not configured for this deployment.')
+  const cached = getCachedToken()
+  if (cached) return cached
+  const identity = await getDriveIdentity()
+  const state = crypto.randomUUID()
+  writeStorage(PENDING_KEY, { state, intent })
+  const params = new URLSearchParams({
+    client_id: CLIENT_ID,
+    redirect_uri: redirectUri(),
+    response_type: 'token',
+    scope: DRIVE_SCOPE,
+    state,
+    include_granted_scopes: 'true',
+    // A known account comes straight back without the account picker.
+    ...(identity?.email ? { login_hint: identity.email } : { prompt: 'select_account' }),
+  })
+  location.assign(`https://accounts.google.com/o/oauth2/v2/auth?${params}`)
+  throw new DriveSignInRedirect()
+}
+
+let resumedIntent: DriveIntent | null = null
+let cameBack = false
+
+// True when this page load is the return from Google's sign-in page.
+export const cameBackFromDriveSignIn = () => cameBack
+
+// Without consuming it — for choosing which tab the app opens on.
+export const pendingResumedDriveIntent = () => resumedIntent
+
+// The action the user started before signing in, handed out once — to
+// whichever screen performs it (GoogleDriveCard, Settings' history list).
+export function takeResumedDriveIntent(intents: DriveIntent[]): DriveIntent | null {
+  if (!resumedIntent || !intents.includes(resumedIntent)) return null
+  const intent = resumedIntent
+  resumedIntent = null
+  return intent
+}
+
+// Call once at startup, before the first render: picks up the token Google
+// puts in the URL fragment after sign-in, synchronously, so screens mounting
+// right after already see it.
+export function handleDriveRedirect(): void {
+  const hash = location.hash
+  if (!hash.includes('access_token=') && !hash.includes('error=')) return
+  const params = new URLSearchParams(hash.slice(1))
+  history.replaceState(null, '', location.pathname + location.search)
+  const pending = readStorage<{ state: string; intent: DriveIntent }>(PENDING_KEY)
+  writeStorage(PENDING_KEY, null)
+  if (!pending || params.get('state') !== pending.state) return
+  cameBack = true
+  const token = params.get('access_token')
+  if (params.get('error') || !token) return
+  cacheToken(token, Number(params.get('expires_in')) || undefined)
+  void recordDriveConnected()
+  void fetchAndStoreIdentity(token)
+  // Google's consent screen has a checkbox per permission — without the Drive
+  // one there's nothing to resume (the next Drive call would only fail).
+  const granted = params.get('scope') ?? ''
+  if (granted && !granted.includes('drive.appdata')) return
+  resumedIntent = pending.intent
+}
+
 
 async function findBackupFile(token: string): Promise<{ id: string; modifiedTime: string } | null> {
   const url = new URL('https://www.googleapis.com/drive/v3/files')
@@ -264,7 +311,7 @@ async function uploadBackup(token: string, onConflict: (remoteModifiedAt: string
 }
 
 export async function backupToGoogleDrive(onConflict: (remoteModifiedAt: string) => boolean): Promise<void> {
-  const token = await requestAccessToken()
+  const token = await requestAccessToken('backup')
   await uploadBackup(token, onConflict)
 }
 
@@ -286,15 +333,11 @@ export async function attemptSilentAutoBackup(onConflict: (remoteModifiedAt: str
 }
 
 // onConfirm is asked (and must return true to proceed) only after a token has
-// already been obtained — requesting the token FIRST, before any awaited
-// pre-check or confirm() dialog, is what lets Google's popup succeed as a
-// lightweight account picker instead of being silently blocked: an await (or
-// a dialog) ahead of it breaks the chain back to the tap that triggered this,
-// and the browser then treats the token request as gesture-less.
+// been obtained, so a sign-in round trip doesn't ask the same question twice.
 export async function restoreFromGoogleDrive(
   onConfirm: (hasLocalChanges: boolean) => boolean,
 ): Promise<{ imported: Record<string, number> }> {
-  const token = await requestAccessToken()
+  const token = await requestAccessToken('restore')
   const existing = await findBackupFile(token)
   if (!existing) throw new Error('No backup found in Google Drive yet.')
   const hasLocalChanges = await hasUnsyncedLocalChanges()
@@ -315,10 +358,9 @@ export async function restoreFromGoogleDrive(
   return result
 }
 
-// Requires a real click behind it — same reasoning as restoreFromGoogleDrive
-// above (token request first, before any UI of ours).
+// May leave for Google's sign-in first — see requestAccessToken.
 export async function listGoogleDriveBackupHistory(): Promise<DriveBackupHistoryEntry[]> {
-  const token = await requestAccessToken()
+  const token = await requestAccessToken('history')
   const files = await listBackupHistoryFiles(token)
   return files.map((f) => ({ id: f.id, createdAt: f.modifiedTime }))
 }
@@ -332,7 +374,7 @@ export async function restoreGoogleDriveBackupHistoryEntry(
   fileId: string,
   onConfirm: () => boolean,
 ): Promise<{ imported: Record<string, number> }> {
-  const token = await requestAccessToken()
+  const token = await requestAccessToken('history')
   if (!onConfirm()) throw new DriveBackupCancelled()
   await uploadBackup(token, () => true)
   const res = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media`, {
@@ -348,22 +390,15 @@ export interface DriveStartupCheckResult {
   remoteModifiedAt: string
 }
 
-// Called once on app open. Only attempts a token request — silently, no
-// popup or other Google UI (see requestAccessToken) — if this device has
-// signed in to Drive at least once before, so a visitor who's never touched
-// Google Drive is never surprised by an auth prompt. Any failure (revoked
-// access, needs re-consent, offline) is swallowed — this is a courtesy
-// check, not a required step; shouldOfferDriveReconnect's own banner is
-// what offers an interactive reconnect afterward.
+// Called once on app open. Only uses a still-valid stored token — never any
+// Google UI — so it runs quietly when the app was used within the last hour;
+// otherwise shouldOfferDriveReconnect's own banner is what offers to
+// reconnect afterward.
 export async function checkDriveForNewerBackup(): Promise<DriveStartupCheckResult | null> {
   if (!isGoogleDriveConfigured()) return null
   if (!(await hasEverConnectedToDrive())) return null
-  let token: string
-  try {
-    token = await requestAccessToken({ silent: true })
-  } catch {
-    return null
-  }
+  const token = getCachedToken()
+  if (!token) return null
   const existing = await findBackupFile(token)
   if (!existing) return null
   const syncState = await getDriveSyncState()
@@ -379,20 +414,15 @@ let lastReconnectPromptAt = 0
 
 // Auto-backup only ever uses an already-cached token (see
 // attemptSilentAutoBackup) — it never prompts on its own. That token dies
-// after under an hour, and refreshing it needs real user interaction (an
-// expired grant can't be silently renewed, see requestAccessToken's own
-// silent mode) — this decides WHETHER to offer an interactive reconnect
+// after under an hour, and a browser app can't renew it without a trip
+// through Google's sign-in page — this decides WHETHER to offer an interactive reconnect
 // prompt: only when auto-backup is actually turned on, this device has
 // connected to Drive before, there's currently no valid token, and it's
 // been at least an hour since the last time this was offered. Marks the
 // cooldown as soon as it returns true, regardless of whether the caller's
 // resulting prompt gets accepted — same "ask at most once an hour" either way.
-//
-// Deliberately does NOT itself call requestAccessToken() — an interactive
-// (non-silent) request needs a real DOM-dispatched user gesture behind it or
-// browsers with a popup blocker enabled will still block it. The caller must
-// render an actual clickable element and call connectDriveForAutoBackup()
-// directly from its onClick handler.
+// The caller shows a banner whose Connect button calls
+// connectDriveForAutoBackup(), rather than leaving the app unasked.
 export async function shouldOfferDriveReconnect(autoBackupEnabled: boolean): Promise<boolean> {
   if (!autoBackupEnabled) return false
   if (!isGoogleDriveConfigured()) return false
@@ -403,12 +433,11 @@ export async function shouldOfferDriveReconnect(autoBackupEnabled: boolean): Pro
   return true
 }
 
-// Call this directly from a real onClick handler — that's what lets the
-// popup succeed as just the lightweight account picker (same as a manual
-// Backup/Restore tap) instead of being blocked.
+// Leaves for Google's sign-in (straight back for the account last used) and
+// returns with a fresh token for auto-backup.
 export async function connectDriveForAutoBackup(): Promise<void> {
   try {
-    await requestAccessToken()
+    await requestAccessToken('connect')
   } catch {
     // Best-effort only — silently try again next time the cooldown clears.
   }
@@ -421,9 +450,9 @@ export async function connectDriveForAutoBackup(): Promise<void> {
 // after a reload) shouldn't leave the app still thinking it's connected.
 export async function disconnectGoogleDrive(): Promise<void> {
   const token = getCachedToken()
-  cachedToken = null
-  if (token && window.google?.accounts?.oauth2) {
-    await new Promise<void>((resolve) => window.google!.accounts.oauth2.revoke(token, () => resolve()))
+  clearCachedToken()
+  if (token) {
+    await fetch(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(token)}`, { method: 'POST' }).catch(() => {})
   }
   await clearDriveConnection()
 }
