@@ -23,7 +23,6 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { tImportComplete, tNoPocketYet, tRestoreBackupHistoryEntry } from '../../i18n/translations'
 import { PasscodeSetupModal } from './PasscodeSetupModal'
 import { GoogleIdentityCard } from '../common/GoogleIdentityCard'
-import { GoogleDriveCard } from '../common/GoogleDriveCard'
 
 interface Props {
   resetKey: number
@@ -225,7 +224,7 @@ export function SettingsView({ resetKey }: Props) {
 
   return (
     <div className="view boucoup-scope">
-      <GoogleIdentityCard />
+      <GoogleIdentityCard expandable />
 
       <div className="section-title">
         <h2>{t('General')}</h2>
@@ -511,8 +510,6 @@ export function SettingsView({ resetKey }: Props) {
           }}
         />
       </div>
-
-      <GoogleDriveCard />
 
       {driveEverConnected && (
         <div className="card settings-list">

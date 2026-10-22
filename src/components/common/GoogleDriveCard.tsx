@@ -13,11 +13,11 @@ import { useTranslation } from '../../hooks/useTranslation'
 import { tDriveBackupConflict, tImportComplete } from '../../i18n/translations'
 import { GoogleDriveIcon } from './GoogleDriveIcon'
 
-// The backup/restore/auto-backup card — shared between Settings (rendered
-// inline, in its Backup section) and the Dashboard's own account popup
-// (see GoogleAccountModal), which shows this directly below
+// The backup/restore/auto-backup card — shown inside Settings' expandable
+// account card (bare: its contents only, no card of its own) and in the
+// Dashboard's account popup (see GoogleAccountModal), directly below
 // GoogleIdentityCard.
-export function GoogleDriveCard() {
+export function GoogleDriveCard({ bare = false }: { bare?: boolean }) {
   const { t, lang } = useTranslation()
   const toast = useToast()
   const [busy, setBusy] = useState(false)
@@ -69,7 +69,7 @@ export function GoogleDriveCard() {
   }, [])
 
   return (
-    <div className="card settings-list" ref={cardRef}>
+    <div className={bare ? 'settings-list' : 'card settings-list'} ref={cardRef}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
           <GoogleDriveIcon size={20} />
