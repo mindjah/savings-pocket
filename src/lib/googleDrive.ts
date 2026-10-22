@@ -130,7 +130,7 @@ async function requestAccessToken(intent: DriveIntent): Promise<string> {
   if (cached) return cached
   const identity = await getDriveIdentity()
   const state = crypto.randomUUID()
-  writeStorage(PENDING_KEY, { state, intent })
+  writeStorage(PENDING_KEY, { state, intent, leftAt: Date.now() })
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
     redirect_uri: redirectUri(),
@@ -147,9 +147,16 @@ async function requestAccessToken(intent: DriveIntent): Promise<string> {
 
 let resumedIntent: DriveIntent | null = null
 let cameBack = false
+let signInLeftAt: number | null = null
 
 // True when this page load is the return from Google's sign-in page.
 export const cameBackFromDriveSignIn = () => cameBack
+
+// When the app left for Google, on the page load that's the matching return
+// (null otherwise). The redirect reloads the app from scratch, so App uses
+// this to keep a Face ID unlock from just before the trip instead of
+// locking again — a sign-in can only start from an already-unlocked app.
+export const driveSignInLeftAt = () => signInLeftAt
 
 // Without consuming it — for choosing which tab the app opens on.
 export const pendingResumedDriveIntent = () => resumedIntent
@@ -171,10 +178,11 @@ export function handleDriveRedirect(): void {
   if (!hash.includes('access_token=') && !hash.includes('error=')) return
   const params = new URLSearchParams(hash.slice(1))
   history.replaceState(null, '', location.pathname + location.search)
-  const pending = readStorage<{ state: string; intent: DriveIntent }>(PENDING_KEY)
+  const pending = readStorage<{ state: string; intent: DriveIntent; leftAt?: number }>(PENDING_KEY)
   writeStorage(PENDING_KEY, null)
   if (!pending || params.get('state') !== pending.state) return
   cameBack = true
+  signInLeftAt = typeof pending.leftAt === 'number' ? pending.leftAt : null
   const token = params.get('access_token')
   if (params.get('error') || !token) return
   cacheToken(token, Number(params.get('expires_in')) || undefined)

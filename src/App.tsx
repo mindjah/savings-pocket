@@ -20,7 +20,12 @@ import { useTranslation } from './hooks/useTranslation'
 import { useAutoBackup } from './hooks/useAutoBackup'
 import { useDriveStartupCheck } from './hooks/useDriveStartupCheck'
 import { useIsDesktop } from './hooks/useIsDesktop'
-import { connectDriveForAutoBackup, pendingResumedDriveIntent, shouldOfferDriveReconnect } from './lib/googleDrive'
+import {
+  connectDriveForAutoBackup,
+  driveSignInLeftAt,
+  pendingResumedDriveIntent,
+  shouldOfferDriveReconnect,
+} from './lib/googleDrive'
 import { GoogleDriveIcon } from './components/common/GoogleDriveIcon'
 
 const TITLES: Record<Tab, string> = {
@@ -80,7 +85,13 @@ function AppShell() {
   const [tab, setTab] = useState<Tab>(() => readInitialTab(isDesktop))
   const { t } = useTranslation()
   const [faceIdEnabled] = useMetaSetting<boolean>('faceIdEnabled', false)
-  const [unlocked, setUnlocked] = useState(false)
+  // Coming straight back from Google's sign-in counts like a quick app switch,
+  // not a fresh open: the redirect reloads the app, but the user had already
+  // passed Face ID to be able to tap Connect/Backup in the first place.
+  const [unlocked, setUnlocked] = useState(() => {
+    const leftAt = driveSignInLeftAt()
+    return leftAt != null && Date.now() - leftAt < RELOCK_AFTER_MS
+  })
   const locked = faceIdEnabled && !unlocked
   const [autoBackupEnabled] = useMetaSetting<boolean>('autoBackupToGoogleDrive', false)
   const [showDriveReconnect, setShowDriveReconnect] = useState(false)
