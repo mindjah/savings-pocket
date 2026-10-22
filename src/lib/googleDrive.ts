@@ -4,6 +4,7 @@ import {
   clearDriveConnection,
   getDriveIdentity,
   getDriveSyncState,
+  getPendingDriveUpload,
   hasEverConnectedToDrive,
   hasUnsyncedLocalChanges,
   parseBackupFile,
@@ -11,6 +12,7 @@ import {
   recordDriveConnected,
   recordDriveIdentity,
   recordDriveSync,
+  recordPendingDriveUpload,
 } from './backup'
 
 // Set at build time via the VITE_GOOGLE_CLIENT_ID env var (see .env.example) —
@@ -196,16 +198,52 @@ export function handleDriveRedirect(): void {
 }
 
 
-async function findBackupFile(token: string): Promise<{ id: string; modifiedTime: string } | null> {
+// Every copy of the canonical backup file, newest first. There should only
+// ever be one, but if two were ever created, taking whichever Drive happened
+// to list first meant backup could write one copy while the app-open check
+// and restore read the other, stale one.
+interface DriveBackupFile {
+  id: string
+  modifiedTime: string
+  sha256Checksum?: string
+}
+
+async function listBackupFiles(token: string): Promise<DriveBackupFile[]> {
   const url = new URL('https://www.googleapis.com/drive/v3/files')
   url.searchParams.set('spaces', 'appDataFolder')
-  url.searchParams.set('q', `name='${BACKUP_FILENAME}'`)
-  url.searchParams.set('fields', 'files(id,modifiedTime)')
+  url.searchParams.set('q', `name='${BACKUP_FILENAME}' and trashed = false`)
+  url.searchParams.set('fields', 'files(id,modifiedTime,sha256Checksum)')
+  url.searchParams.set('orderBy', 'modifiedTime desc')
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
   if (!res.ok) throw new Error('Could not reach Google Drive.')
-  const json = (await res.json()) as { files?: { id: string; modifiedTime: string }[] }
-  const file = json.files?.[0]
-  return file ? { id: file.id, modifiedTime: file.modifiedTime } : null
+  const json = (await res.json()) as { files?: DriveBackupFile[] }
+  return json.files ?? []
+}
+
+async function findBackupFile(token: string): Promise<DriveBackupFile | null> {
+  return (await listBackupFiles(token))[0] ?? null
+}
+
+async function sha256Hex(text: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+// Whether Drive's copy is something this device hasn't seen — i.e. most
+// likely written by another device. A copy newer than the recorded sync
+// point whose content checksum matches what this device last sent (see
+// recordPendingDriveUpload) or last synced is this device's own write after
+// all: it's adopted as the new sync point instead of being reported.
+async function isUnseenRemote(file: DriveBackupFile): Promise<boolean> {
+  const sync = await getDriveSyncState()
+  if (sync && new Date(file.modifiedTime).getTime() <= new Date(sync.at).getTime()) return false
+  const pending = await getPendingDriveUpload()
+  if (file.sha256Checksum && (file.sha256Checksum === pending || file.sha256Checksum === sync?.sha256)) {
+    await recordDriveSync(file.modifiedTime, file.sha256Checksum)
+    await recordPendingDriveUpload(null)
+    return false
+  }
+  return true
 }
 
 // A random-per-request boundary (rather than one fixed string) so it can
@@ -270,18 +308,16 @@ async function saveBackupHistoryEntry(token: string, body: string): Promise<void
 // another device — since backup is a full overwrite, not a merge. The
 // confirmation text itself is built by the caller so it can be translated.
 async function uploadBackup(token: string, onConflict: (remoteModifiedAt: string) => boolean): Promise<void> {
-  const existing = await findBackupFile(token)
+  const [existing, ...extraCopies] = await listBackupFiles(token)
 
-  if (existing) {
-    const syncState = await getDriveSyncState()
-    const remoteUnseen = !syncState || new Date(existing.modifiedTime).getTime() > new Date(syncState.at).getTime()
-    if (remoteUnseen && !onConflict(existing.modifiedTime)) {
-      throw new DriveBackupCancelled()
-    }
+  if (existing && (await isUnseenRemote(existing)) && !onConflict(existing.modifiedTime)) {
+    throw new DriveBackupCancelled()
   }
 
   const payload = await buildBackupPayload()
   const body = JSON.stringify(payload)
+  const bodySha256 = await sha256Hex(body)
+  await recordPendingDriveUpload(bodySha256)
   // Recorded sync point comes from Drive's own response, not this device's
   // clock — the server's modifiedTime for our own upload is always a beat
   // after the local pre-upload timestamp (network latency), so comparing
@@ -314,7 +350,18 @@ async function uploadBackup(token: string, onConflict: (remoteModifiedAt: string
     uploadedModifiedTime = ((await res.json()) as { modifiedTime: string }).modifiedTime
   }
   await recordBackup('google')
-  await recordDriveSync(uploadedModifiedTime)
+  await recordDriveSync(uploadedModifiedTime, bodySha256)
+  await recordPendingDriveUpload(null)
+  // Older duplicates of the canonical file (see listBackupFiles) — best-effort,
+  // the backup itself already succeeded.
+  await Promise.all(
+    extraCopies.map((f) =>
+      fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(f.id)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {}),
+    ),
+  )
   await saveBackupHistoryEntry(token, body)
 }
 
@@ -362,7 +409,7 @@ export async function restoreFromGoogleDrive(
   // clock, which is always a beat earlier than Drive's server timestamp for
   // that same upload, and would make the very next backup from this device
   // look like a conflict with the file it just restored from.
-  await recordDriveSync(existing.modifiedTime)
+  await recordDriveSync(existing.modifiedTime, existing.sha256Checksum)
   return result
 }
 
@@ -409,9 +456,7 @@ export async function checkDriveForNewerBackup(): Promise<DriveStartupCheckResul
   if (!token) return null
   const existing = await findBackupFile(token)
   if (!existing) return null
-  const syncState = await getDriveSyncState()
-  const remoteNewer = !syncState || new Date(existing.modifiedTime).getTime() > new Date(syncState.at).getTime()
-  return remoteNewer ? { remoteModifiedAt: existing.modifiedTime } : null
+  return (await isUnseenRemote(existing)) ? { remoteModifiedAt: existing.modifiedTime } : null
 }
 
 // How long to stay quiet after asking (whether accepted or declined) before

@@ -21,7 +21,19 @@ export interface BackupFile {
 // strips them from whatever it's importing (an older backup made before
 // this existed might still have them) and preserves this device's own
 // current values instead of letting the generic clear-then-bulkPut wipe them.
-const DEVICE_ONLY_META_KEYS = new Set(['faceIdEnabled', 'faceIdCredentialId', 'faceIdPasscodeHash'])
+//
+// driveSyncState is the same kind of thing: "the Drive copy THIS device last
+// matched". Carried inside a backup, applying that backup (a .json import, a
+// Backup history restore) rolled it back to whatever it was when the backup
+// was made, and the next app open then reported Drive's own copy as a newer
+// one from "another device" — offering to overwrite current data with it.
+const DEVICE_ONLY_META_KEYS = new Set([
+  'faceIdEnabled',
+  'faceIdCredentialId',
+  'faceIdPasscodeHash',
+  'driveSyncState',
+  'drivePendingUpload',
+])
 
 // Each device keeps its own dashboard card order (desktop's grid vs
 // mobile's stack are reordered independently — see DashboardView). Unlike
@@ -91,19 +103,36 @@ export async function recordBackup(method: BackupMethod): Promise<void> {
 
 export interface DriveSyncState {
   at: string
+  // SHA-256 of the Drive file's content at that point, when known.
+  sha256?: string
 }
 
 // Separate from lastBackup: this marks the point this device's local data is
 // known to match Google Drive, set after EITHER a backup or a restore, and is
 // what conflict checks compare against (multi-device backup/restore is a full
 // overwrite, not a merge — see backupToGoogleDrive/hasUnsyncedLocalChanges).
-export async function recordDriveSync(at: string): Promise<void> {
-  await db.meta.put({ key: 'driveSyncState', value: { at } satisfies DriveSyncState })
+export async function recordDriveSync(at: string, sha256?: string): Promise<void> {
+  await db.meta.put({ key: 'driveSyncState', value: { at, sha256 } satisfies DriveSyncState })
 }
 
 export async function getDriveSyncState(): Promise<DriveSyncState | null> {
   const row = await db.meta.get('driveSyncState')
   return (row?.value as DriveSyncState | undefined) ?? null
+}
+
+// Checksum of an upload that's been sent but not yet confirmed. iOS can close
+// the app after the request reaches Drive but before the response is handled
+// (auto-backup fires a few seconds after an edit, often right as the user
+// leaves the app) — Drive then holds this device's own write with no sync
+// point recorded for it, and the next check mistook it for another device's.
+export async function recordPendingDriveUpload(sha256: string | null): Promise<void> {
+  if (sha256) await db.meta.put({ key: 'drivePendingUpload', value: { sha256 } })
+  else await db.meta.delete('drivePendingUpload')
+}
+
+export async function getPendingDriveUpload(): Promise<string | null> {
+  const row = await db.meta.get('drivePendingUpload')
+  return (row?.value as { sha256?: string } | undefined)?.sha256 ?? null
 }
 
 function rowTimestamp(row: unknown): number {
